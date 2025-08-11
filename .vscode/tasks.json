@@ -1,0 +1,8 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "Dev", "type": "shell", "command": "pnpm dev", "problemMatcher": [] },
+    { "label": "Seed MLS", "type": "shell", "command": "pnpm run seed:mls" },
+    { "label": "Seed Rents", "type": "shell", "command": "pnpm run seed:rents" }
+  ]
+} 

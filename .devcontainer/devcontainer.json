@@ -1,0 +1,22 @@
+{
+  "name": "multi-analysis-dev",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "postCreateCommand": "corepack enable && pnpm i || true",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "GitHub.codespaces",
+        "ms-azuretools.vscode-docker",
+        "ms-vscode-remote.remote-containers"
+      ]
+    }
+  },
+  "forwardPorts": [3000, 4000],
+  "portsAttributes": {
+    "3000": {"label": "Web App"},
+    "4000": {"label": "API"}
+  }
+} 
