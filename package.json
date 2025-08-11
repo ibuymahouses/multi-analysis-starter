@@ -1,12 +1,11 @@
 {
   "name": "multi-analysis-monorepo",
   "private": true,
-  "packageManager": "pnpm@9.0.0",
-  "workspaces": ["app","api","worker"],
   "scripts": {
-    "dev": "concurrently -n APP,API \"pnpm --filter app dev\" \"pnpm --filter api dev\"",
+    "dev": "concurrently -n APP,API \"npm run dev --prefix app\" \"npm run dev --prefix api\"",
     "seed:mls": "node seed/mls-loader.js",
-    "seed:rents": "node seed/rent-loader.js"
+    "seed:rents": "node seed/rent-loader.js",
+    "install:all": "npm install && npm install --prefix app && npm install --prefix api && npm install --prefix worker"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
