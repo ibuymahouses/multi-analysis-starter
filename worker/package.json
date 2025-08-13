@@ -2,5 +2,10 @@
   "name": "worker",
   "private": true,
   "type": "module",
-  "scripts": { "start": "node src/index.js" }
-} 
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "multi-analysis-monorepo": "file:.."
+  }
+}

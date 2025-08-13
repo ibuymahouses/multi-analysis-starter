@@ -1,0 +1,34 @@
+{
+  "73312311": {
+    "propertyId": "73312311",
+    "opex": {
+      "legal": 0.08
+    },
+    "lastUpdated": "2025-08-11T23:50:16.780Z"
+  },
+  "73387006": {
+    "propertyId": "73387006",
+    "unitMix": [
+      {
+        "bedrooms": 1,
+        "count": 1
+      },
+      {
+        "bedrooms": 2,
+        "count": 1
+      }
+    ],
+    "lastUpdated": "2025-08-12T13:47:08.117Z"
+  },
+  "73403520": {
+    "offerPrice": 691664,
+    "monthlyRent": 2700,
+    "downPayment": 0.25
+  },
+  "metadata": {
+    "description": "Per-property overrides for unit mix and OPEX assumptions",
+    "lastUpdated": "2025-08-11T23:30:00.000Z",
+    "version": "1.0"
+  },
+  "overrides": {}
+}
