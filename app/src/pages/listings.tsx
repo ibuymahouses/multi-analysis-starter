@@ -467,7 +467,7 @@ export default function ListingsPage() {
       <div className="flex items-center gap-4 mb-6">
         <Link href="/">
           <Button variant="outline" size="sm">
-            ← Back to Search
+          ← Back to Search
           </Button>
         </Link>
         <h1 className="text-3xl font-bold">Property Listings</h1>
@@ -485,7 +485,7 @@ export default function ListingsPage() {
             <div className="flex items-center gap-2">
               <Badge variant="outline">Search</Badge>
               <span className="text-blue-800">{searchInfo}</span>
-            </div>
+        </div>
           </CardContent>
         </Card>
       )}
@@ -509,8 +509,8 @@ export default function ListingsPage() {
                   <SelectItem value="agg">Aggressive (1.10×)</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            
+          </div>
+          
             <div className="space-y-2">
               <label className="text-sm font-medium">Market Tier</label>
               <Select value={tier} onValueChange={setTier}>
@@ -526,8 +526,8 @@ export default function ListingsPage() {
                   <SelectItem value="unknown">Unknown</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            
+          </div>
+          
             <div className="space-y-2">
               <label className="text-sm font-medium">County</label>
               <Select value={county} onValueChange={setCounty}>
@@ -539,82 +539,82 @@ export default function ListingsPage() {
                   {counties.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
-            
+          </div>
+          
             <div className="space-y-2">
               <label className="text-sm font-medium">Price Range</label>
               <div className="flex gap-2">
                 <Input
-                  type="number"
-                  placeholder="Min"
-                  value={priceMin}
-                  onChange={(e) => setPriceMin(e.target.value)}
-                />
+                type="number"
+                placeholder="Min"
+                value={priceMin}
+                onChange={(e) => setPriceMin(e.target.value)}
+              />
                 <Input
-                  type="number"
-                  placeholder="Max"
-                  value={priceMax}
-                  onChange={(e) => setPriceMax(e.target.value)}
-                />
-              </div>
+                type="number"
+                placeholder="Max"
+                value={priceMax}
+                onChange={(e) => setPriceMax(e.target.value)}
+              />
             </div>
-            
+          </div>
+          
             <div className="space-y-2">
               <label className="text-sm font-medium">Units Range</label>
               <div className="flex gap-2">
                 <Input
-                  type="number"
-                  placeholder="Min"
-                  value={unitsMin}
-                  onChange={(e) => setUnitsMin(e.target.value)}
-                />
+                type="number"
+                placeholder="Min"
+                value={unitsMin}
+                onChange={(e) => setUnitsMin(e.target.value)}
+              />
                 <Input
-                  type="number"
-                  placeholder="Max"
-                  value={unitsMax}
-                  onChange={(e) => setUnitsMax(e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium">
-                <input
-                  type="checkbox"
-                  checked={onePercentRule}
-                  onChange={(e) => setOnePercentRule(e.target.checked)}
-                  className="rounded"
-                />
-                1% Rule Only
-              </label>
-              <p className="text-xs text-muted-foreground">
-                Monthly rent ≥ 1% of list price
-              </p>
+                type="number"
+                placeholder="Max"
+                value={unitsMax}
+                onChange={(e) => setUnitsMax(e.target.value)}
+              />
             </div>
           </div>
           
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={onePercentRule}
+                onChange={(e) => setOnePercentRule(e.target.checked)}
+                  className="rounded"
+              />
+              1% Rule Only
+            </label>
+              <p className="text-xs text-muted-foreground">
+              Monthly rent ≥ 1% of list price
+              </p>
+          </div>
+        </div>
+        
                      <div className="flex gap-3 items-center">
-             <a 
-               href={`http://localhost:4000/export/analyzed.csv?mode=${mode}`} 
-               target="_blank" 
-               rel="noreferrer"
+          <a 
+            href={`http://localhost:4000/export/analyzed.csv?mode=${mode}`} 
+            target="_blank" 
+            rel="noreferrer"
              >
                <Button>
-                 Export CSV
+            Export CSV
                </Button>
-             </a>
+          </a>
              
              <AssumptionsDialog 
                assumptions={assumptions}
                onAssumptionsChange={setAssumptions}
              />
-             
-             {hasActiveFilters && (
+          
+          {hasActiveFilters && (
                <Button variant="outline" onClick={clearFilters}>
-                 Clear Filters
+              Clear Filters
                </Button>
-             )}
-           </div>
+          )}
+        </div>
         </CardContent>
       </Card>
 
@@ -628,14 +628,14 @@ export default function ListingsPage() {
         <>
           <div className="mb-4">
             <p className="text-sm text-muted-foreground">
-              Showing {sortedRows.length} of {rows.length} listings
-              {sortField !== 'LIST_NO' && (
-                <span> • Sorted by {sortField} ({sortDirection})</span>
-              )}
-              {hasActiveFilters && (
-                <span> • Filters applied</span>
-              )}
-            </p>
+            Showing {sortedRows.length} of {rows.length} listings
+            {sortField !== 'LIST_NO' && (
+              <span> • Sorted by {sortField} ({sortDirection})</span>
+            )}
+            {hasActiveFilters && (
+              <span> • Filters applied</span>
+            )}
+          </p>
           </div>
           
           <EnhancedTable
@@ -654,7 +654,7 @@ export default function ListingsPage() {
       
              <p className="mt-4 text-sm text-muted-foreground">
          Data: Comprehensive MA coverage ({meta?.totalZips || '?'} ZIPs), your OPEX defaults, financing at {(assumptions.ltv * 100).toFixed(0)}% LTV, {(assumptions.interestRate * 100).toFixed(2)}% rate, {assumptions.loanTerm}yr term.
-       </p>
+      </p>
     </main>
   );
 } 
