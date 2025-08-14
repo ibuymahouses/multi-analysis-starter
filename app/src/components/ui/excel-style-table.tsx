@@ -1,37 +1,29 @@
 import * as React from "react"
-import { Button } from "@/components/ui/button"
+import { useState, useRef, useEffect } from "react"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuGroup,
-} from "@/components/ui/dropdown-menu"
-import { 
-  ChevronDown, 
-  ChevronUp, 
-  ChevronsUpDown, 
-  Filter,
-  Search,
-  ArrowUpDown,
-  SortAsc,
-  SortDesc
-} from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { X, ChevronUp, ChevronDown, ChevronsUpDown, Filter, MoreHorizontal, Copy, Check, Edit3 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ExcelFilterDropdown } from "./excel-filter-dropdown"
 
 interface Column {
   key: string
   label: string
   sortable?: boolean
   filterable?: boolean
+  editable?: boolean
+  width?: number
+  minWidth?: number
+  maxWidth?: number
   align?: 'left' | 'right' | 'center'
-  render?: (value: any, row: any) => React.ReactNode
+  type?: 'text' | 'number' | 'date' | 'select'
+  options?: string[] // For select type
+  render?: (value: any, row: any, isEditing: boolean, onEdit: (value: any) => void) => React.ReactNode
+  format?: (value: any) => string
 }
 
 interface ExcelStyleTableProps {
@@ -40,10 +32,21 @@ interface ExcelStyleTableProps {
   sortField: string
   sortDirection: 'asc' | 'desc'
   onSort: (field: string) => void
-  filters: Record<string, string[]>
-  onFilterChange: (field: string, values: string[]) => void
+  filters: Record<string, any>
+  onFilterChange: (field: string, value: any) => void
   onClearFilter: (field: string) => void
   onClearAllFilters: () => void
+  onRowSelect?: (selectedRows: any[]) => void
+  onCellEdit?: (rowIndex: number, field: string, value: any) => void
+  selectable?: boolean
+  copyable?: boolean
+}
+
+interface FilterConfig {
+  type: 'text' | 'number' | 'select' | 'range' | 'multiple'
+  value: any
+  operator?: 'equals' | 'contains' | 'startsWith' | 'endsWith' | 'greaterThan' | 'lessThan' | 'between'
+  secondValue?: any // For range filters
 }
 
 export function ExcelStyleTable({
@@ -55,237 +58,378 @@ export function ExcelStyleTable({
   filters,
   onFilterChange,
   onClearFilter,
-  onClearAllFilters
+  onClearAllFilters,
+  onRowSelect,
+  onCellEdit,
+  selectable = false,
+  copyable = true
 }: ExcelStyleTableProps) {
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set())
+  const [editingCell, setEditingCell] = useState<{ row: number; col: string } | null>(null)
+  const [filterPopovers, setFilterPopovers] = useState<Set<string>>(new Set())
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
+  const [resizingColumn, setResizingColumn] = useState<string | null>(null)
+  const tableRef = useRef<HTMLDivElement>(null)
+
+  // Initialize column widths
+  useEffect(() => {
+    const widths: Record<string, number> = {}
+    columns.forEach(col => {
+      widths[col.key] = col.width || 150
+    })
+    setColumnWidths(widths)
+  }, [columns])
+
   const getSortIcon = (field: string) => {
-    if (sortField !== field) return <ChevronsUpDown className="h-4 w-4" />
+    if (sortField !== field) return <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
     return sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
   }
 
-  const hasActiveFilters = Object.values(filters).some(filter => filter.length > 0)
-
-  // Get unique values for each column
-  const getUniqueValues = (field: string) => {
-    const values = new Set<string>()
-    data.forEach(row => {
-      const value = row[field]
-      if (value !== null && value !== undefined && value !== '') {
-        values.add(String(value))
-      }
-    })
-    return Array.from(values).sort()
+  const handleRowSelect = (rowIndex: number, checked: boolean) => {
+    const newSelected = new Set(selectedRows)
+    if (checked) {
+      newSelected.add(rowIndex)
+    } else {
+      newSelected.delete(rowIndex)
+    }
+    setSelectedRows(newSelected)
+    onRowSelect?.(data.filter((_, i) => newSelected.has(i)))
   }
 
-  // Filter data based on current filters
-  const filteredData = data.filter(row => {
-    return Object.entries(filters).every(([field, filterValues]) => {
-      if (filterValues.length === 0) return true
-      const cellValue = String(row[field] || '')
-      return filterValues.some(filterValue => 
-        cellValue.toLowerCase().includes(filterValue.toLowerCase())
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allSelected = new Set(data.map((_, i) => i))
+      setSelectedRows(allSelected)
+      onRowSelect?.(data)
+    } else {
+      setSelectedRows(new Set())
+      onRowSelect?.([])
+    }
+  }
+
+  const handleCellEdit = (rowIndex: number, field: string, value: any) => {
+    onCellEdit?.(rowIndex, field, value)
+    setEditingCell(null)
+  }
+
+  const handleCopySelection = async () => {
+    if (selectedRows.size === 0) return
+
+    const selectedData = data.filter((_, i) => selectedRows.has(i))
+    const csvContent = [
+      columns.map(col => col.label).join('\t'),
+      ...selectedData.map(row => 
+        columns.map(col => {
+          const value = row[col.key]
+          return col.format ? col.format(value) : String(value || '')
+        }).join('\t')
       )
-    })
+    ].join('\n')
+
+    try {
+      await navigator.clipboard.writeText(csvContent)
+      // Show success feedback
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err)
+    }
+  }
+
+  const handleColumnResize = (columnKey: string, newWidth: number) => {
+    const column = columns.find(col => col.key === columnKey)
+    if (!column) return
+
+    const minWidth = column.minWidth || 80
+    const maxWidth = column.maxWidth || 400
+    const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth))
+
+    setColumnWidths(prev => ({
+      ...prev,
+      [columnKey]: clampedWidth
+    }))
+  }
+
+  const getFilterComponent = (column: Column) => {
+    const filterValue = filters[column.key]
+    
+    switch (column.type) {
+      case 'number':
+        return (
+          <div className="space-y-2">
+            <Select 
+              value={filterValue?.operator || 'equals'} 
+              onValueChange={(operator) => onFilterChange(column.key, { ...filterValue, operator })}
+            >
+              <SelectTrigger className="h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="equals">Equals</SelectItem>
+                <SelectItem value="greaterThan">Greater than</SelectItem>
+                <SelectItem value="lessThan">Less than</SelectItem>
+                <SelectItem value="between">Between</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              type="number"
+              placeholder="Value"
+              value={filterValue?.value || ''}
+              onChange={(e) => onFilterChange(column.key, { ...filterValue, value: e.target.value })}
+              className="h-8"
+            />
+            {filterValue?.operator === 'between' && (
+              <Input
+                type="number"
+                placeholder="Second value"
+                value={filterValue?.secondValue || ''}
+                onChange={(e) => onFilterChange(column.key, { ...filterValue, secondValue: e.target.value })}
+                className="h-8"
+              />
+            )}
+          </div>
+        )
+      
+      case 'select':
+        return (
+          <div className="space-y-2">
+            <Select 
+              value={filterValue || 'all'} 
+              onValueChange={(value) => onFilterChange(column.key, value === 'all' ? null : value)}
+            >
+              <SelectTrigger className="h-8">
+                <SelectValue placeholder="Select..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                {column.options?.map(option => (
+                  <SelectItem key={option} value={option}>{option}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )
+      
+      default:
+        return (
+          <div className="space-y-2">
+            <Select 
+              value={filterValue?.operator || 'contains'} 
+              onValueChange={(operator) => onFilterChange(column.key, { ...filterValue, operator })}
+            >
+              <SelectTrigger className="h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="contains">Contains</SelectItem>
+                <SelectItem value="equals">Equals</SelectItem>
+                <SelectItem value="startsWith">Starts with</SelectItem>
+                <SelectItem value="endsWith">Ends with</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              placeholder="Filter value"
+              value={filterValue?.value || ''}
+              onChange={(e) => onFilterChange(column.key, { ...filterValue, value: e.target.value })}
+              className="h-8"
+            />
+          </div>
+        )
+    }
+  }
+
+  const hasActiveFilters = Object.values(filters).some(filter => {
+    if (Array.isArray(filter)) return filter.length > 0
+    if (typeof filter === 'string') return filter.trim() !== ''
+    if (typeof filter === 'object') return filter.value || filter.secondValue
+    return false
   })
 
   return (
     <div className="space-y-4">
-      {/* Filter Summary */}
-      {hasActiveFilters && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm text-muted-foreground">Active filters:</span>
-          {Object.entries(filters).map(([field, values]) => {
-            if (values.length === 0) return null
-            const column = columns.find(col => col.key === field)
-            return (
-              <Badge key={field} variant="secondary" className="gap-1">
-                {column?.label}: {values.join(', ')}
-                <button
-                  onClick={() => onClearFilter(field)}
-                  className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-full p-0.5"
-                >
-                  ×
-                </button>
-              </Badge>
-            )
-          })}
-          <Button variant="outline" size="sm" onClick={onClearAllFilters}>
-            Clear All
-          </Button>
+      {/* Toolbar */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {selectable && (
+            <span className="text-sm text-muted-foreground">
+              {selectedRows.size} of {data.length} selected
+            </span>
+          )}
+          {hasActiveFilters && (
+            <Button variant="outline" size="sm" onClick={onClearAllFilters}>
+              Clear All Filters
+            </Button>
+          )}
         </div>
-      )}
-
-      {/* Table */}
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {columns.map((column) => (
-                <TableHead key={column.key} className={cn(
-                  column.align === 'right' && 'text-right',
-                  column.align === 'center' && 'text-center'
-                )}>
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{column.label}</span>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                          <ArrowUpDown className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-80">
-                        <DropdownMenuLabel>Sort & Filter</DropdownMenuLabel>
-                        
-                        {/* Sort Options */}
-                        {column.sortable && (
-                          <>
-                            <DropdownMenuGroup>
-                              <DropdownMenuItem onClick={() => onSort(column.key)}>
-                                <SortAsc className="mr-2 h-4 w-4" />
-                                Sort A to Z
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => onSort(column.key)}>
-                                <SortDesc className="mr-2 h-4 w-4" />
-                                Sort Z to A
-                              </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                            <DropdownMenuSeparator />
-                          </>
-                        )}
-
-                        {/* Filter Options */}
-                        {column.filterable && (
-                          <>
-                            <DropdownMenuGroup>
-                              <DropdownMenuItem 
-                                onClick={() => onClearFilter(column.key)}
-                                disabled={!filters[column.key] || filters[column.key].length === 0}
-                              >
-                                <Filter className="mr-2 h-4 w-4" />
-                                Clear Filter from "{column.label}"
-                              </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                            <DropdownMenuSeparator />
-                            
-                            {/* Search */}
-                            <div className="p-2">
-                              <div className="relative">
-                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                  placeholder="Search..."
-                                  className="pl-8"
-                                  onChange={(e) => {
-                                    const searchValue = e.target.value.toLowerCase()
-                                    const uniqueValues = getUniqueValues(column.key)
-                                    const filteredValues = uniqueValues.filter(value => 
-                                      value.toLowerCase().includes(searchValue)
-                                    )
-                                    // This would need to be implemented with a more complex state management
-                                    // For now, we'll just show the search input
-                                  }}
-                                />
-                              </div>
-                            </div>
-
-                            {/* Filter Values */}
-                            <div className="max-h-60 overflow-y-auto">
-                              <ColumnFilterValues
-                                column={column}
-                                uniqueValues={getUniqueValues(column.key)}
-                                selectedValues={filters[column.key] || []}
-                                onSelectionChange={(values) => onFilterChange(column.key, values)}
-                              />
-                            </div>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredData.map((row, index) => (
-              <TableRow key={index}>
-                {columns.map((column) => (
-                  <TableCell key={column.key} className={cn(
-                    column.align === 'right' && 'text-right',
-                    column.align === 'center' && 'text-center'
-                  )}>
-                    {column.render ? column.render(row[column.key], row) : row[column.key]}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        
+        <div className="flex items-center gap-2">
+          {copyable && selectedRows.size > 0 && (
+            <Button variant="outline" size="sm" onClick={handleCopySelection}>
+              <Copy className="h-4 w-4 mr-1" />
+              Copy Selection
+            </Button>
+          )}
+        </div>
       </div>
-    </div>
-  )
-}
 
-// Component for the filter values list
-function ColumnFilterValues({ 
-  column, 
-  uniqueValues, 
-  selectedValues, 
-  onSelectionChange 
-}: {
-  column: Column
-  uniqueValues: string[]
-  selectedValues: string[]
-  onSelectionChange: (values: string[]) => void
-}) {
-  const [selectAll, setSelectAll] = React.useState(true)
-
-  React.useEffect(() => {
-    setSelectAll(selectedValues.length === 0 || selectedValues.length === uniqueValues.length)
-  }, [selectedValues, uniqueValues])
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      onSelectionChange([]) // Empty array means "show all"
-    } else {
-      onSelectionChange([]) // Keep empty to show all
-    }
-    setSelectAll(checked)
-  }
-
-  const handleValueToggle = (value: string, checked: boolean) => {
-    if (checked) {
-      // Add value to selection
-      const newSelection = selectedValues.length === 0 ? uniqueValues : selectedValues
-      onSelectionChange(newSelection.filter(v => v !== value))
-    } else {
-      // Remove value from selection
-      const newSelection = selectedValues.filter(v => v !== value)
-      onSelectionChange(newSelection.length === 0 ? [] : newSelection)
-    }
-  }
-
-  const isValueSelected = (value: string) => {
-    return selectedValues.length === 0 || selectedValues.includes(value)
-  }
-
-  return (
-    <div className="p-2 space-y-1">
-      <DropdownMenuCheckboxItem
-        checked={selectAll}
-        onCheckedChange={handleSelectAll}
-        className="font-medium"
+      {/* Excel-style Table */}
+      <div 
+        ref={tableRef}
+        className="border border-gray-300 rounded-lg overflow-hidden bg-white"
+        style={{ 
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)'
+        }}
       >
-        (Select All)
-      </DropdownMenuCheckboxItem>
-      <DropdownMenuSeparator />
-      {uniqueValues.map((value) => (
-        <DropdownMenuCheckboxItem
-          key={value}
-          checked={isValueSelected(value)}
-          onCheckedChange={(checked) => handleValueToggle(value, checked)}
-        >
-          {value}
-        </DropdownMenuCheckboxItem>
-      ))}
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                {selectable && (
+                  <th className="border-r border-gray-200 p-0" style={{ width: 40 }}>
+                    <div className="p-2">
+                      <Checkbox
+                        checked={selectedRows.size === data.length && data.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </div>
+                  </th>
+                )}
+                {columns.map((column) => (
+                  <th 
+                    key={column.key}
+                    className="border-r border-gray-200 p-0 relative"
+                    style={{ 
+                      width: columnWidths[column.key] || column.width || 150,
+                      minWidth: column.minWidth || 80
+                    }}
+                  >
+                    <div className="p-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm text-gray-700 truncate">
+                          {column.label}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {column.sortable && (
+                            <button
+                              onClick={() => onSort(column.key)}
+                              className="p-1 hover:bg-gray-200 rounded transition-colors"
+                              title={`Sort by ${column.label}`}
+                            >
+                              {getSortIcon(column.key)}
+                            </button>
+                          )}
+                                                     {column.filterable && (
+                             <ExcelFilterDropdown
+                               column={{
+                                 id: column.key,
+                                 header: column.label,
+                                 data: data.map(row => row[column.key])
+                               }}
+                               onFilterChange={onFilterChange}
+                               onSortChange={onSort}
+                               currentFilter={Array.isArray(filters[column.key]) ? filters[column.key] : (filters[column.key] ? [filters[column.key]] : [])}
+                             />
+                           )}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Column resize handle */}
+                    <div
+                      className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-400"
+                      onMouseDown={(e) => {
+                        setResizingColumn(column.key)
+                        e.preventDefault()
+                      }}
+                    />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="bg-white">
+              {data.map((row, rowIndex) => (
+                <tr 
+                  key={rowIndex}
+                  className={cn(
+                    "border-b border-gray-100 hover:bg-gray-50 transition-colors",
+                    selectedRows.has(rowIndex) && "bg-blue-50 hover:bg-blue-100"
+                  )}
+                >
+                  {selectable && (
+                    <td className="border-r border-gray-200 p-0">
+                      <div className="p-2">
+                        <Checkbox
+                          checked={selectedRows.has(rowIndex)}
+                          onCheckedChange={(checked) => handleRowSelect(rowIndex, checked as boolean)}
+                        />
+                      </div>
+                    </td>
+                  )}
+                  {columns.map((column) => (
+                    <td 
+                      key={column.key}
+                      className={cn(
+                        "border-r border-gray-100 p-2 text-sm",
+                        column.align === 'right' && 'text-right',
+                        column.align === 'center' && 'text-center',
+                        editingCell?.row === rowIndex && editingCell?.col === column.key && 'bg-blue-50 border-blue-300'
+                      )}
+                      style={{ 
+                        width: columnWidths[column.key] || column.width || 150,
+                        minWidth: column.minWidth || 80
+                      }}
+                      onDoubleClick={() => {
+                        if (column.editable) {
+                          setEditingCell({ row: rowIndex, col: column.key })
+                        }
+                      }}
+                    >
+                      {column.render ? 
+                        column.render(
+                          row[column.key], 
+                          row, 
+                          editingCell?.row === rowIndex && editingCell?.col === column.key,
+                          (value) => handleCellEdit(rowIndex, column.key, value)
+                        ) : 
+                        (editingCell?.row === rowIndex && editingCell?.col === column.key) ?
+                          <Input
+                            value={row[column.key] || ''}
+                            onChange={(e) => handleCellEdit(rowIndex, column.key, e.target.value)}
+                            onBlur={() => setEditingCell(null)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleCellEdit(rowIndex, column.key, e.currentTarget.value)
+                              } else if (e.key === 'Escape') {
+                                setEditingCell(null)
+                              }
+                            }}
+                            className="h-6 text-sm"
+                            autoFocus
+                          /> :
+                          <span className="truncate block">
+                            {column.format ? column.format(row[column.key]) : String(row[column.key] || '')}
+                          </span>
+                      }
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Column resize overlay */}
+      {resizingColumn && (
+        <div
+          className="fixed inset-0 z-50 cursor-col-resize"
+          onMouseMove={(e) => {
+            if (resizingColumn && tableRef.current) {
+              const rect = tableRef.current.getBoundingClientRect()
+              const newWidth = e.clientX - rect.left
+              handleColumnResize(resizingColumn, newWidth)
+            }
+          }}
+          onMouseUp={() => setResizingColumn(null)}
+        />
+      )}
     </div>
   )
 }

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { useUndoRedo } from '../../lib/undo-redo-context';
+import { useKeyboardShortcuts } from '../../lib/use-keyboard-shortcuts';
 
 interface UnitMix {
   bedrooms: number;
@@ -32,16 +34,18 @@ interface Property {
     unitMix?: UnitMix[];
     monthlyRent?: number;
     offerPrice?: number;
-    opex?: {
-      waterSewer?: number;
-      commonElec?: number;
-      rubbish?: number;
-      pm?: number;
-      repairs?: number;
-      legal?: number;
-      capex?: number;
-      taxes?: number;
-    };
+    vacancy?: number;
+         opex?: {
+       waterSewer?: number;
+       commonElec?: number;
+       rubbish?: number;
+       pm?: number;
+       repairs?: number;
+       legal?: number;
+       capex?: number;
+       taxes?: number;
+       licensing?: number;
+     };
     downPayment?: number;
     interestRate?: number;
     loanTerm?: number;
@@ -54,6 +58,23 @@ export default function PropertyDetails() {
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [bhaRentalData, setBhaRentalData] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'annual' | 'monthly'>('annual');
+  
+  // Undo/Redo integration
+  const { setState: setUndoState, state: undoState, canUndo, canRedo, undo, redo } = useUndoRedo();
+  useKeyboardShortcuts();
+
+  // Function to get BHA rent for specific bedroom count and ZIP code
+  const getBHARentForBedrooms = (bedrooms: number, zipCode: string) => {
+    if (!bhaRentalData) return 0;
+    
+    const zipData = bhaRentalData.rents?.find((item: any) => item.zip === zipCode);
+    if (!zipData) return 0;
+    
+    const bedroomKey = String(bedrooms);
+    return zipData.rents[bedroomKey] || 0;
+  };
 
   useEffect(() => {
     if (!LIST_NO) return;
@@ -61,6 +82,11 @@ export default function PropertyDetails() {
     const fetchProperty = async () => {
       try {
         setLoading(true);
+        
+        // Fetch BHA rental data
+        const bhaResponse = await fetch('/api/rental-rates');
+        const bhaData = await bhaResponse.json();
+        setBhaRentalData(bhaData);
         
         // Fetch analysis data
         const analysisResponse = await fetch(`http://localhost:4000/analyze/${LIST_NO}`);
@@ -143,7 +169,15 @@ export default function PropertyDetails() {
       });
       
       if (response.ok) {
-        setProperty(prev => prev ? { ...prev, overrides: { ...(prev.overrides || {}), ...updates } } : null);
+        const newProperty = { ...property, overrides: { ...(property.overrides || {}), ...updates } };
+        setProperty(newProperty);
+        
+        // Save to undo/redo system
+        setUndoState({
+          type: 'property-update',
+          property: newProperty,
+          timestamp: Date.now()
+        });
       }
     } catch (err) {
       console.error('Failed to update overrides:', err);
@@ -176,22 +210,24 @@ export default function PropertyDetails() {
   const downPayment = property.overrides?.downPayment || 0.25;
   const interestRate = property.overrides?.interestRate || 0.07;
   const loanTerm = property.overrides?.loanTerm || 30;
+  const vacancy = property.overrides?.vacancy || 0.03; // Default to 3%
   
   // Offer price - use override or default to list price
   const offerPrice = property.overrides?.offerPrice || property.LIST_PRICE;
   const offerPricePercent = (offerPrice / property.LIST_PRICE) * 100;
 
-  // OPEX breakdown - use overrides or defaults
-  const opexDefaults = {
-    waterSewer: property.analysis.opex * 0.15, // 15% of total OPEX
-    commonElec: property.analysis.opex * 0.10, // 10% of total OPEX
-    rubbish: property.analysis.opex * 0.05,    // 5% of total OPEX
-    pm: property.analysis.opex * 0.10,         // 10% of total OPEX
-    repairs: property.analysis.opex * 0.20,    // 20% of total OPEX
-    legal: property.analysis.opex * 0.05,      // 5% of total OPEX
-    capex: property.analysis.opex * 0.15,      // 15% of total OPEX
-    taxes: property.TAXES || 0                 // Property taxes
-  };
+     // OPEX breakdown - use overrides or defaults
+   const opexDefaults = {
+     waterSewer: property.analysis.opex * 0.15, // 15% of total OPEX
+     commonElec: property.analysis.opex * 0.10, // 10% of total OPEX
+     rubbish: property.analysis.opex * 0.05,    // 5% of total OPEX
+     pm: property.analysis.opex * 0.10,         // 10% of total OPEX
+     repairs: property.analysis.opex * 0.20,    // 20% of total OPEX
+     legal: property.analysis.opex * 0.05,      // 5% of total OPEX
+     capex: property.analysis.opex * 0.15,      // 15% of total OPEX
+     taxes: property.TAXES || 0,                // Property taxes
+     licensing: 0                               // Licensing & Permits
+   };
 
   const opex = property.overrides?.opex || opexDefaults;
   const totalOpex = Object.values(opex).reduce((sum, val) => sum + (val || 0), 0);
@@ -202,7 +238,9 @@ export default function PropertyDetails() {
   const averageBedrooms = totalUnits > 0 ? totalBedrooms / totalUnits : 0;
   
   const annualGross = monthlyRent * 12;
-  const noi = annualGross - totalOpex;
+  const vacancyAmount = annualGross * vacancy;
+  const effectiveGrossIncome = annualGross - vacancyAmount;
+  const noi = effectiveGrossIncome - totalOpex;
   const loanAmount = offerPrice * (1 - downPayment);
   const monthlyPayment = (loanAmount * (interestRate / 12) * Math.pow(1 + interestRate / 12, loanTerm * 12)) / (Math.pow(1 + interestRate / 12, loanTerm * 12) - 1);
   const annualDebtService = monthlyPayment * 12;
@@ -228,26 +266,96 @@ export default function PropertyDetails() {
     capRate
   });
 
-  // Format currency
+  // Format currency - rounded to nearest dollar
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    return new Intl.NumberFormat('en-US', { 
+      style: 'currency', 
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(Math.round(amount));
   };
 
-  // Format percentage
+  // Format percentage - general purpose
   const formatPercent = (value: number) => {
     return `${(value * 100).toFixed(2)}%`;
   };
 
-  // Get market tier based on cap rate
-  const getMarketTier = (capRate: number) => {
-    if (capRate >= 0.08) return { tier: 'A+', color: '#28a745' };
-    if (capRate >= 0.07) return { tier: 'A', color: '#20c997' };
-    if (capRate >= 0.06) return { tier: 'B', color: '#ffc107' };
-    if (capRate >= 0.05) return { tier: 'C', color: '#fd7e14' };
-    return { tier: 'D', color: '#dc3545' };
+  // Format return on capital - 1 decimal place
+  const formatReturnOnCapital = (value: number) => {
+    return `${(value * 100).toFixed(1)}%`;
   };
 
-  const marketTier = getMarketTier(capRate);
+  // Format LTV percentage - no decimals
+  const formatLTV = (value: number) => {
+    return `${Math.round(value * 100)}%`;
+  };
+
+  // Format interest rate - 2 decimal places
+  const formatInterestRate = (value: number) => {
+    return `${(value * 100).toFixed(2)}%`;
+  };
+
+  // Format cap rate - 1 decimal place
+  const formatCapRate = (value: number) => {
+    return `${(value * 100).toFixed(1)}%`;
+  };
+
+  // Helper functions for annual/monthly conversion
+  const toDisplayValue = (annualValue: number) => {
+    return viewMode === 'monthly' ? annualValue / 12 : annualValue;
+  };
+
+  const fromDisplayValue = (displayValue: number) => {
+    return viewMode === 'monthly' ? displayValue * 12 : displayValue;
+  };
+
+  const getDisplayLabel = () => {
+    return viewMode === 'monthly' ? 'Monthly ($)' : 'Annual ($)';
+  };
+
+  // Helper function to update value from percentage input
+  const updateFromPercentage = (percentage: number, field: string) => {
+    const newAnnualValue = (percentage / 100) * annualGross;
+    updateOverrides({ [field]: newAnnualValue });
+  };
+
+  // Helper function to update value from dollar input
+  const updateFromDollar = (dollarValue: number, field: string) => {
+    const newAnnualValue = fromDisplayValue(dollarValue);
+    updateOverrides({ [field]: newAnnualValue });
+  };
+
+  // Helper function to format input value for display
+  const formatInputValue = (value: number, type: 'currency' | 'percentage') => {
+    if (type === 'currency') {
+      return new Intl.NumberFormat('en-US', { 
+        style: 'currency', 
+        currency: 'USD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(Math.round(value));
+    } else if (type === 'percentage') {
+      return `${(value * 100).toFixed(1)}%`;
+    }
+    return value.toString();
+  };
+
+  // Helper function to parse formatted input value
+  const parseInputValue = (formattedValue: string, type: 'currency' | 'percentage') => {
+    if (type === 'currency') {
+      // Remove currency symbols and commas, then parse
+      const cleanValue = formattedValue.replace(/[$,]/g, '');
+      return parseFloat(cleanValue) || 0;
+    } else if (type === 'percentage') {
+      // Remove % symbol and parse
+      const cleanValue = formattedValue.replace(/%/g, '');
+      return (parseFloat(cleanValue) || 0) / 100;
+    }
+    return parseFloat(formattedValue) || 0;
+  };
+
+
 
   return (
     <main style={{ 
@@ -258,6 +366,31 @@ export default function PropertyDetails() {
     }}>
       {/* Header */}
       <div style={{ marginBottom: '32px' }}>
+        <div style={{ marginBottom: '16px' }}>
+          <button 
+            onClick={() => {
+              // Build back URL with current filter parameters
+              const currentQuery = { ...router.query };
+              delete currentQuery.LIST_NO; // Remove the property-specific parameter
+              
+              router.push({
+                pathname: '/listings',
+                query: currentQuery
+              });
+            }}
+            style={{ 
+              padding: '8px 16px', 
+              background: '#f8f9fa', 
+              border: '1px solid #ddd', 
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              color: '#666'
+            }}
+          >
+            ← Back to Listings
+          </button>
+        </div>
         <h1 style={{ 
           fontSize: '28px', 
           fontWeight: 'bold', 
@@ -266,153 +399,71 @@ export default function PropertyDetails() {
         }}>
           {property.ADDRESS}
         </h1>
-        <p style={{ 
-          fontSize: '16px', 
-          color: '#666', 
-          margin: '0 0 16px 0' 
-        }}>
-          MLS #{property.LIST_NO} • {property.TOWN}, {property.STATE} {property.ZIP_CODE}
-        </p>
+                 <p style={{ 
+           fontSize: '16px', 
+           color: '#666', 
+           margin: '0 0 16px 0' 
+         }}>
+           MLS #{property.LIST_NO} • {property.TOWN}, {property.STATE} {property.ZIP_CODE} • {property.UNITS_FINAL}-unit property
+         </p>
       </div>
 
-      {/* Editable Assumptions */}
-      <section style={{ marginBottom: '24px' }}>
+      
+
+                           {/* Editable Fields Note */}
         <div style={{ 
-          background: '#2c3e50', 
-          color: 'white', 
-          padding: '12px 16px', 
-          fontWeight: 'bold',
-          fontSize: '16px',
-          borderTopLeftRadius: '6px',
-          borderTopRightRadius: '6px'
+          marginBottom: '16px', 
+          padding: '8px 12px', 
+          background: '#e3f2fd', 
+          border: '1px solid #2196f3', 
+          borderRadius: '4px',
+          fontSize: '14px',
+          color: '#1976d2',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
         }}>
-          Editable Assumptions
-        </div>
-        <div style={{ 
-          border: '1px solid #ddd', 
-          borderTop: 'none',
-          padding: '20px',
-          background: '#f8f9fa'
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-            
-            {/* Offer Price */}
-            <div>
-              <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 'bold' }}>Offer Price</h4>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <input
-                  type="number"
-                  value={offerPrice}
-                  onChange={(e) => updateOverrides({ offerPrice: Number(e.target.value) })}
-                  style={{ 
-                    padding: '8px', 
-                    border: '1px solid #ddd', 
-                    borderRadius: '4px',
-                    width: '120px'
-                  }}
-                  placeholder="Offer price"
-                />
-                <span style={{ fontSize: '14px', color: '#666' }}>or</span>
-                <input
-                  type="number"
-                  value={offerPricePercent.toFixed(1)}
-                  onChange={(e) => {
-                    const percent = Number(e.target.value);
-                    const newOfferPrice = (property.LIST_PRICE * percent) / 100;
-                    updateOverrides({ offerPrice: newOfferPrice });
-                  }}
-                  style={{ 
-                    padding: '8px', 
-                    border: '1px solid #ddd', 
-                    borderRadius: '4px',
-                    width: '80px'
-                  }}
-                  placeholder="%"
-                />
-                <span style={{ fontSize: '14px', color: '#666' }}>% of asking</span>
-              </div>
-              <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                List price: {formatCurrency(property.LIST_PRICE)}
-              </div>
-            </div>
-
-            {/* Monthly Rent */}
-            <div>
-              <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 'bold' }}>Monthly Rent</h4>
-              <input
-                type="number"
-                value={monthlyRent}
-                onChange={(e) => updateOverrides({ monthlyRent: Number(e.target.value) })}
-                style={{ 
-                  padding: '8px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px',
-                  width: '120px'
-                }}
-                placeholder="Monthly rent"
-              />
-            </div>
-
-            {/* Down Payment */}
-            <div>
-              <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 'bold' }}>Down Payment %</h4>
-              <input
-                type="number"
-                value={(downPayment * 100).toFixed(1)}
-                onChange={(e) => updateOverrides({ downPayment: Number(e.target.value) / 100 })}
-                style={{ 
-                  padding: '8px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px',
-                  width: '80px'
-                }}
-                placeholder="%"
-              />
-              <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                LTV: {((1 - downPayment) * 100).toFixed(1)}%
-              </div>
-            </div>
-
-            {/* Interest Rate */}
-            <div>
-              <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 'bold' }}>Interest Rate %</h4>
-              <input
-                type="number"
-                value={(interestRate * 100).toFixed(2)}
-                onChange={(e) => updateOverrides({ interestRate: Number(e.target.value) / 100 })}
-                style={{ 
-                  padding: '8px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px',
-                  width: '80px'
-                }}
-                placeholder="%"
-              />
-            </div>
-
-            {/* Loan Term */}
-            <div>
-              <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: 'bold' }}>Loan Term (years)</h4>
-              <input
-                type="number"
-                value={loanTerm}
-                onChange={(e) => updateOverrides({ loanTerm: Number(e.target.value) })}
-                style={{ 
-                  padding: '8px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px',
-                  width: '80px'
-                }}
-                placeholder="Years"
-              />
-            </div>
-
+          <div>
+            💡 <strong>Tip:</strong> Blue-bordered fields are editable. Changes will update all calculations throughout the page.
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={undo}
+              disabled={!canUndo}
+              style={{
+                padding: '4px 8px',
+                fontSize: '12px',
+                background: canUndo ? '#f8f9fa' : '#e9ecef',
+                border: '1px solid #ddd',
+                borderRadius: '3px',
+                cursor: canUndo ? 'pointer' : 'not-allowed',
+                color: canUndo ? '#495057' : '#6c757d'
+              }}
+              title="Undo (Ctrl+Z)"
+            >
+              ↩ Undo
+            </button>
+            <button
+              onClick={redo}
+              disabled={!canRedo}
+              style={{
+                padding: '4px 8px',
+                fontSize: '12px',
+                background: canRedo ? '#f8f9fa' : '#e9ecef',
+                border: '1px solid #ddd',
+                borderRadius: '3px',
+                cursor: canRedo ? 'pointer' : 'not-allowed',
+                color: canRedo ? '#495057' : '#6c757d'
+              }}
+              title="Redo (Ctrl+Y)"
+            >
+              ↪ Redo
+            </button>
           </div>
         </div>
-      </section>
 
-      {/* Key Metrics Summary */}
-      <section style={{ marginBottom: '32px' }}>
+       {/* Key Metrics Summary */}
+       <section style={{ marginBottom: '32px' }}>
         <div style={{ 
           background: '#2c3e50', 
           color: 'white', 
@@ -439,17 +490,17 @@ export default function PropertyDetails() {
               <div style={{ fontSize: '24px', fontWeight: 'bold', color: dscr >= 1.2 ? '#28a745' : dscr >= 1.0 ? '#ffc107' : '#dc3545' }}>
                 {dscr.toFixed(2)}
               </div>
-              <div style={{ fontSize: '14px', color: '#666' }}>DSCR ({(1 - downPayment) * 100}% LTV)</div>
+                             <div style={{ fontSize: '14px', color: '#666' }}>DSCR ({formatLTV(1 - downPayment)} LTV)</div>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2c3e50' }}>
-                {formatPercent(capRate)}
-              </div>
+                             <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2c3e50' }}>
+                 {formatCapRate(capRate)}
+               </div>
               <div style={{ fontSize: '14px', color: '#666' }}>Cap Rate at Ask</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '24px', fontWeight: 'bold', color: returnOnCapital >= 0.12 ? '#28a745' : '#ffc107' }}>
-                {formatPercent(returnOnCapital)}
+                {formatReturnOnCapital(returnOnCapital)}
               </div>
               <div style={{ fontSize: '14px', color: '#666' }}>Return on Capital</div>
             </div>
@@ -465,522 +516,680 @@ export default function PropertyDetails() {
               </div>
               <div style={{ fontSize: '14px', color: '#666' }}>Equity Required</div>
             </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', color: marketTier.color }}>
-                {marketTier.tier}
-              </div>
-              <div style={{ fontSize: '14px', color: '#666' }}>Market Tier</div>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* Unit Count Analysis */}
-      <section style={{ marginBottom: '24px' }}>
-        <div style={{ 
-          background: '#2c3e50', 
-          color: 'white', 
-          padding: '12px 16px', 
-          fontWeight: 'bold',
-          fontSize: '16px',
-          borderTopLeftRadius: '6px',
-          borderTopRightRadius: '6px'
-        }}>
-          Unit Count Analysis
-        </div>
-        <div style={{ 
-          border: '1px solid #ddd', 
-          borderTop: 'none',
-          padding: '20px',
-          background: '#f8f9fa'
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-            <div>
-              <h3 style={{ margin: '0 0 12px 0', fontSize: '16px' }}>Unit Summary</h3>
-              <p><strong>Total Units from Listing:</strong> {property.UNITS_FINAL}</p>
-              <p><strong>Unit Mix Total:</strong> {currentUnitMix.reduce((sum, u) => sum + u.count, 0)}</p>
+      
+
+             {/* Initial Costs and Financing - Side by Side */}
+       <div style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
+         {/* Initial Costs */}
+         <section style={{ flex: '1' }}>
+           <div style={{ 
+             background: '#2c3e50', 
+             color: 'white', 
+             padding: '12px 16px', 
+             fontWeight: 'bold',
+             fontSize: '16px',
+             borderTopLeftRadius: '6px',
+             borderTopRightRadius: '6px'
+           }}>
+             Initial Costs
+           </div>
+           <div style={{ 
+             border: '1px solid #ddd', 
+             borderTop: 'none',
+             padding: '20px',
+             background: '#f8f9fa'
+           }}>
+             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+               <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Item</div>
+               <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>Amount</div>
+               <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Notes</div>
+               
+                            <div>Purchase Price</div>
+                                 <div style={{ textAlign: 'right' }}>
+                   <input
+                     type="text"
+                     value={formatInputValue(offerPrice, 'currency')}
+                     onChange={(e) => updateOverrides({ offerPrice: parseInputValue(e.target.value, 'currency') })}
+                     style={{ 
+                       padding: '4px', 
+                       border: '1px solid #ddd', 
+                       borderRadius: '4px',
+                       width: '120px',
+                       textAlign: 'right',
+                       fontSize: '14px'
+                     }}
+                   />
+                 </div>
+                              <div>{offerPrice === property.LIST_PRICE ? 'List price' : `${formatLTV(offerPricePercent / 100)} of list price`}</div>
+               
+                            <div>Down Payment</div>
+                                 <div style={{ textAlign: 'right' }}>
+                   <input
+                     type="text"
+                     value={formatInputValue(downPayment, 'percentage')}
+                     onChange={(e) => updateOverrides({ downPayment: parseInputValue(e.target.value, 'percentage') })}
+                     style={{ 
+                       padding: '4px', 
+                       border: '1px solid #ddd', 
+                       borderRadius: '4px',
+                       width: '80px',
+                       textAlign: 'right',
+                       fontSize: '14px'
+                     }}
+                   />
+                 </div>
+                              <div>{formatLTV(downPayment)} of purchase price</div>
+               
+               <div>Closing Costs</div>
+               <div style={{ textAlign: 'right' }}>{formatCurrency(offerPrice * 0.03)}</div>
+               <div>3% of purchase price</div>
+               
+               <div>Due Diligence</div>
+               <div style={{ textAlign: 'right' }}>{formatCurrency(offerPrice * 0.01)}</div>
+               <div>1% of purchase price</div>
+               
+               <div style={{ fontWeight: 'bold', borderTop: '2px solid #2c3e50', paddingTop: '8px' }}>Total Equity Required</div>
+               <div style={{ fontWeight: 'bold', textAlign: 'right', borderTop: '2px solid #2c3e50', paddingTop: '8px' }}>
+                 {formatCurrency(equityRequired)}
+               </div>
+               <div></div>
+             </div>
+           </div>
+         </section>
+
+         {/* Financing */}
+         <section style={{ flex: '1' }}>
+           <div style={{ 
+             background: '#2c3e50', 
+             color: 'white', 
+             padding: '12px 16px', 
+             fontWeight: 'bold',
+             fontSize: '16px',
+             borderTopLeftRadius: '6px',
+             borderTopRightRadius: '6px'
+           }}>
+             Financing
+           </div>
+           <div style={{ 
+             border: '1px solid #ddd', 
+             borderTop: 'none',
+             padding: '20px',
+             background: '#f8f9fa'
+           }}>
+             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+               <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Item</div>
+               <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>Amount/Rate</div>
+               <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Terms</div>
+               
+               <div>Loan Amount</div>
+               <div style={{ textAlign: 'right' }}>{formatCurrency(loanAmount)}</div>
+                            <div>{formatLTV(1 - downPayment)} LTV ({formatLTV(downPayment)} down)</div>
+               
+                            <div>Interest Rate</div>
+                <div style={{ textAlign: 'right' }}>
+                  <input
+                    type="text"
+                    value={formatInputValue(interestRate, 'percentage')}
+                    onChange={(e) => updateOverrides({ interestRate: parseInputValue(e.target.value, 'percentage') })}
+                    style={{ 
+                      padding: '4px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      width: '80px',
+                      textAlign: 'right',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+                <div>Annual rate</div>
+                
+                               <div>Loan Term</div>
+               <div style={{ textAlign: 'right' }}>
+                 <input
+                   type="number"
+                   value={Math.round(loanTerm)}
+                   onChange={(e) => updateOverrides({ loanTerm: Number(e.target.value) })}
+                   style={{ 
+                     padding: '4px', 
+                     border: '1px solid #ddd', 
+                     borderRadius: '4px',
+                     width: '80px',
+                     textAlign: 'right',
+                     fontSize: '14px'
+                   }}
+                 />
+                 <span style={{ fontSize: '12px', marginLeft: '4px' }}>years</span>
+               </div>
+               <div>Fixed rate</div>
+             </div>
+           </div>
+         </section>
+       </div>
+
+                           {/* Operating Budget */}
+        <section style={{ marginBottom: '24px' }}>
+          <div style={{ 
+            background: '#2c3e50', 
+            color: 'white', 
+            padding: '12px 16px', 
+            fontWeight: 'bold',
+            fontSize: '16px',
+            borderTopLeftRadius: '6px',
+            borderTopRightRadius: '6px'
+          }}>
+            Operating Budget
+          </div>
+          <div style={{ 
+            border: '1px solid #ddd', 
+            borderTop: 'none',
+            padding: '20px',
+            background: '#f8f9fa'
+          }}>
+                                                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', lineHeight: '1.2' }}>
+                <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Rental Income</div>
+                <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>
+                  {getDisplayLabel()}
+                  <button
+                    onClick={() => setViewMode(viewMode === 'annual' ? 'monthly' : 'annual')}
+                    style={{
+                      marginLeft: '8px',
+                      padding: '2px 6px',
+                      fontSize: '10px',
+                      background: '#e3f2fd',
+                      border: '1px solid #2196f3',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      color: '#1976d2'
+                    }}
+                  >
+                    {viewMode === 'annual' ? '→ Monthly' : '→ Annual'}
+                  </button>
+                </div>
+                <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>
+                  {viewMode === 'monthly' ? 'Monthly (%)' : 'Annual (%)'}
+                </div>
               
-              <h4 style={{ margin: '16px 0 8px 0', fontSize: '14px' }}>Unit Breakdown:</h4>
-              {currentUnitMix.length > 0 ? (
-                currentUnitMix.map(unit => (
-                  <div key={unit.bedrooms} style={{ marginBottom: 4 }}>
-                    <strong>{unit.bedrooms === 0 ? 'Studio' : `${unit.bedrooms}BR`}:</strong> {unit.count} units
+                                           {/* Unit-level income detail */}
+                {currentUnitMix.map((unit, index) => {
+                  const unitRent = getBHARentForBedrooms(unit.bedrooms, property.ZIP_CODE);
+                  const unitAnnualRent = unitRent * unit.count * 12;
+                  return (
+                    <React.Fragment key={index}>
+                      <div style={{ paddingLeft: '20px', fontSize: '13px' }}>
+                        {unit.count} {unit.bedrooms}-BR unit{unit.count > 1 ? 's' : ''} @ ${unitRent}/mo
+                      </div>
+                      <div style={{ textAlign: 'right', fontSize: '13px' }}>
+                        {formatCurrency(toDisplayValue(unitAnnualRent))}
+                      </div>
+                      <div style={{ textAlign: 'right', fontSize: '13px' }}>
+                        {annualGross > 0 ? `${(unitAnnualRent / annualGross * 100).toFixed(1)}%` : '0.0%'}
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
+              
+                                           {/* Gross Rental Income Total */}
+                <div style={{ fontWeight: 'bold', borderTop: '1px solid #ddd', paddingTop: '8px' }}>Gross Rental Income</div>
+               <div style={{ textAlign: 'right' }}>
+                 <input
+                   type="text"
+                   value={formatInputValue(toDisplayValue(annualGross), 'currency')}
+                   onChange={(e) => updateOverrides({ monthlyRent: fromDisplayValue(parseInputValue(e.target.value, 'currency')) / 12 })}
+                   style={{ 
+                     padding: '4px', 
+                     border: '1px solid #ddd', 
+                     borderRadius: '4px',
+                     width: '120px',
+                     textAlign: 'right',
+                     fontSize: '14px'
+                   }}
+                 />
+               </div>
+               <div style={{ textAlign: 'right' }}>
+                 <input
+                   type="number"
+                   value="100.0"
+                   disabled
+                   style={{ 
+                     padding: '4px', 
+                     border: '1px solid #ddd', 
+                     borderRadius: '4px',
+                     width: '80px',
+                     textAlign: 'right',
+                     fontSize: '14px',
+                     background: '#f8f9fa'
+                   }}
+                 />
+               </div>
+              
+              {/* Vacancy */}
+              <div>less: Vacancy</div>
+              <div style={{ textAlign: 'right' }}>
+                <input
+                  type="text"
+                  value={formatInputValue(toDisplayValue(vacancyAmount), 'currency')}
+                  onChange={(e) => updateOverrides({ 
+                    vacancy: fromDisplayValue(parseInputValue(e.target.value, 'currency')) / annualGross
+                  })}
+                  style={{ 
+                    padding: '4px', 
+                    border: '1px solid #ddd', 
+                    borderRadius: '4px',
+                    width: '100px',
+                    textAlign: 'right'
+                  }}
+                />
+              </div>
+                             <div style={{ textAlign: 'right' }}>
+                 <input
+                   type="text"
+                   value={formatInputValue(vacancy, 'percentage')}
+                   onChange={(e) => updateOverrides({ 
+                     vacancy: parseInputValue(e.target.value, 'percentage')
+                   })}
+                   style={{ 
+                     padding: '4px', 
+                     border: '1px solid #ddd', 
+                     borderRadius: '4px',
+                     width: '80px',
+                     textAlign: 'right',
+                     fontSize: '14px'
+                   }}
+                 />
+               </div>
+              
+                             {/* Total Effective Gross Income */}
+               <div style={{ fontWeight: 'bold' }}>Total Effective Gross Income</div>
+               <div style={{ fontWeight: 'bold', textAlign: 'right' }}>{formatCurrency(toDisplayValue(effectiveGrossIncome))}</div>
+               <div style={{ fontWeight: 'bold', textAlign: 'right' }}>{annualGross > 0 ? `${((effectiveGrossIncome / annualGross) * 100).toFixed(1)}%` : '100.0%'}</div>
+             
+                           {/* Operating Expenses */}
+                             <div>less: Taxes</div>
+               <div style={{ textAlign: 'right' }}>
+                 <input
+                   type="text"
+                   value={formatInputValue(toDisplayValue(opex.taxes || 0), 'currency')}
+                   onChange={(e) => updateOverrides({ 
+                     opex: { ...opex, taxes: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
+                   })}
+                   style={{ 
+                     padding: '4px', 
+                     border: '1px solid #ddd', 
+                     borderRadius: '4px',
+                     width: '100px',
+                     textAlign: 'right'
+                   }}
+                 />
+               </div>
+                                                               <div style={{ textAlign: 'right' }}>
+                   <input
+                     type="text"
+                     value={formatInputValue((opex.taxes || 0) / effectiveGrossIncome, 'percentage')}
+                     onChange={(e) => updateOverrides({ 
+                       opex: { ...opex, taxes: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
+                     })}
+                     style={{ 
+                       padding: '4px', 
+                       border: '1px solid #ddd', 
+                       borderRadius: '4px',
+                       width: '80px',
+                       textAlign: 'right',
+                       fontSize: '14px'
+                     }}
+                   />
+                 </div>
+              
+                                                                                                                       <div>less: Insurance</div>
+                <div style={{ textAlign: 'right' }}>
+                  <input
+                    type="text"
+                    value={formatInputValue(toDisplayValue(opex.pm || 0), 'currency')}
+                    onChange={(e) => updateOverrides({ 
+                      opex: { ...opex, pm: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
+                    })}
+                    style={{ 
+                      padding: '4px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      width: '100px',
+                      textAlign: 'right'
+                    }}
+                  />
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <input
+                    type="text"
+                    value={formatInputValue((opex.pm || 0) / effectiveGrossIncome, 'percentage')}
+                    onChange={(e) => updateOverrides({ 
+                      opex: { ...opex, pm: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
+                    })}
+                    style={{ 
+                      padding: '4px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      width: '80px',
+                      textAlign: 'right',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+               
+                               <div>less: Water/Sewer</div>
+                <div style={{ textAlign: 'right' }}>
+                  <input
+                    type="text"
+                    value={formatInputValue(toDisplayValue(opex.waterSewer || 0), 'currency')}
+                    onChange={(e) => updateOverrides({ 
+                      opex: { ...opex, waterSewer: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
+                    })}
+                    style={{ 
+                      padding: '4px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      width: '100px',
+                      textAlign: 'right'
+                    }}
+                  />
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <input
+                    type="text"
+                    value={formatInputValue((opex.waterSewer || 0) / effectiveGrossIncome, 'percentage')}
+                    onChange={(e) => updateOverrides({ 
+                      opex: { ...opex, waterSewer: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
+                    })}
+                    style={{ 
+                      padding: '4px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      width: '80px',
+                      textAlign: 'right',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+              
+                                                           <div>less: Common Utils (Est)</div>
+                <div style={{ textAlign: 'right' }}>
+                  <input
+                    type="text"
+                    value={formatInputValue(toDisplayValue(opex.commonElec || 0), 'currency')}
+                    onChange={(e) => updateOverrides({ 
+                      opex: { ...opex, commonElec: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
+                    })}
+                    style={{ 
+                      padding: '4px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      width: '100px',
+                      textAlign: 'right'
+                    }}
+                  />
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <input
+                    type="text"
+                    value={formatInputValue((opex.commonElec || 0) / effectiveGrossIncome, 'percentage')}
+                    onChange={(e) => updateOverrides({ 
+                      opex: { ...opex, commonElec: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
+                    })}
+                    style={{ 
+                      padding: '4px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      width: '80px',
+                      textAlign: 'right',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+                
+                <div>less: Rubbish Removal</div>
+                <div style={{ textAlign: 'right' }}>
+                  <input
+                    type="text"
+                    value={formatInputValue(toDisplayValue(opex.rubbish || 0), 'currency')}
+                    onChange={(e) => updateOverrides({ 
+                      opex: { ...opex, rubbish: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
+                    })}
+                    style={{ 
+                      padding: '4px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      width: '100px',
+                      textAlign: 'right'
+                    }}
+                  />
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <input
+                    type="text"
+                    value={formatInputValue((opex.rubbish || 0) / effectiveGrossIncome, 'percentage')}
+                    onChange={(e) => updateOverrides({ 
+                      opex: { ...opex, rubbish: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
+                    })}
+                    style={{ 
+                      padding: '4px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      width: '80px',
+                      textAlign: 'right',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+               
+                                                                                                                               <div>less: Maint/Repairs</div>
+                <div style={{ textAlign: 'right' }}>
+                  <input
+                    type="text"
+                    value={formatInputValue(toDisplayValue(opex.repairs || 0), 'currency')}
+                    onChange={(e) => updateOverrides({ 
+                      opex: { ...opex, repairs: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
+                    })}
+                    style={{ 
+                      padding: '4px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      width: '100px',
+                      textAlign: 'right'
+                    }}
+                  />
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <input
+                    type="text"
+                    value={formatInputValue((opex.repairs || 0) / effectiveGrossIncome, 'percentage')}
+                    onChange={(e) => updateOverrides({ 
+                      opex: { ...opex, repairs: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
+                    })}
+                    style={{ 
+                      padding: '4px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      width: '80px',
+                      textAlign: 'right',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+               
+                                                                                                                        <div>less: Prop. Mgt.</div>
+                <div style={{ textAlign: 'right' }}>
+                  <input
+                    type="text"
+                    value={formatInputValue(toDisplayValue(opex.pm || 0), 'currency')}
+                    onChange={(e) => updateOverrides({ 
+                      opex: { ...opex, pm: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
+                    })}
+                    style={{ 
+                      padding: '4px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      width: '100px',
+                      textAlign: 'right'
+                    }}
+                  />
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <input
+                    type="text"
+                    value={formatInputValue((opex.pm || 0) / effectiveGrossIncome, 'percentage')}
+                    onChange={(e) => updateOverrides({ 
+                      opex: { ...opex, pm: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
+                    })}
+                    style={{ 
+                      padding: '4px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      width: '80px',
+                      textAlign: 'right',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+                
+                                                                <div>less: Licensing & Permits</div>
+                  <div style={{ textAlign: 'right' }}>
+                    <input
+                      type="text"
+                      value={formatInputValue(toDisplayValue(opex.licensing || 0), 'currency')}
+                      onChange={(e) => updateOverrides({ 
+                        opex: { ...opex, licensing: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
+                      })}
+                      style={{ 
+                        padding: '4px', 
+                        border: '1px solid #ddd', 
+                        borderRadius: '4px',
+                        width: '100px',
+                        textAlign: 'right'
+                      }}
+                    />
                   </div>
-                ))
-              ) : (
-                <p style={{ color: '#666' }}>No unit mix data available</p>
-              )}
-            </div>
-            
-            <div>
-              <h3 style={{ margin: '0 0 12px 0', fontSize: '16px' }}>Math Verification</h3>
-              <div style={{ padding: 12, background: 'white', borderRadius: 4, border: '1px solid #ddd' }}>
-                <p><strong>Total Units:</strong> {currentUnitMix.reduce((sum, u) => sum + u.count, 0)}</p>
-                <p><strong>Total Bedrooms:</strong> {currentUnitMix.reduce((sum, u) => sum + (u.bedrooms * u.count), 0)}</p>
-                <p><strong>Average Bedrooms per Unit:</strong> {averageBedrooms.toFixed(1)}</p>
-              </div>
-            </div>
-          </div>
-          
-          {totalUnits !== property.UNITS_FINAL && (
-            <div style={{ 
-              marginTop: '16px', 
-              padding: '12px', 
-              background: '#fff3cd', 
-              border: '1px solid #ffeaa7',
-              borderRadius: '4px'
-            }}>
-              <p style={{ margin: '0 0 8px 0', color: '#856404' }}>
-                <strong>Warning:</strong> Unit mix total ({totalUnits}) doesn't match listing total ({property.UNITS_FINAL})
-              </p>
-              <button 
-                onClick={syncUnitMixToTotal}
-                style={{ 
-                  padding: '6px 12px', 
-                  background: '#007bff', 
-                  color: 'white', 
-                  border: 'none', 
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                Sync to {property.UNITS_FINAL} units
-              </button>
-            </div>
-          )}
-        </div>
-      </section>
+                                    <div style={{ textAlign: 'right' }}>
+                     <input
+                       type="text"
+                       value={formatInputValue((opex.licensing || 0) / effectiveGrossIncome, 'percentage')}
+                       onChange={(e) => updateOverrides({ 
+                         opex: { ...opex, licensing: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
+                       })}
+                      style={{ 
+                        padding: '4px', 
+                        border: '1px solid #ddd', 
+                        borderRadius: '4px',
+                        width: '80px',
+                        textAlign: 'right',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+                
+                                <div>less: Legal & Professional Fees</div>
+                <div style={{ textAlign: 'right' }}>
+                  <input
+                    type="text"
+                    value={formatInputValue(toDisplayValue(opex.legal || 0), 'currency')}
+                    onChange={(e) => updateOverrides({ 
+                      opex: { ...opex, legal: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
+                    })}
+                    style={{ 
+                      padding: '4px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      width: '100px',
+                      textAlign: 'right'
+                    }}
+                  />
+                </div>
+                                <div style={{ textAlign: 'right' }}>
+                   <input
+                     type="text"
+                     value={formatInputValue((opex.legal || 0) / effectiveGrossIncome, 'percentage')}
+                     onChange={(e) => updateOverrides({ 
+                       opex: { ...opex, legal: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
+                     })}
+                     style={{ 
+                       padding: '4px', 
+                       border: '1px solid #ddd', 
+                       borderRadius: '4px',
+                       width: '80px',
+                       textAlign: 'right',
+                       fontSize: '14px'
+                     }}
+                   />
+                 </div>
+                
+                                <div>less: Capital Reserve</div>
+                <div style={{ textAlign: 'right' }}>
+                  <input
+                    type="text"
+                    value={formatInputValue(toDisplayValue(opex.capex || 0), 'currency')}
+                    onChange={(e) => updateOverrides({ 
+                      opex: { ...opex, capex: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
+                    })}
+                    style={{ 
+                      padding: '4px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      width: '100px',
+                      textAlign: 'right'
+                    }}
+                  />
+                </div>
+                                <div style={{ textAlign: 'right' }}>
+                   <input
+                     type="text"
+                     value={formatInputValue((opex.capex || 0) / effectiveGrossIncome, 'percentage')}
+                     onChange={(e) => updateOverrides({ 
+                       opex: { ...opex, capex: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
+                     })}
+                     style={{ 
+                       padding: '4px', 
+                       border: '1px solid #ddd', 
+                       borderRadius: '4px',
+                       width: '80px',
+                       textAlign: 'right',
+                       fontSize: '14px'
+                     }}
+                   />
+                 </div>
+              
+                                                           {/* Total Expenses */}
+                <div style={{ fontWeight: 'bold' }}>Total Expenses</div>
+                <div style={{ fontWeight: 'bold', textAlign: 'right' }}>({formatCurrency(Math.round(toDisplayValue(totalOpex)))})</div>
+                <div style={{ fontWeight: 'bold', textAlign: 'right' }}>{effectiveGrossIncome > 0 ? `-${(totalOpex / effectiveGrossIncome * 100).toFixed(1)}%` : '0.0%'}</div>
+                
+                {/* Net Operating Income */}
+                <div style={{ fontWeight: 'bold' }}>Net Operating Income</div>
+                <div style={{ fontWeight: 'bold', textAlign: 'right' }}>{formatCurrency(Math.round(toDisplayValue(noi)))}</div>
+                <div style={{ fontWeight: 'bold', textAlign: 'right' }}>{effectiveGrossIncome > 0 ? `${(noi / effectiveGrossIncome * 100).toFixed(1)}%` : '0.0%'}</div>
+                
+                {/* Bank Debt Service */}
+                <div>Bank Debt Service</div>
+                <div style={{ textAlign: 'right' }}>({formatCurrency(Math.round(toDisplayValue(annualDebtService)))})</div>
+                <div style={{ textAlign: 'right' }}>{effectiveGrossIncome > 0 ? `-${(annualDebtService / effectiveGrossIncome * 100).toFixed(1)}%` : '0.0%'}</div>
+                
+                {/* Net Cash Flow */}
+                <div style={{ fontWeight: 'bold' }}>Net Cash Flow</div>
+                <div style={{ fontWeight: 'bold', textAlign: 'right', color: monthlyCashFlow >= 0 ? '#28a745' : '#dc3545' }}>
+                  ({formatCurrency(Math.round(Math.abs(toDisplayValue(monthlyCashFlow * 12))))})
+                </div>
+                <div style={{ fontWeight: 'bold', textAlign: 'right', color: monthlyCashFlow >= 0 ? '#28a745' : '#dc3545' }}>
+                  {effectiveGrossIncome > 0 ? `${((monthlyCashFlow * 12) / effectiveGrossIncome * 100).toFixed(1)}%` : '0.0%'}
+                </div>
+           </div>
+         </div>
+       </section>
 
-      {/* Initial Costs */}
-      <section style={{ marginBottom: '24px' }}>
-        <div style={{ 
-          background: '#2c3e50', 
-          color: 'white', 
-          padding: '12px 16px', 
-          fontWeight: 'bold',
-          fontSize: '16px',
-          borderTopLeftRadius: '6px',
-          borderTopRightRadius: '6px'
-        }}>
-          Initial Costs
-        </div>
-        <div style={{ 
-          border: '1px solid #ddd', 
-          borderTop: 'none',
-          padding: '20px',
-          background: '#f8f9fa'
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Item</div>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>Amount</div>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Notes</div>
-            
-            <div>Purchase Price</div>
-            <div style={{ textAlign: 'right' }}>{formatCurrency(offerPrice)}</div>
-            <div>{offerPrice === property.LIST_PRICE ? 'List price' : `${formatPercent(offerPricePercent)} of list price`}</div>
-            
-            <div>Down Payment</div>
-            <div style={{ textAlign: 'right' }}>{formatCurrency(offerPrice * downPayment)}</div>
-            <div>{formatPercent(downPayment)} of purchase price</div>
-            
-            <div>Closing Costs</div>
-            <div style={{ textAlign: 'right' }}>{formatCurrency(offerPrice * 0.03)}</div>
-            <div>3% of purchase price</div>
-            
-            <div>Due Diligence</div>
-            <div style={{ textAlign: 'right' }}>{formatCurrency(offerPrice * 0.01)}</div>
-            <div>1% of purchase price</div>
-            
-            <div style={{ fontWeight: 'bold', borderTop: '2px solid #2c3e50', paddingTop: '8px' }}>Total Equity Required</div>
-            <div style={{ fontWeight: 'bold', textAlign: 'right', borderTop: '2px solid #2c3e50', paddingTop: '8px' }}>
-              {formatCurrency(equityRequired)}
-            </div>
-            <div></div>
-          </div>
-        </div>
-      </section>
+      
 
-      {/* Financing */}
-      <section style={{ marginBottom: '24px' }}>
-        <div style={{ 
-          background: '#2c3e50', 
-          color: 'white', 
-          padding: '12px 16px', 
-          fontWeight: 'bold',
-          fontSize: '16px',
-          borderTopLeftRadius: '6px',
-          borderTopRightRadius: '6px'
-        }}>
-          Financing
-        </div>
-        <div style={{ 
-          border: '1px solid #ddd', 
-          borderTop: 'none',
-          padding: '20px',
-          background: '#f8f9fa'
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Item</div>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>Amount/Rate</div>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Terms</div>
-            
-            <div>Loan Amount</div>
-            <div style={{ textAlign: 'right' }}>{formatCurrency(loanAmount)}</div>
-            <div>{formatPercent(1 - downPayment)} LTV ({formatPercent(downPayment)} down)</div>
-            
-            <div>Interest Rate</div>
-            <div style={{ textAlign: 'right' }}>{formatPercent(interestRate)}</div>
-            <div>Annual rate</div>
-            
-            <div>Loan Term</div>
-            <div style={{ textAlign: 'right' }}>{loanTerm} years</div>
-            <div>Fixed rate</div>
-            
-            <div>Monthly Payment</div>
-            <div style={{ textAlign: 'right' }}>{formatCurrency(monthlyPayment)}</div>
-            <div>Principal & interest</div>
-            
-            <div>Annual Debt Service</div>
-            <div style={{ textAlign: 'right' }}>{formatCurrency(annualDebtService)}</div>
-            <div>Total annual payments</div>
-          </div>
-        </div>
-      </section>
+      
 
-      {/* Operating Budget */}
-      <section style={{ marginBottom: '24px' }}>
-        <div style={{ 
-          background: '#2c3e50', 
-          color: 'white', 
-          padding: '12px 16px', 
-          fontWeight: 'bold',
-          fontSize: '16px',
-          borderTopLeftRadius: '6px',
-          borderTopRightRadius: '6px'
-        }}>
-          Operating Budget
-        </div>
-        <div style={{ 
-          border: '1px solid #ddd', 
-          borderTop: 'none',
-          padding: '20px',
-          background: '#f8f9fa'
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Item</div>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>Amount</div>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Benchmark</div>
-            
-            <div>Monthly Gross Rent</div>
-            <div style={{ textAlign: 'right' }}>{formatCurrency(monthlyRent)}</div>
-            <div>Total monthly income</div>
-            
-            <div>Annual Gross Rent</div>
-            <div style={{ textAlign: 'right' }}>{formatCurrency(annualGross)}</div>
-            <div>Total annual income</div>
-            
-            <div>Total OPEX</div>
-            <div style={{ textAlign: 'right' }}>{formatCurrency(totalOpex)}</div>
-            <div>{formatPercent(totalOpex / annualGross)} of gross</div>
-            
-            <div style={{ fontWeight: 'bold', borderTop: '2px solid #2c3e50', paddingTop: '8px' }}>Net Operating Income</div>
-            <div style={{ fontWeight: 'bold', textAlign: 'right', borderTop: '2px solid #2c3e50', paddingTop: '8px' }}>
-              {formatCurrency(noi)}
-            </div>
-            <div>{formatPercent(noi / annualGross)} of gross</div>
-          </div>
-        </div>
-      </section>
-
-      {/* OPEX Breakdown */}
-      <section style={{ marginBottom: '24px' }}>
-        <div style={{ 
-          background: '#2c3e50', 
-          color: 'white', 
-          padding: '12px 16px', 
-          fontWeight: 'bold',
-          fontSize: '16px',
-          borderTopLeftRadius: '6px',
-          borderTopRightRadius: '6px'
-        }}>
-          OPEX Breakdown
-        </div>
-        <div style={{ 
-          border: '1px solid #ddd', 
-          borderTop: 'none',
-          padding: '20px',
-          background: '#f8f9fa'
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Expense Category</div>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>Annual Amount</div>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>% of Gross</div>
-            
-            <div>Water & Sewer</div>
-            <div style={{ textAlign: 'right' }}>
-              <input
-                type="number"
-                value={opex.waterSewer || 0}
-                onChange={(e) => updateOverrides({ 
-                  opex: { ...opex, waterSewer: Number(e.target.value) }
-                })}
-                style={{ 
-                  padding: '4px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px',
-                  width: '100px',
-                  textAlign: 'right'
-                }}
-              />
-            </div>
-            <div>{formatPercent((opex.waterSewer || 0) / annualGross)}</div>
-            
-            <div>Common Electric</div>
-            <div style={{ textAlign: 'right' }}>
-              <input
-                type="number"
-                value={opex.commonElec || 0}
-                onChange={(e) => updateOverrides({ 
-                  opex: { ...opex, commonElec: Number(e.target.value) }
-                })}
-                style={{ 
-                  padding: '4px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px',
-                  width: '100px',
-                  textAlign: 'right'
-                }}
-              />
-            </div>
-            <div>{formatPercent((opex.commonElec || 0) / annualGross)}</div>
-            
-            <div>Rubbish</div>
-            <div style={{ textAlign: 'right' }}>
-              <input
-                type="number"
-                value={opex.rubbish || 0}
-                onChange={(e) => updateOverrides({ 
-                  opex: { ...opex, rubbish: Number(e.target.value) }
-                })}
-                style={{ 
-                  padding: '4px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px',
-                  width: '100px',
-                  textAlign: 'right'
-                }}
-              />
-            </div>
-            <div>{formatPercent((opex.rubbish || 0) / annualGross)}</div>
-            
-            <div>Property Management</div>
-            <div style={{ textAlign: 'right' }}>
-              <input
-                type="number"
-                value={opex.pm || 0}
-                onChange={(e) => updateOverrides({ 
-                  opex: { ...opex, pm: Number(e.target.value) }
-                })}
-                style={{ 
-                  padding: '4px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px',
-                  width: '100px',
-                  textAlign: 'right'
-                }}
-              />
-            </div>
-            <div>{formatPercent((opex.pm || 0) / annualGross)}</div>
-            
-            <div>Repairs & Maintenance</div>
-            <div style={{ textAlign: 'right' }}>
-              <input
-                type="number"
-                value={opex.repairs || 0}
-                onChange={(e) => updateOverrides({ 
-                  opex: { ...opex, repairs: Number(e.target.value) }
-                })}
-                style={{ 
-                  padding: '4px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px',
-                  width: '100px',
-                  textAlign: 'right'
-                }}
-              />
-            </div>
-            <div>{formatPercent((opex.repairs || 0) / annualGross)}</div>
-            
-            <div>Legal</div>
-            <div style={{ textAlign: 'right' }}>
-              <input
-                type="number"
-                value={opex.legal || 0}
-                onChange={(e) => updateOverrides({ 
-                  opex: { ...opex, legal: Number(e.target.value) }
-                })}
-                style={{ 
-                  padding: '4px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px',
-                  width: '100px',
-                  textAlign: 'right'
-                }}
-              />
-            </div>
-            <div>{formatPercent((opex.legal || 0) / annualGross)}</div>
-            
-            <div>CapEx</div>
-            <div style={{ textAlign: 'right' }}>
-              <input
-                type="number"
-                value={opex.capex || 0}
-                onChange={(e) => updateOverrides({ 
-                  opex: { ...opex, capex: Number(e.target.value) }
-                })}
-                style={{ 
-                  padding: '4px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px',
-                  width: '100px',
-                  textAlign: 'right'
-                }}
-              />
-            </div>
-            <div>{formatPercent((opex.capex || 0) / annualGross)}</div>
-            
-            <div>Property Taxes</div>
-            <div style={{ textAlign: 'right' }}>
-              <input
-                type="number"
-                value={opex.taxes || 0}
-                onChange={(e) => updateOverrides({ 
-                  opex: { ...opex, taxes: Number(e.target.value) }
-                })}
-                style={{ 
-                  padding: '4px', 
-                  border: '1px solid #ddd', 
-                  borderRadius: '4px',
-                  width: '100px',
-                  textAlign: 'right'
-                }}
-              />
-            </div>
-            <div>{formatPercent((opex.taxes || 0) / annualGross)}</div>
-            
-            <div style={{ fontWeight: 'bold', borderTop: '2px solid #2c3e50', paddingTop: '8px' }}>Total OPEX</div>
-            <div style={{ fontWeight: 'bold', textAlign: 'right', borderTop: '2px solid #2c3e50', paddingTop: '8px' }}>
-              {formatCurrency(totalOpex)}
-            </div>
-            <div style={{ fontWeight: 'bold', borderTop: '2px solid #2c3e50', paddingTop: '8px' }}>
-              {formatPercent(totalOpex / annualGross)}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Return Analysis */}
-      <section style={{ marginBottom: '24px' }}>
-        <div style={{ 
-          background: '#2c3e50', 
-          color: 'white', 
-          padding: '12px 16px', 
-          fontWeight: 'bold',
-          fontSize: '16px',
-          borderTopLeftRadius: '6px',
-          borderTopRightRadius: '6px'
-        }}>
-          Return Analysis
-        </div>
-        <div style={{ 
-          border: '1px solid #ddd', 
-          borderTop: 'none',
-          padding: '20px',
-          background: '#f8f9fa'
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Metric</div>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>Value</div>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Percentage</div>
-            
-            <div>Cap Rate</div>
-            <div style={{ textAlign: 'right' }}>{formatPercent(capRate)}</div>
-            <div>NOI / Purchase Price</div>
-            
-            <div>DSCR</div>
-            <div style={{ textAlign: 'right' }}>{dscr.toFixed(2)}</div>
-            <div>NOI / Annual Debt Service</div>
-            
-            <div>Return on Capital</div>
-            <div style={{ textAlign: 'right' }}>{formatPercent(returnOnCapital)}</div>
-            <div>Annual Cash Flow / Equity</div>
-            
-            <div>Monthly Cash Flow</div>
-            <div style={{ textAlign: 'right', color: monthlyCashFlow >= 0 ? '#28a745' : '#dc3545' }}>
-              {formatCurrency(monthlyCashFlow)}
-            </div>
-            <div>NOI/12 - Monthly Payment</div>
-            
-            <div>Annual Cash Flow</div>
-            <div style={{ textAlign: 'right', color: monthlyCashFlow >= 0 ? '#28a745' : '#dc3545' }}>
-              {formatCurrency(monthlyCashFlow * 12)}
-            </div>
-            <div>Total annual cash flow</div>
-          </div>
-        </div>
-      </section>
-
-      {/* Rent Roll Details */}
-      <section style={{ marginBottom: '24px' }}>
-        <div style={{ 
-          background: '#2c3e50', 
-          color: 'white', 
-          padding: '12px 16px', 
-          fontWeight: 'bold',
-          fontSize: '16px',
-          borderTopLeftRadius: '6px',
-          borderTopRightRadius: '6px'
-        }}>
-          Rent Roll Details
-        </div>
-        <div style={{ 
-          border: '1px solid #ddd', 
-          borderTop: 'none',
-          padding: '20px',
-          background: '#f8f9fa'
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Unit Type</div>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>Count</div>
-            <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>Monthly Rent</div>
-            
-            {currentUnitMix.length > 0 ? (
-              currentUnitMix.map(unit => {
-                const rentPerUnit = monthlyRent / totalUnits;
-                return (
-                  <React.Fragment key={unit.bedrooms}>
-                    <div>{unit.bedrooms === 0 ? 'Studio' : `${unit.bedrooms} Bedroom`}</div>
-                    <div style={{ textAlign: 'right' }}>{unit.count}</div>
-                    <div style={{ textAlign: 'right' }}>{formatCurrency(rentPerUnit)}</div>
-                  </React.Fragment>
-                );
-              })
-            ) : (
-              <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#666', padding: '20px' }}>
-                No unit mix data available
-              </div>
-            )}
-            
-            <div style={{ fontWeight: 'bold', borderTop: '2px solid #2c3e50', paddingTop: '8px' }}>Total</div>
-            <div style={{ fontWeight: 'bold', textAlign: 'right', borderTop: '2px solid #2c3e50', paddingTop: '8px' }}>
-              {totalUnits}
-            </div>
-            <div style={{ fontWeight: 'bold', textAlign: 'right', borderTop: '2px solid #2c3e50', paddingTop: '8px' }}>
-              {formatCurrency(monthlyRent)}
-            </div>
-          </div>
-        </div>
-      </section>
+      
     </main>
   );
 }

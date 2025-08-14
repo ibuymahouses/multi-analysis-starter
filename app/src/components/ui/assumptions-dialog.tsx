@@ -28,6 +28,16 @@ export function AssumptionsDialog({ assumptions, onAssumptionsChange }: Assumpti
   const [open, setOpen] = React.useState(false)
   const [localAssumptions, setLocalAssumptions] = React.useState(assumptions)
 
+  // Format LTV percentage - no decimals
+  const formatLTV = (value: number) => {
+    return `${Math.round(value * 100)}%`;
+  };
+
+  // Format interest rate - 2 decimal places
+  const formatInterestRate = (value: number) => {
+    return `${(value * 100).toFixed(2)}%`;
+  };
+
   const handleSave = () => {
     onAssumptionsChange(localAssumptions)
     setOpen(false)
@@ -80,7 +90,7 @@ export function AssumptionsDialog({ assumptions, onAssumptionsChange }: Assumpti
                     <Input
                       id="ltv"
                       type="number"
-                      value={(localAssumptions.ltv * 100).toFixed(1)}
+                      value={Math.round(localAssumptions.ltv * 100)}
                       onChange={(e) => setLocalAssumptions(prev => ({
                         ...prev,
                         ltv: Number(e.target.value) / 100
@@ -178,11 +188,11 @@ export function AssumptionsDialog({ assumptions, onAssumptionsChange }: Assumpti
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-muted-foreground">LTV:</span>
-                  <span className="ml-2 font-medium">{(localAssumptions.ltv * 100).toFixed(1)}%</span>
+                  <span className="ml-2 font-medium">{formatLTV(localAssumptions.ltv)}</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Interest Rate:</span>
-                  <span className="ml-2 font-medium">{(localAssumptions.interestRate * 100).toFixed(2)}%</span>
+                  <span className="ml-2 font-medium">{formatInterestRate(localAssumptions.interestRate)}</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Loan Term:</span>

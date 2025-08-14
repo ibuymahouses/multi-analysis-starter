@@ -156,6 +156,8 @@ app.get('/analyze-all', (req, res) => {
       ZIP_CODE: l.ZIP_CODE,
       LIST_PRICE: l.LIST_PRICE,
       UNITS_FINAL: l.UNITS_FINAL,
+      NO_UNITS_MF: l.NO_UNITS_MF,
+      UNIT_MIX: l.UNIT_MIX,
       analysis: computeAnalysis(l, rentMap, mode)
     }));
     res.json({ count: rows.length, mode, rows });

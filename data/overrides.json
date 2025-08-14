@@ -1,4 +1,16 @@
 {
+  "73226886": {
+    "downPayment": 0.05,
+    "vacancy": 0.06451612903225806
+  },
+  "73256226": {
+    "unitMix": [
+      {
+        "bedrooms": 1,
+        "count": 5
+      }
+    ]
+  },
   "73312311": {
     "propertyId": "73312311",
     "opex": {
@@ -24,6 +36,18 @@
     "offerPrice": 691664,
     "monthlyRent": 2700,
     "downPayment": 0.28
+  },
+  "73415260": {
+    "opex": {
+      "waterSewer": 1869.6,
+      "commonElec": 0,
+      "rubbish": 2000,
+      "pm": 1246.4,
+      "repairs": 2492.8,
+      "legal": 623.2,
+      "capex": 1869.6,
+      "taxes": 4992
+    }
   },
   "metadata": {
     "description": "Per-property overrides for unit mix and OPEX assumptions",

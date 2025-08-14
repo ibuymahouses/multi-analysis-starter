@@ -5,7 +5,37 @@ export function computeAnalysis(listing, rentLookupByZip, rentMode = 'avg', over
   const zip = (listing.ZIP_CODE || '').trim();
   
   // Apply unit mix overrides
-  const unitMix = overrides?.unitMix || listing.UNIT_MIX || []; // [{bedrooms,count}]
+  let unitMix = overrides?.unitMix || listing.UNIT_MIX || []; // [{bedrooms,count}]
+  
+  // If unit mix is empty, create a default based on UNITS_FINAL and NO_UNITS_MF
+  if (unitMix.length === 0 && listing.UNITS_FINAL > 0) {
+    const totalUnits = listing.UNITS_FINAL;
+    const totalBedrooms = listing.NO_UNITS_MF || totalUnits * 2; // Default to 2 bedrooms per unit if NO_UNITS_MF is not available
+    
+    // Calculate average bedrooms per unit
+    const avgBedrooms = totalBedrooms / totalUnits;
+    
+    // Distribute bedrooms evenly without fractional units
+    const floorAvg = Math.floor(avgBedrooms);
+    const remainder = totalBedrooms - (floorAvg * totalUnits);
+    
+    unitMix = [];
+    
+    // Add units with floor average bedrooms
+    if (floorAvg > 0) {
+      unitMix.push({ bedrooms: floorAvg, count: totalUnits - remainder });
+    }
+    
+    // Add units with one extra bedroom to handle remainder
+    if (remainder > 0) {
+      unitMix.push({ bedrooms: floorAvg + 1, count: remainder });
+    }
+    
+    // If we have no units yet (edge case), default to 2-bedroom units
+    if (unitMix.length === 0) {
+      unitMix = [{ bedrooms: 2, count: totalUnits }];
+    }
+  }
   
   const zipInfo = rentLookupByZip.get(zip) || {}; // {rents:{'0':..,'1':..}, marketTier, county, town}
   const rents = zipInfo.rents || {};
