@@ -6,7 +6,6 @@ interface RentalData {
   zip: string;
   town: string;
   county: string;
-  marketTier: string;
   rents: {
     [key: string]: number;
   };
@@ -15,7 +14,6 @@ interface RentalData {
 export default function RentalRatesPage() {
   const [rentalData, setRentalData] = useState<RentalData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTier, setSelectedTier] = useState<string>('all');
   const [selectedCounty, setSelectedCounty] = useState<string>('all');
 
   useEffect(() => {
@@ -33,22 +31,16 @@ export default function RentalRatesPage() {
     loadRentalData();
   }, []);
 
-  // Get unique market tiers and counties
-  const marketTiers = [...new Set(rentalData.map(item => item.marketTier))].sort();
-  const counties = [...new Set(rentalData.map(item => item.county))].sort();
+  // Get unique counties
+  const counties = Array.from(new Set(rentalData.map(item => item.county))).sort();
 
   // Filter data
   const filteredData = rentalData.filter(item => {
-    if (selectedTier !== 'all' && item.marketTier !== selectedTier) return false;
     if (selectedCounty !== 'all' && item.county !== selectedCounty) return false;
     return true;
   });
 
-  // Sample data for each market tier
-  const sampleByTier = marketTiers.map(tier => {
-    const sample = rentalData.find(item => item.marketTier === tier);
-    return sample;
-  }).filter(Boolean);
+
 
   if (loading) {
     return (
@@ -72,64 +64,15 @@ export default function RentalRatesPage() {
 
       <div className="mb-6">
         <p className="text-sm text-muted-foreground mb-4">
-          This shows the rental rates by bedroom count for different market tiers and counties.
-          The analysis uses these rates to calculate gross monthly rent based on the unit mix of each property.
+          This shows the rental rates by bedroom count for different ZIP codes across Massachusetts.
+          All rates are from the official BHA seed data with specific values for each ZIP code.
         </p>
       </div>
 
-      {/* Market Tier Summary */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Rental Rates by Market Tier</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sampleByTier.map((sample, index) => (
-            <div key={index} className="border rounded-lg p-4">
-              <h3 className="font-medium mb-2 capitalize">{sample?.marketTier} Market Tier</h3>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span>Studio (0 BR):</span>
-                  <span className="font-mono">${sample?.rents['0']?.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>1 Bedroom:</span>
-                  <span className="font-mono">${sample?.rents['1']?.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>2 Bedrooms:</span>
-                  <span className="font-mono">${sample?.rents['2']?.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>3 Bedrooms:</span>
-                  <span className="font-mono">${sample?.rents['3']?.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>4 Bedrooms:</span>
-                  <span className="font-mono">${sample?.rents['4']?.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>5+ Bedrooms:</span>
-                  <span className="font-mono">${sample?.rents['5']?.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+
 
       {/* Filters */}
       <div className="mb-6 flex gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Market Tier:</label>
-          <select 
-            value={selectedTier} 
-            onChange={(e) => setSelectedTier(e.target.value)}
-            className="border rounded px-3 py-1"
-          >
-            <option value="all">All Tiers</option>
-            {marketTiers.map(tier => (
-              <option key={tier} value={tier}>{tier}</option>
-            ))}
-          </select>
-        </div>
         <div>
           <label className="block text-sm font-medium mb-1">County:</label>
           <select 
@@ -155,28 +98,28 @@ export default function RentalRatesPage() {
                 <th className="p-2 text-left font-medium">ZIP</th>
                 <th className="p-2 text-left font-medium">Town</th>
                 <th className="p-2 text-left font-medium">County</th>
-                <th className="p-2 text-left font-medium">Market Tier</th>
                 <th className="p-2 text-left font-medium">Studio</th>
                 <th className="p-2 text-left font-medium">1 BR</th>
                 <th className="p-2 text-left font-medium">2 BR</th>
                 <th className="p-2 text-left font-medium">3 BR</th>
                 <th className="p-2 text-left font-medium">4 BR</th>
                 <th className="p-2 text-left font-medium">5+ BR</th>
+                <th className="p-2 text-left font-medium">6+ BR</th>
               </tr>
             </thead>
             <tbody>
               {filteredData.slice(0, 50).map((item, index) => (
-                <tr key={index} className="border-t hover:bg-muted/50">
+                <tr key={index} className="border-t hover:bg-muted/50 bg-green-50">
                   <td className="p-2 font-mono">{item.zip}</td>
                   <td className="p-2">{item.town}</td>
                   <td className="p-2">{item.county}</td>
-                  <td className="p-2 capitalize">{item.marketTier}</td>
                   <td className="p-2 font-mono">${item.rents['0']?.toLocaleString()}</td>
                   <td className="p-2 font-mono">${item.rents['1']?.toLocaleString()}</td>
                   <td className="p-2 font-mono">${item.rents['2']?.toLocaleString()}</td>
                   <td className="p-2 font-mono">${item.rents['3']?.toLocaleString()}</td>
                   <td className="p-2 font-mono">${item.rents['4']?.toLocaleString()}</td>
                   <td className="p-2 font-mono">${item.rents['5']?.toLocaleString()}</td>
+                  <td className="p-2 font-mono">${item.rents['6']?.toLocaleString() || '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -202,6 +145,9 @@ export default function RentalRatesPage() {
           <li>Summing all unit types to get total monthly gross rent</li>
           <li>Applying the rent mode multiplier (below/avg/agg: 0.90/1.00/1.10)</li>
         </ul>
+        <p className="text-sm text-blue-800 mt-2">
+          <strong>Note:</strong> All rental rates are from the official BHA seed data with specific values for each ZIP code.
+        </p>
       </div>
     </div>
   );

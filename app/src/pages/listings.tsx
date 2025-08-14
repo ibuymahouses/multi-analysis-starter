@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ExcelStyleTable } from "@/components/ui/excel-style-table";
 import { AssumptionsDialog } from "@/components/ui/assumptions-dialog";
+import Header from '@/components/header';
 
 type Row = {
   LIST_NO: string;
@@ -208,7 +209,7 @@ export default function ListingsPage() {
   const load = async (m: 'below' | 'avg' | 'agg') => {
     setLoading(true);
     try {
-      const r = await fetch(`http://localhost:4000/analyze-all?mode=${m}`);
+      const r = await fetch(`http://localhost:3001/analyze-all?mode=${m}`);
       const d = await r.json();
       setRows(d.rows || []);
     } catch (error) {
@@ -224,7 +225,7 @@ export default function ListingsPage() {
    }, [mode]);
 
   useEffect(() => { 
-    fetch('http://localhost:4000/rents/metadata')
+          fetch('http://localhost:3001/rents/metadata')
       .then(r => r.json())
       .then(setMeta)
       .catch(() => {});
@@ -687,7 +688,9 @@ export default function ListingsPage() {
    });
 
   return (
-    <main className="p-6 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <main className="p-6 max-w-7xl mx-auto">
       {/* Header with back button */}
       <div className="flex items-center gap-4 mb-6">
         <Link href="/">
@@ -810,7 +813,7 @@ export default function ListingsPage() {
         
                      <div className="flex gap-3 items-center">
           <a 
-            href={`http://localhost:4000/export/analyzed.csv?mode=${mode}`} 
+                            href={`http://localhost:3001/export/analyzed.csv?mode=${mode}`} 
             target="_blank" 
             rel="noreferrer"
              >
@@ -883,6 +886,7 @@ export default function ListingsPage() {
              <p className="mt-4 text-sm text-muted-foreground">
          Data: Comprehensive MA coverage ({meta?.totalZips || '?'} ZIPs), your OPEX defaults, financing at {formatLTV(assumptions.ltv)} LTV, {formatInterestRate(assumptions.interestRate)} rate, {assumptions.loanTerm}yr term.
       </p>
-    </main>
+      </main>
+    </div>
   );
 } 

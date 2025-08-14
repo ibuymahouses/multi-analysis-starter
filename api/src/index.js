@@ -2,24 +2,38 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { computeAnalysis } from './analysis.js';
+import authRoutes from './routes/auth-memory.js';
+import memoryStorage from './database/memory-storage.js';
 
 const app = express();
 
-// Add CORS headers
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  if (req.method === 'OPTIONS') {
-    res.sendStatus(200);
-  } else {
-    next();
-  }
+// Security middleware
+app.use(helmet());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://yourdomain.com'] 
+    : ['http://localhost:3000'],
+  credentials: true
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.'
 });
+app.use('/api/', limiter);
 
 // Parse JSON bodies
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+
+// Initialize in-memory storage
+console.log('Initializing in-memory storage for development...');
+console.log('Test user available: test@example.com / password123');
 
 const dataDir = path.join(process.cwd(), '..', 'data');
 const listingsPath = path.join(dataDir, 'listings.json');
@@ -58,6 +72,9 @@ function saveOverrides(overrides) {
 
 // health
 app.get('/health', (_, res) => res.json({ ok: true }));
+
+// Authentication routes
+app.use('/api/auth', authRoutes);
 
 app.get('/listings', (_, res) => {
   try {
@@ -307,4 +324,5 @@ app.get('/search/radius', (req, res) => {
   }
 });
 
-app.listen(4000, () => console.log('API listening on :4000')); 
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`API listening on :${PORT}`));

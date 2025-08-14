@@ -89,14 +89,14 @@ export default function PropertyDetails() {
         setBhaRentalData(bhaData);
         
         // Fetch analysis data
-        const analysisResponse = await fetch(`http://localhost:4000/analyze/${LIST_NO}`);
+        const analysisResponse = await fetch(`http://localhost:3001/analyze/${LIST_NO}`);
         if (!analysisResponse.ok) {
           throw new Error('Property not found');
         }
         const analysisData = await analysisResponse.json();
 
         // Fetch complete listing data
-        const listingsResponse = await fetch('http://localhost:4000/listings');
+        const listingsResponse = await fetch('http://localhost:3001/listings');
         const listingsData = await listingsResponse.json();
         const fullListing = listingsData.listings.find((l: any) => String(l.LIST_NO) === String(LIST_NO));
         
@@ -105,7 +105,7 @@ export default function PropertyDetails() {
         }
 
         // Fetch overrides
-        const overridesResponse = await fetch(`http://localhost:4000/property/${LIST_NO}/overrides`);
+        const overridesResponse = await fetch(`http://localhost:3001/property/${LIST_NO}/overrides`);
         const overrides = overridesResponse.ok ? await overridesResponse.json() : {};
 
         // Merge complete listing and analysis data
@@ -162,7 +162,7 @@ export default function PropertyDetails() {
     if (!property) return;
     
     try {
-      const response = await fetch(`http://localhost:4000/property/${LIST_NO}/overrides`, {
+      const response = await fetch(`http://localhost:3001/property/${LIST_NO}/overrides`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...(property.overrides || {}), ...updates })

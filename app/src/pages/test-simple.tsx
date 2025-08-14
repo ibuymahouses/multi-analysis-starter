@@ -9,7 +9,7 @@ export default function TestSimplePage() {
     const loadData = async () => {
       try {
         console.log('Fetching data...');
-        const response = await fetch('http://localhost:4000/analyze-all?mode=avg');
+        const response = await fetch('http://localhost:3001/analyze-all?mode=avg');
         console.log('Response status:', response.status);
         
         if (!response.ok) {

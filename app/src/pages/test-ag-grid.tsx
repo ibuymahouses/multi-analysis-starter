@@ -42,7 +42,7 @@ export default function TestAGGridPage() {
     const loadData = async () => {
       try {
         console.log('AG Grid: Loading data...');
-        const response = await fetch('http://localhost:4000/analyze-all?mode=avg');
+        const response = await fetch('http://localhost:3001/analyze-all?mode=avg');
         const result = await response.json();
         console.log('AG Grid: Data loaded, rows:', result.rows?.length);
         setData(result.rows || []);
