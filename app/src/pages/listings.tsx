@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { ExcelStyleTable } from "@/components/ui/excel-style-table";
 import { AssumptionsDialog } from "@/components/ui/assumptions-dialog";
 import Header from '@/components/header';
+import { ValidationModal } from '@/components/ui/validation-modal';
+import { validateDataCompleteness, validateDataQuality, quickValidation } from '@/lib/data-validation';
 
 type Row = {
   LIST_NO: string;
@@ -73,6 +75,19 @@ export default function ListingsPage() {
   
      // New table filters state
    const [tableFilters, setTableFilters] = useState<Record<string, any>>({});
+   
+   // Data validation state
+   const [validationResult, setValidationResult] = useState<any>(null);
+   const [showValidationModal, setShowValidationModal] = useState(false);
+   const [modalType, setModalType] = useState<'error' | 'warning' | 'info'>('warning');
+   const [modalIssues, setModalIssues] = useState<any[]>([]);
+   const [modalTitle, setModalTitle] = useState('');
+   
+   // Table ref for scrolling
+   const tableRef = React.useRef<HTMLDivElement>(null);
+   
+   // Selected rows state
+   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   
   // Assumptions state
   const [assumptions, setAssumptions] = useState({
@@ -212,11 +227,113 @@ export default function ListingsPage() {
       const r = await fetch(`http://localhost:3001/analyze-all?mode=${m}`);
       const d = await r.json();
       setRows(d.rows || []);
+      
+      // Run data completeness check in background
+      setTimeout(() => {
+        const result = checkDataCompleteness(d.rows || []);
+        setValidationResult(result);
+      }, 100);
     } catch (error) {
       console.error('Failed to load listings:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Navigate to specific property in table
+  const navigateToProperty = (listNo: string) => {
+    // First check if the property is in the current filtered view
+    let rowIndex = sortedRows.findIndex(row => row.LIST_NO === listNo);
+    
+    // If not found in filtered view, check if it's in the original data
+    if (rowIndex === -1) {
+      const originalIndex = rows.findIndex(row => row.LIST_NO === listNo);
+      if (originalIndex !== -1) {
+        // Property exists but is filtered out - clear filters to show it
+        clearFilters();
+        // Wait for re-render, then find the row again
+        setTimeout(() => {
+          const newRowIndex = sortedRows.findIndex(row => row.LIST_NO === listNo);
+          if (newRowIndex !== -1) {
+            highlightRow(newRowIndex);
+          }
+        }, 100);
+        return;
+      }
+    }
+    
+    if (rowIndex !== -1) {
+      highlightRow(rowIndex);
+    }
+  };
+
+  // Helper function to highlight a specific row
+  const highlightRow = (rowIndex: number) => {
+    // Add a small delay to ensure the table is rendered
+    setTimeout(() => {
+      // Find all table rows and highlight the target one
+      const tableRows = document.querySelectorAll('[data-row-index]');
+      tableRows.forEach((row, index) => {
+        if (index === rowIndex) {
+          // Add more prominent highlighting with animation
+          row.classList.add('bg-yellow-100', 'border-l-4', 'border-yellow-500');
+          
+          // Add a pulsing animation effect
+          (row as HTMLElement).style.animation = 'pulse-highlight 2s ease-in-out';
+          (row as HTMLElement).style.boxShadow = '0 0 10px rgba(245, 158, 11, 0.5)';
+          
+          // Scroll the specific row into view with proper positioning
+          row.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center', // Center the row in the viewport
+            inline: 'nearest'
+          });
+          
+          // Remove highlight after 3 seconds
+          setTimeout(() => {
+            row.classList.remove('bg-yellow-100', 'border-l-4', 'border-yellow-500');
+            (row as HTMLElement).style.animation = '';
+            (row as HTMLElement).style.boxShadow = '';
+          }, 3000);
+        }
+      });
+    }, 100);
+  };
+
+  // Data completeness checker - runs asynchronously without blocking UI
+  const checkDataCompleteness = (data: Row[]) => {
+    // Use the comprehensive validation utility
+    const validation = validateDataCompleteness(data);
+    
+    // Log detailed report
+    console.group('📊 Data Completeness Report');
+    console.log(validation.summary);
+    console.log(`Missing rent data: ${validation.stats.missingRent} (${((validation.stats.missingRent/validation.stats.total)*100).toFixed(1)}%)`);
+    console.log(`Missing analysis: ${validation.stats.missingAnalysis} (${((validation.stats.missingAnalysis/validation.stats.total)*100).toFixed(1)}%)`);
+    console.log(`Missing ZIP codes: ${validation.stats.missingZip} (${((validation.stats.missingZip/validation.stats.total)*100).toFixed(1)}%)`);
+    console.log(`Missing unit mix: ${validation.stats.missingUnitMix} (${((validation.stats.missingUnitMix/validation.stats.total)*100).toFixed(1)}%)`);
+    console.log(`Invalid prices: ${validation.stats.invalidPrices} (${((validation.stats.invalidPrices/validation.stats.total)*100).toFixed(1)}%)`);
+    
+    if (validation.issues.length > 0) {
+      console.warn('⚠️ Data issues found:');
+      validation.issues.slice(0, 10).forEach(issue => {
+        const prefix = issue.type === 'error' ? '❌' : issue.type === 'warning' ? '⚠️' : 'ℹ️';
+        console.warn(`  ${prefix} ${issue.message}${issue.listNo ? ` (${issue.listNo})` : ''}`);
+      });
+      if (validation.issues.length > 10) {
+        console.warn(`  ... and ${validation.issues.length - 10} more issues`);
+      }
+    } else {
+      console.log('✅ All data looks complete!');
+    }
+    console.groupEnd();
+
+    // Store validation result for potential UI display
+    if (!validation.isValid) {
+      console.warn(`Found ${validation.issues.length} data issues (${validation.stats.errors} errors, ${validation.stats.warnings} warnings)`);
+    }
+    
+    return validation;
   };
 
      useEffect(() => { 
@@ -514,23 +631,6 @@ export default function ListingsPage() {
   // Table columns configuration
   const columns = [
          {
-       key: 'LIST_NO',
-       label: 'MLS #',
-       sortable: true,
-       filterable: true,
-       type: 'text' as const,
-       width: 120,
-       render: (value: string, row: Row, isEditing: boolean, onEdit: (value: any) => void) => (
-         <Link 
-           href={buildPropertyURL(row.LIST_NO)}
-           className="text-blue-600 hover:text-blue-800 hover:underline"
-           title="View property details"
-         >
-           {value}
-         </Link>
-       )
-     },
-         {
        key: 'ADDRESS',
        label: 'Address',
        sortable: true,
@@ -575,26 +675,6 @@ export default function ListingsPage() {
       width: 80
     },
     {
-      key: 'pricePerUnit',
-      label: 'Price/Unit',
-      sortable: true,
-      filterable: true,
-      type: 'number' as const,
-      align: 'right' as const,
-      width: 120,
-      format: (value: number) => value ? formatCurrency(value) : ''
-    },
-    {
-      key: 'pricePerBedroom',
-      label: 'Price/Bed',
-      sortable: true,
-      filterable: true,
-      type: 'number' as const,
-      align: 'right' as const,
-      width: 120,
-      format: (value: number) => value ? formatCurrency(value) : ''
-    },
-    {
       key: 'monthlyGross',
       label: 'Monthly Rent',
       sortable: true,
@@ -603,7 +683,7 @@ export default function ListingsPage() {
       align: 'right' as const,
       width: 140,
       render: (value: number, row: Row, isEditing: boolean, onEdit: (value: any) => void) => {
-        const monthlyRent = row.analysis?.monthlyGross || 0;
+        const monthlyRent = value || 0;
         const listPrice = row.LIST_PRICE || 0;
         const onePercentRatio = listPrice > 0 ? (monthlyRent / listPrice) * 100 : 0;
         const passesOnePercent = monthlyRent >= listPrice * 0.01;
@@ -626,16 +706,6 @@ export default function ListingsPage() {
       }
     },
     {
-      key: 'noi',
-      label: 'NOI (yr)',
-      sortable: true,
-      filterable: true,
-      type: 'number' as const,
-      align: 'right' as const,
-      width: 120,
-      format: (value: number) => value ? formatCurrency(value) : ''
-    },
-    {
       key: 'capAtAsk',
       label: 'Cap @ Ask',
       sortable: true,
@@ -646,21 +716,24 @@ export default function ListingsPage() {
       format: (value: number) => value ? formatCapRate(value / 100) : ''
     },
     {
-      key: 'dscr',
-      label: 'DSCR',
+      key: 'pricePerUnit',
+      label: 'Price/Unit',
       sortable: true,
       filterable: true,
       type: 'number' as const,
       align: 'right' as const,
-      width: 100,
-      render: (value: number, row: any, isEditing: boolean, onEdit: (value: any) => void) => {
-         return (
-           <div>
-             <div>{value}</div>
-             <div className="text-xs text-muted-foreground">{formatLTV(assumptions.ltv)} LTV</div>
-           </div>
-         );
-       }
+      width: 120,
+      format: (value: number) => value ? formatCurrency(value) : ''
+    },
+    {
+      key: 'pricePerBedroom',
+      label: 'Price/Bed',
+      sortable: true,
+      filterable: true,
+      type: 'number' as const,
+      align: 'right' as const,
+      width: 120,
+      format: (value: number) => value ? formatCurrency(value) : ''
     }
   ];
 
@@ -669,6 +742,8 @@ export default function ListingsPage() {
      const totalBedrooms = (row.UNIT_MIX || []).reduce((sum: number, u: any) => sum + (u.bedrooms * u.count), 0);
      const pricePerUnit = row.NO_UNITS_MF > 0 ? row.LIST_PRICE / row.NO_UNITS_MF : 0;
      const pricePerBedroom = totalBedrooms > 0 ? row.LIST_PRICE / totalBedrooms : 0;
+     
+
      
      return {
        LIST_NO: row.LIST_NO,
@@ -707,6 +782,58 @@ export default function ListingsPage() {
         </p>
       )}
 
+      {validationResult && (
+        <div className={`mb-4 p-3 rounded-md text-sm ${
+          validationResult.isValid 
+            ? 'bg-green-50 border border-green-200 text-green-800' 
+            : 'bg-yellow-50 border border-yellow-200 text-yellow-800'
+        }`}>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">
+              {validationResult.isValid ? '✅' : '⚠️'} Data Quality
+            </span>
+            <span>
+              {validationResult.stats.valid}/{validationResult.stats.total} properties valid
+              {validationResult.stats.errors > 0 && (
+                <button
+                  onClick={() => {
+                    setModalIssues(validationResult.issues.filter((i: any) => i.type === 'error'));
+                    setModalTitle('Data Errors');
+                    setModalType('error');
+                    setShowValidationModal(true);
+                  }}
+                  className="text-red-700 hover:text-red-900 underline cursor-pointer"
+                >
+                  • {validationResult.stats.errors} errors
+                </button>
+              )}
+              {validationResult.stats.warnings > 0 && (
+                <button
+                  onClick={() => {
+                    setModalIssues(validationResult.issues.filter((i: any) => i.type === 'warning'));
+                    setModalTitle('Data Warnings');
+                    setModalType('warning');
+                    setShowValidationModal(true);
+                  }}
+                  className="text-yellow-700 hover:text-yellow-900 underline cursor-pointer"
+                >
+                  • {validationResult.stats.warnings} warnings
+                </button>
+              )}
+            </span>
+          </div>
+        </div>
+      )}
+
+      <ValidationModal
+        isOpen={showValidationModal}
+        onClose={() => setShowValidationModal(false)}
+        issues={modalIssues}
+        title={modalTitle}
+        type={modalType}
+        onNavigateToProperty={navigateToProperty}
+      />
+
       {searchInfo && (
         <Card className="mb-4 border-blue-200 bg-blue-50">
           <CardContent className="pt-4">
@@ -720,11 +847,43 @@ export default function ListingsPage() {
 
       {/* Filter Controls */}
       <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg">Filters</CardTitle>
+        <CardHeader className="flex flex-row items-start justify-between">
+          <div>
+            <CardTitle className="text-lg">Filters</CardTitle>
+            {!loading && (
+              <div className="text-xs text-muted-foreground mt-1">
+                Showing {sortedRows.length} of {rows.length} listings • {selectedRows.length} of {rows.length} selected
+                {(sortField !== 'LIST_NO' || hasActiveFilters) && (
+                  <>
+                    {sortField !== 'LIST_NO' && (
+                      <span> • Sorted by {sortField} ({sortDirection})</span>
+                    )}
+                    {hasActiveFilters && (
+                      <span> • Filters applied</span>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="flex gap-3 items-center">
+            <AssumptionsDialog 
+              assumptions={assumptions}
+              onAssumptionsChange={setAssumptions}
+            />
+            <a 
+              href={`http://localhost:3001/export/analyzed.csv?mode=${mode}`} 
+              target="_blank" 
+              rel="noreferrer"
+            >
+              <Button>
+                Export CSV
+              </Button>
+            </a>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Rent Mode</label>
                              <Select value={mode} onValueChange={(value: any) => {
@@ -741,8 +900,6 @@ export default function ListingsPage() {
                 </SelectContent>
               </Select>
           </div>
-          
-            
           
             <div className="space-y-2">
               <label className="text-sm font-medium">Price Range</label>
@@ -811,28 +968,13 @@ export default function ListingsPage() {
           </div>
         </div>
         
-                     <div className="flex gap-3 items-center">
-          <a 
-                            href={`http://localhost:3001/export/analyzed.csv?mode=${mode}`} 
-            target="_blank" 
-            rel="noreferrer"
-             >
-               <Button>
-            Export CSV
-               </Button>
-          </a>
-             
-             <AssumptionsDialog 
-               assumptions={assumptions}
-               onAssumptionsChange={setAssumptions}
-             />
-          
-          {hasActiveFilters && (
-               <Button variant="outline" onClick={clearFilters}>
+        {hasActiveFilters && (
+          <div className="flex justify-end mt-4">
+            <Button variant="outline" onClick={clearFilters}>
               Clear Filters
-               </Button>
-          )}
-        </div>
+            </Button>
+          </div>
+        )}
         </CardContent>
       </Card>
 
@@ -844,42 +986,34 @@ export default function ListingsPage() {
         </Card>
       ) : (
         <>
-          <div className="mb-4">
-            <p className="text-sm text-muted-foreground">
-            Showing {sortedRows.length} of {rows.length} listings
-            {sortField !== 'LIST_NO' && (
-              <span> • Sorted by {sortField} ({sortDirection})</span>
-            )}
-            {hasActiveFilters && (
-              <span> • Filters applied</span>
-            )}
-          </p>
-          </div>
           
-          <ExcelStyleTable
-            columns={columns}
-            data={tableData}
-            sortField={sortField}
-            sortDirection={sortDirection}
-            onSort={handleSort}
-                         filters={tableFilters}
-             onFilterChange={(field, value) => {
-               const newTableFilters = { ...tableFilters, [field]: value };
-               setTableFilters(newTableFilters);
-               updateURL({ tableFilters: newTableFilters });
-             }}
-             onClearFilter={(field) => {
-               const newTableFilters = { ...tableFilters, [field]: null };
-               setTableFilters(newTableFilters);
-               updateURL({ tableFilters: newTableFilters });
-             }}
-             onClearAllFilters={() => {
-               setTableFilters({});
-               updateURL({ tableFilters: {} });
-             }}
-            selectable={true}
-            copyable={true}
-          />
+          <div ref={tableRef}>
+            <ExcelStyleTable
+              columns={columns}
+              data={tableData}
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={handleSort}
+                           filters={tableFilters}
+               onFilterChange={(field, value) => {
+                 const newTableFilters = { ...tableFilters, [field]: value };
+                 setTableFilters(newTableFilters);
+                 updateURL({ tableFilters: newTableFilters });
+               }}
+               onClearFilter={(field) => {
+                 const newTableFilters = { ...tableFilters, [field]: null };
+                 setTableFilters(newTableFilters);
+                 updateURL({ tableFilters: newTableFilters });
+               }}
+               onClearAllFilters={() => {
+                 setTableFilters({});
+                 updateURL({ tableFilters: {} });
+               }}
+              selectable={true}
+              copyable={true}
+              onRowSelect={setSelectedRows}
+            />
+          </div>
         </>
       )}
       
