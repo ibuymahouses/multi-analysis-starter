@@ -6,6 +6,7 @@ import { useKeyboardShortcuts } from '../../lib/use-keyboard-shortcuts';
 interface UnitMix {
   bedrooms: number;
   count: number;
+  rent?: number;
 }
 
 interface Property {
@@ -49,6 +50,8 @@ interface Property {
     downPayment?: number;
     interestRate?: number;
     loanTerm?: number;
+    closingCostsPercentage?: number;
+    dueDiligencePercentage?: number;
   };
 }
 
@@ -60,13 +63,62 @@ export default function PropertyDetails() {
   const [error, setError] = useState<string | null>(null);
   const [bhaRentalData, setBhaRentalData] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'annual' | 'monthly'>('annual');
+  const [closingCostsInput, setClosingCostsInput] = useState<string>('');
+  const [dueDiligenceInput, setDueDiligenceInput] = useState<string>('');
+  const [vacancyInput, setVacancyInput] = useState<string>('');
+  const [taxesInput, setTaxesInput] = useState<string>('');
+  const [insuranceInput, setInsuranceInput] = useState<string>('');
+  const [waterSewerInput, setWaterSewerInput] = useState<string>('');
+  const [commonElecInput, setCommonElecInput] = useState<string>('');
+  const [rubbishInput, setRubbishInput] = useState<string>('');
+  const [repairsInput, setRepairsInput] = useState<string>('');
+  const [pmInput, setPmInput] = useState<string>('');
+  const [licensingInput, setLicensingInput] = useState<string>('');
+  const [legalInput, setLegalInput] = useState<string>('');
+  const [capexInput, setCapexInput] = useState<string>('');
   
   // Undo/Redo integration
   const { setState: setUndoState, state: undoState, canUndo, canRedo, undo, redo } = useUndoRedo();
   useKeyboardShortcuts();
 
-  // Function to get BHA rent for specific bedroom count and ZIP code
-  const getBHARentForBedrooms = (bedrooms: number, zipCode: string) => {
+  // Effect to restore property state from undo/redo
+  useEffect(() => {
+    if (undoState && undoState.type === 'property-update' && undoState.property) {
+      // Only update if the property is different
+      if (!property || JSON.stringify(undoState.property) !== JSON.stringify(property)) {
+        setProperty(undoState.property);
+        
+        // Update server with the restored state
+        const updateServer = async () => {
+          try {
+            const response = await fetch(`http://localhost:3001/property/${LIST_NO}/overrides`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(undoState.property.overrides)
+            });
+            
+            if (!response.ok) {
+              console.error('Failed to update server overrides during undo/redo');
+            }
+          } catch (err) {
+            console.error('Failed to update overrides during undo/redo:', err);
+          }
+        };
+        
+        updateServer();
+      }
+    }
+  }, [undoState, property, LIST_NO]);
+
+  // Function to get rent for specific bedroom count - check overrides first, then BHA data
+  const getRentForBedrooms = (bedrooms: number, zipCode: string) => {
+    // Check if there's a custom rent override for this bedroom type
+    const unitOverride = currentUnitMix.find(unit => unit.bedrooms === bedrooms);
+    if (unitOverride && unitOverride.rent) {
+      return unitOverride.rent;
+    }
+    
+    // Fall back to BHA data
     if (!bhaRentalData) return 0;
     
     const zipData = bhaRentalData.rents?.find((item: any) => item.zip === zipCode);
@@ -120,6 +172,13 @@ export default function PropertyDetails() {
         console.log('Merged property:', updatedProperty);
 
         setProperty(updatedProperty);
+        
+        // Initialize undo/redo state with the loaded property
+        setUndoState({
+          type: 'property-update',
+          property: updatedProperty,
+          timestamp: Date.now()
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load property');
       } finally {
@@ -158,29 +217,36 @@ export default function PropertyDetails() {
     }
   };
 
-  const updateOverrides = async (updates: any) => {
+  const updateOverrides = async (updates: any, skipServerUpdate = false) => {
     if (!property) return;
     
-    try {
-      const response = await fetch(`http://localhost:3001/property/${LIST_NO}/overrides`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...(property.overrides || {}), ...updates })
-      });
-      
-      if (response.ok) {
-        const newProperty = { ...property, overrides: { ...(property.overrides || {}), ...updates } };
-        setProperty(newProperty);
-        
-        // Save to undo/redo system
-        setUndoState({
-          type: 'property-update',
-          property: newProperty,
-          timestamp: Date.now()
+    const newProperty = { ...property, overrides: { ...(property.overrides || {}), ...updates } };
+    
+    // Update local state immediately
+    setProperty(newProperty);
+    
+    // Save to undo/redo system
+    setUndoState({
+      type: 'property-update',
+      property: newProperty,
+      timestamp: Date.now()
+    });
+    
+    // Update server unless this is a restoration from undo/redo
+    if (!skipServerUpdate) {
+      try {
+        const response = await fetch(`http://localhost:3001/property/${LIST_NO}/overrides`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newProperty.overrides)
         });
+        
+        if (!response.ok) {
+          console.error('Failed to update server overrides');
+        }
+      } catch (err) {
+        console.error('Failed to update overrides:', err);
       }
-    } catch (err) {
-      console.error('Failed to update overrides:', err);
     }
   };
 
@@ -207,7 +273,7 @@ export default function PropertyDetails() {
   // Use overrides or fall back to original data
   const currentUnitMix = property.overrides?.unitMix || property.UNIT_MIX || [];
   const monthlyRent = property.overrides?.monthlyRent || property.analysis.monthlyGross;
-  const downPayment = property.overrides?.downPayment || 0.25;
+  const downPayment = property.overrides?.downPayment || 0.20;
   const interestRate = property.overrides?.interestRate || 0.07;
   const loanTerm = property.overrides?.loanTerm || 30;
   const vacancy = property.overrides?.vacancy || 0.03; // Default to 3%
@@ -237,7 +303,11 @@ export default function PropertyDetails() {
   const totalBedrooms = currentUnitMix.reduce((sum, u) => sum + (u.bedrooms * u.count), 0);
   const averageBedrooms = totalUnits > 0 ? totalBedrooms / totalUnits : 0;
   
-  const annualGross = monthlyRent * 12;
+  // Calculate annual gross based on unit mix and individual unit rents
+  const annualGross = currentUnitMix.reduce((total, unit) => {
+    const unitRent = getRentForBedrooms(unit.bedrooms, property.ZIP_CODE);
+    return total + (unitRent * unit.count * 12);
+  }, 0);
   const vacancyAmount = annualGross * vacancy;
   const effectiveGrossIncome = annualGross - vacancyAmount;
   const noi = effectiveGrossIncome - totalOpex;
@@ -247,7 +317,9 @@ export default function PropertyDetails() {
   const dscr = noi / annualDebtService;
   const capRate = noi / offerPrice;
   const monthlyCashFlow = (noi / 12) - monthlyPayment;
-  const equityRequired = (offerPrice * downPayment) + (offerPrice * 0.03) + (offerPrice * 0.01); // Down payment + 3% closing costs + 1% due diligence
+  const closingCostsPercentage = property.overrides?.closingCostsPercentage ?? 0.03;
+  const dueDiligencePercentage = property.overrides?.dueDiligencePercentage ?? 0.01;
+  const equityRequired = (offerPrice * downPayment) + (offerPrice * closingCostsPercentage) + (offerPrice * dueDiligencePercentage); // Down payment + closing costs + due diligence
   const returnOnCapital = (monthlyCashFlow * 12) / equityRequired;
 
   console.log('Debug values:', {
@@ -358,14 +430,23 @@ export default function PropertyDetails() {
 
 
   return (
-    <main style={{ 
+    <div style={{ 
+      display: 'flex',
+      gap: '24px',
       maxWidth: '1400px', 
       margin: '0 auto', 
       padding: '20px',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
-      {/* Header */}
-      <div style={{ marginBottom: '32px' }}>
+      {/* Fixed Left Sidebar */}
+      <div style={{
+        position: 'sticky',
+        top: '20px',
+        height: 'fit-content',
+        width: '320px',
+        flexShrink: 0
+      }}>
+        {/* Header Section */}
         <div style={{ marginBottom: '16px' }}>
           <button 
             onClick={() => {
@@ -385,85 +466,106 @@ export default function PropertyDetails() {
               borderRadius: '4px',
               cursor: 'pointer',
               fontSize: '14px',
-              color: '#666'
+              color: '#666',
+              marginBottom: '12px',
+              width: '100%'
             }}
           >
             ← Back to Listings
           </button>
+          
+                     <h1 style={{ 
+             fontSize: '20px', 
+             fontWeight: 'bold', 
+             margin: '0 0 4px 0',
+             color: '#2c3e50',
+             lineHeight: '1.2'
+           }}>
+             {property.ADDRESS}
+           </h1>
+          
+                                 <p style={{ 
+              fontSize: '13px', 
+              color: '#666', 
+              margin: '0 0 8px 0',
+              lineHeight: '1.3'
+            }}>
+              {property.TOWN} {property.ZIP_CODE}
+            </p>
+            <p style={{ 
+              fontSize: '13px', 
+              color: '#666', 
+              margin: '0 0 8px 0',
+              lineHeight: '1.3'
+            }}>
+              MLS #{property.LIST_NO}
+            </p>
+            <p style={{ 
+              fontSize: '13px', 
+              color: '#666', 
+              margin: '0 0 16px 0',
+              lineHeight: '1.3'
+            }}>
+              {property.UNITS_FINAL}-unit property
+            </p>
         </div>
-        <h1 style={{ 
-          fontSize: '28px', 
-          fontWeight: 'bold', 
-          margin: '0 0 8px 0',
-          color: '#2c3e50'
-        }}>
-          {property.ADDRESS}
-        </h1>
-                 <p style={{ 
-           fontSize: '16px', 
-           color: '#666', 
-           margin: '0 0 16px 0' 
-         }}>
-           MLS #{property.LIST_NO} • {property.TOWN}, {property.STATE} {property.ZIP_CODE} • {property.UNITS_FINAL}-unit property
-         </p>
-      </div>
 
-      
-
-                           {/* Editable Fields Note */}
+        {/* Editable Fields Note */}
         <div style={{ 
           marginBottom: '16px', 
           padding: '8px 12px', 
           background: '#e3f2fd', 
           border: '1px solid #2196f3', 
           borderRadius: '4px',
-          fontSize: '14px',
-          color: '#1976d2',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
+          fontSize: '12px',
+          color: '#1976d2'
         }}>
-          <div>
-            💡 <strong>Tip:</strong> Blue-bordered fields are editable. Changes will update all calculations throughout the page.
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={undo}
-              disabled={!canUndo}
-              style={{
-                padding: '4px 8px',
-                fontSize: '12px',
-                background: canUndo ? '#f8f9fa' : '#e9ecef',
-                border: '1px solid #ddd',
-                borderRadius: '3px',
-                cursor: canUndo ? 'pointer' : 'not-allowed',
-                color: canUndo ? '#495057' : '#6c757d'
-              }}
-              title="Undo (Ctrl+Z)"
-            >
-              ↩ Undo
-            </button>
-            <button
-              onClick={redo}
-              disabled={!canRedo}
-              style={{
-                padding: '4px 8px',
-                fontSize: '12px',
-                background: canRedo ? '#f8f9fa' : '#e9ecef',
-                border: '1px solid #ddd',
-                borderRadius: '3px',
-                cursor: canRedo ? 'pointer' : 'not-allowed',
-                color: canRedo ? '#495057' : '#6c757d'
-              }}
-              title="Redo (Ctrl+Y)"
-            >
-              ↪ Redo
-            </button>
-          </div>
+          💡 <strong>Tip:</strong> Changes made to editable fields update all calculations throughout the page.
         </div>
 
-       {/* Key Metrics Summary */}
-       <section style={{ marginBottom: '32px' }}>
+        {/* Undo/Redo Buttons */}
+        <div style={{ 
+          marginBottom: '16px',
+          display: 'flex', 
+          gap: '8px' 
+        }}>
+          <button
+            onClick={undo}
+            disabled={!canUndo}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              background: canUndo ? '#f8f9fa' : '#e9ecef',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              cursor: canUndo ? 'pointer' : 'not-allowed',
+              color: canUndo ? '#495057' : '#6c757d',
+              flex: '1'
+            }}
+            title="Undo (Ctrl+Z)"
+          >
+            ↩ Undo
+          </button>
+          <button
+            onClick={redo}
+            disabled={!canRedo}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              background: canRedo ? '#f8f9fa' : '#e9ecef',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              cursor: canRedo ? 'pointer' : 'not-allowed',
+              color: canRedo ? '#495057' : '#6c757d',
+              flex: '1'
+            }}
+            title="Redo (Ctrl+Y)"
+          >
+            ↪ Redo
+          </button>
+        </div>
+
+        {/* Key Metrics Summary */}
         <div style={{ 
           background: '#2c3e50', 
           color: 'white', 
@@ -483,42 +585,144 @@ export default function PropertyDetails() {
         }}>
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-            gap: '20px' 
+            gridTemplateColumns: '1fr', 
+            gap: '16px' 
           }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', color: dscr >= 1.2 ? '#28a745' : dscr >= 1.0 ? '#ffc107' : '#dc3545' }}>
-                {dscr.toFixed(2)}
+            <div style={{ 
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              padding: '16px',
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ 
+                fontSize: '18px', 
+                fontWeight: 'bold', 
+                color: dscr >= 1.2 ? '#28a745' : dscr >= 1.0 ? '#ffc107' : '#dc3545'
+              }}>
+                DSCR: {dscr.toFixed(2)}
               </div>
-                             <div style={{ fontSize: '14px', color: '#666' }}>DSCR ({formatLTV(1 - downPayment)} LTV)</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-                             <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2c3e50' }}>
-                 {formatCapRate(capRate)}
-               </div>
-              <div style={{ fontSize: '14px', color: '#666' }}>Cap Rate at Ask</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', color: returnOnCapital >= 0.12 ? '#28a745' : '#ffc107' }}>
-                {formatReturnOnCapital(returnOnCapital)}
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#666', 
+                fontStyle: 'italic'
+              }}>
+                {formatLTV(1 - downPayment)} LTV
               </div>
-              <div style={{ fontSize: '14px', color: '#666' }}>Return on Capital</div>
             </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', color: monthlyCashFlow >= 0 ? '#28a745' : '#dc3545' }}>
-                {formatCurrency(monthlyCashFlow)}
+            
+            <div style={{ 
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              padding: '16px',
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ 
+                fontSize: '18px', 
+                fontWeight: 'bold', 
+                color: '#2c3e50'
+              }}>
+                Cap Rate: {formatCapRate(capRate)}
               </div>
-              <div style={{ fontSize: '14px', color: '#666' }}>Monthly Cash Flow</div>
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#666', 
+                fontStyle: 'italic'
+              }}>
+                at ask price
+              </div>
             </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#2c3e50' }}>
-                {formatCurrency(equityRequired)}
+            
+            <div style={{ 
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              padding: '16px',
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ 
+                fontSize: '18px', 
+                fontWeight: 'bold', 
+                color: returnOnCapital >= 0.12 ? '#28a745' : '#ffc107'
+              }}>
+                Return: {formatReturnOnCapital(returnOnCapital)}
               </div>
-              <div style={{ fontSize: '14px', color: '#666' }}>Equity Required</div>
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#666', 
+                fontStyle: 'italic'
+              }}>
+                on capital
+              </div>
+            </div>
+            
+            <div style={{ 
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              padding: '16px',
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ 
+                fontSize: '18px', 
+                fontWeight: 'bold', 
+                color: monthlyCashFlow >= 0 ? '#28a745' : '#dc3545'
+              }}>
+                Cash Flow: {formatCurrency(monthlyCashFlow)}
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#666', 
+                fontStyle: 'italic'
+              }}>
+                monthly
+              </div>
+            </div>
+            
+            <div style={{ 
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              padding: '16px',
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ 
+                fontSize: '18px', 
+                fontWeight: 'bold', 
+                color: '#2c3e50'
+              }}>
+                Equity: {formatCurrency(equityRequired)}
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#666', 
+                fontStyle: 'italic'
+              }}>
+                required
+              </div>
             </div>
           </div>
         </div>
-      </section>
+      </div>
+
+      {/* Main Content Area */}
+      <main style={{ flex: '1' }}>
 
       
 
@@ -545,8 +749,8 @@ export default function PropertyDetails() {
            }}>
              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Item</div>
-               <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>Amount</div>
-               <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Notes</div>
+               <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>$'s</div>
+               <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>%'s</div>
                
                             <div>Purchase Price</div>
                                  <div style={{ textAlign: 'right' }}>
@@ -570,8 +774,14 @@ export default function PropertyDetails() {
                                  <div style={{ textAlign: 'right' }}>
                    <input
                      type="text"
-                     value={formatInputValue(downPayment, 'percentage')}
-                     onChange={(e) => updateOverrides({ downPayment: parseInputValue(e.target.value, 'percentage') })}
+                     value={`${Math.round(downPayment * 100)}%`}
+                     onChange={(e) => {
+                       const cleanValue = e.target.value.replace(/%/g, '');
+                       const numValue = parseInt(cleanValue) || 0;
+                       if (numValue >= 0 && numValue <= 100) {
+                         updateOverrides({ downPayment: numValue / 100 });
+                       }
+                     }}
                      style={{ 
                        padding: '4px', 
                        border: '1px solid #ddd', 
@@ -582,15 +792,79 @@ export default function PropertyDetails() {
                      }}
                    />
                  </div>
-                              <div>{formatLTV(downPayment)} of purchase price</div>
+                              <div>of purchase price</div>
                
-               <div>Closing Costs</div>
-               <div style={{ textAlign: 'right' }}>{formatCurrency(offerPrice * 0.03)}</div>
-               <div>3% of purchase price</div>
+                               <div>Closing Costs</div>
+                <div style={{ textAlign: 'right' }}>{formatCurrency(offerPrice * closingCostsPercentage)}</div>
+                                 <div>
+                   <input
+                     type="text"
+                     value={closingCostsInput || `${(closingCostsPercentage * 100).toFixed(1)}%`}
+                     onChange={(e) => {
+                       setClosingCostsInput(e.target.value);
+                     }}
+                     onFocus={(e) => {
+                       setClosingCostsInput(e.target.value);
+                     }}
+                     onBlur={(e) => {
+                       const value = e.target.value.replace('%', '');
+                       const numValue = parseFloat(value);
+                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                         updateOverrides({ closingCostsPercentage: numValue / 100 });
+                       }
+                       setClosingCostsInput('');
+                     }}
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter') {
+                         e.currentTarget.blur();
+                       }
+                     }}
+                     style={{ 
+                       padding: '4px', 
+                       border: '1px solid #ddd', 
+                       borderRadius: '4px',
+                       width: '60px',
+                       textAlign: 'right',
+                       fontSize: '14px'
+                     }}
+                   />
+                 </div>
                
-               <div>Due Diligence</div>
-               <div style={{ textAlign: 'right' }}>{formatCurrency(offerPrice * 0.01)}</div>
-               <div>1% of purchase price</div>
+                               <div>Due Diligence</div>
+                <div style={{ textAlign: 'right' }}>{formatCurrency(offerPrice * dueDiligencePercentage)}</div>
+                                 <div>
+                   <input
+                     type="text"
+                     value={dueDiligenceInput || `${(dueDiligencePercentage * 100).toFixed(1)}%`}
+                     onChange={(e) => {
+                       setDueDiligenceInput(e.target.value);
+                     }}
+                     onFocus={(e) => {
+                       setDueDiligenceInput(e.target.value);
+                     }}
+                     onBlur={(e) => {
+                       const value = e.target.value.replace('%', '');
+                       const numValue = parseFloat(value);
+                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                         updateOverrides({ dueDiligencePercentage: numValue / 100 });
+                       }
+                       setDueDiligenceInput('');
+                     }}
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter') {
+                         e.currentTarget.blur();
+                       }
+                     }}
+                     style={{ 
+                       padding: '4px', 
+                       border: '1px solid #ddd', 
+                       borderRadius: '4px',
+                       width: '60px',
+                       textAlign: 'right',
+                       fontSize: '14px'
+                     }}
+                   />
+                 </div>
                
                <div style={{ fontWeight: 'bold', borderTop: '2px solid #2c3e50', paddingTop: '8px' }}>Total Equity Required</div>
                <div style={{ fontWeight: 'bold', textAlign: 'right', borderTop: '2px solid #2c3e50', paddingTop: '8px' }}>
@@ -627,7 +901,7 @@ export default function PropertyDetails() {
                
                <div>Loan Amount</div>
                <div style={{ textAlign: 'right' }}>{formatCurrency(loanAmount)}</div>
-                            <div>{formatLTV(1 - downPayment)} LTV ({formatLTV(downPayment)} down)</div>
+                            <div>{formatLTV(1 - downPayment)} LTV</div>
                
                             <div>Interest Rate</div>
                 <div style={{ textAlign: 'right' }}>
@@ -645,7 +919,7 @@ export default function PropertyDetails() {
                     }}
                   />
                 </div>
-                <div>Annual rate</div>
+                <div>Annual Rate</div>
                 
                                <div>Loan Term</div>
                <div style={{ textAlign: 'right' }}>
@@ -662,9 +936,8 @@ export default function PropertyDetails() {
                      fontSize: '14px'
                    }}
                  />
-                 <span style={{ fontSize: '12px', marginLeft: '4px' }}>years</span>
                </div>
-               <div>Fixed rate</div>
+               <div>Years</div>
              </div>
            </div>
          </section>
@@ -713,58 +986,55 @@ export default function PropertyDetails() {
                   {viewMode === 'monthly' ? 'Monthly (%)' : 'Annual (%)'}
                 </div>
               
-                                           {/* Unit-level income detail */}
-                {currentUnitMix.map((unit, index) => {
-                  const unitRent = getBHARentForBedrooms(unit.bedrooms, property.ZIP_CODE);
-                  const unitAnnualRent = unitRent * unit.count * 12;
-                  return (
-                    <React.Fragment key={index}>
-                      <div style={{ paddingLeft: '20px', fontSize: '13px' }}>
-                        {unit.count} {unit.bedrooms}-BR unit{unit.count > 1 ? 's' : ''} @ ${unitRent}/mo
-                      </div>
-                      <div style={{ textAlign: 'right', fontSize: '13px' }}>
-                        {formatCurrency(toDisplayValue(unitAnnualRent))}
-                      </div>
-                      <div style={{ textAlign: 'right', fontSize: '13px' }}>
-                        {annualGross > 0 ? `${(unitAnnualRent / annualGross * 100).toFixed(1)}%` : '0.0%'}
-                      </div>
-                    </React.Fragment>
-                  );
-                })}
-              
-                                           {/* Gross Rental Income Total */}
-                <div style={{ fontWeight: 'bold', borderTop: '1px solid #ddd', paddingTop: '8px' }}>Gross Rental Income</div>
-               <div style={{ textAlign: 'right' }}>
-                 <input
-                   type="text"
-                   value={formatInputValue(toDisplayValue(annualGross), 'currency')}
-                   onChange={(e) => updateOverrides({ monthlyRent: fromDisplayValue(parseInputValue(e.target.value, 'currency')) / 12 })}
-                   style={{ 
-                     padding: '4px', 
-                     border: '1px solid #ddd', 
-                     borderRadius: '4px',
-                     width: '120px',
-                     textAlign: 'right',
-                     fontSize: '14px'
-                   }}
-                 />
-               </div>
-               <div style={{ textAlign: 'right' }}>
-                 <input
-                   type="number"
-                   value="100.0"
-                   disabled
-                   style={{ 
-                     padding: '4px', 
-                     border: '1px solid #ddd', 
-                     borderRadius: '4px',
-                     width: '80px',
-                     textAlign: 'right',
-                     fontSize: '14px',
-                     background: '#f8f9fa'
-                   }}
-                 />
-               </div>
+                                                                                       {/* Unit-level income detail */}
+                 {currentUnitMix.map((unit, index) => {
+                   const unitRent = getRentForBedrooms(unit.bedrooms, property.ZIP_CODE);
+                   const unitAnnualRent = unitRent * unit.count * 12;
+                   return (
+                     <React.Fragment key={index}>
+                       <div style={{ paddingLeft: '20px', fontSize: '13px' }}>
+                         {unit.count} {unit.bedrooms}-BR unit{unit.count > 1 ? 's' : ''} @ 
+                         <input
+                           type="text"
+                           value={formatInputValue(unitRent, 'currency')}
+                           onChange={(e) => {
+                             const newRent = parseInputValue(e.target.value, 'currency');
+                             // Update the unit mix with new rent for this bedroom type
+                             const updatedUnitMix = currentUnitMix.map((u, i) => 
+                               u.bedrooms === unit.bedrooms ? { ...u, rent: newRent } : u
+                             );
+                             updateOverrides({ unitMix: updatedUnitMix });
+                           }}
+                           style={{ 
+                             padding: '2px 4px', 
+                             border: '1px solid #ddd', 
+                             borderRadius: '3px',
+                             width: '80px',
+                             textAlign: 'right',
+                             fontSize: '12px',
+                             marginLeft: '4px'
+                           }}
+                         />
+                         /mo
+                       </div>
+                       <div style={{ textAlign: 'right', fontSize: '13px' }}>
+                         {formatCurrency(toDisplayValue(unitAnnualRent))}
+                       </div>
+                       <div style={{ textAlign: 'right', fontSize: '13px' }}>
+                         {annualGross > 0 ? `${(unitAnnualRent / annualGross * 100).toFixed(1)}%` : '0.0%'}
+                       </div>
+                     </React.Fragment>
+                   );
+                 })}
+               
+                                            {/* Gross Rental Income Total */}
+                 <div style={{ fontWeight: 'bold', borderTop: '1px solid #ddd', paddingTop: '8px' }}>Gross Rental Income</div>
+                <div style={{ fontWeight: 'bold', textAlign: 'right' }}>
+                  {formatCurrency(toDisplayValue(annualGross))}
+                </div>
+                <div style={{ fontWeight: 'bold', textAlign: 'right' }}>
+                  100.0%
+                </div>
               
               {/* Vacancy */}
               <div>less: Vacancy</div>
@@ -784,23 +1054,39 @@ export default function PropertyDetails() {
                   }}
                 />
               </div>
-                             <div style={{ textAlign: 'right' }}>
-                 <input
-                   type="text"
-                   value={formatInputValue(vacancy, 'percentage')}
-                   onChange={(e) => updateOverrides({ 
-                     vacancy: parseInputValue(e.target.value, 'percentage')
-                   })}
-                   style={{ 
-                     padding: '4px', 
-                     border: '1px solid #ddd', 
-                     borderRadius: '4px',
-                     width: '80px',
-                     textAlign: 'right',
-                     fontSize: '14px'
-                   }}
-                 />
-               </div>
+                                                           <div style={{ textAlign: 'right' }}>
+                  <input
+                    type="text"
+                    value={vacancyInput || formatInputValue(vacancy, 'percentage')}
+                    onChange={(e) => {
+                      setVacancyInput(e.target.value);
+                    }}
+                    onFocus={(e) => {
+                      setVacancyInput(e.target.value);
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value.replace('%', '');
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                        updateOverrides({ vacancy: numValue / 100 });
+                      }
+                      setVacancyInput('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                      }
+                    }}
+                    style={{ 
+                      padding: '4px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      width: '80px',
+                      textAlign: 'right',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
               
                              {/* Total Effective Gross Income */}
                <div style={{ fontWeight: 'bold' }}>Total Effective Gross Income</div>
@@ -825,23 +1111,41 @@ export default function PropertyDetails() {
                    }}
                  />
                </div>
-                                                               <div style={{ textAlign: 'right' }}>
-                   <input
-                     type="text"
-                     value={formatInputValue((opex.taxes || 0) / effectiveGrossIncome, 'percentage')}
-                     onChange={(e) => updateOverrides({ 
-                       opex: { ...opex, taxes: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
-                     })}
-                     style={{ 
-                       padding: '4px', 
-                       border: '1px solid #ddd', 
-                       borderRadius: '4px',
-                       width: '80px',
-                       textAlign: 'right',
-                       fontSize: '14px'
-                     }}
-                   />
-                 </div>
+                                                                                                                               <div style={{ textAlign: 'right' }}>
+                    <input
+                      type="text"
+                      value={taxesInput || formatInputValue((opex.taxes || 0) / effectiveGrossIncome, 'percentage')}
+                      onChange={(e) => {
+                        setTaxesInput(e.target.value);
+                      }}
+                      onFocus={(e) => {
+                        setTaxesInput(e.target.value);
+                      }}
+                      onBlur={(e) => {
+                        const value = e.target.value.replace('%', '');
+                        const numValue = parseFloat(value);
+                        if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                          updateOverrides({ 
+                            opex: { ...opex, taxes: (numValue / 100) * effectiveGrossIncome }
+                          });
+                        }
+                        setTaxesInput('');
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.currentTarget.blur();
+                        }
+                      }}
+                      style={{ 
+                        padding: '4px', 
+                        border: '1px solid #ddd', 
+                        borderRadius: '4px',
+                        width: '80px',
+                        textAlign: 'right',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
               
                                                                                                                        <div>less: Insurance</div>
                 <div style={{ textAlign: 'right' }}>
@@ -863,10 +1167,28 @@ export default function PropertyDetails() {
                 <div style={{ textAlign: 'right' }}>
                   <input
                     type="text"
-                    value={formatInputValue((opex.pm || 0) / effectiveGrossIncome, 'percentage')}
-                    onChange={(e) => updateOverrides({ 
-                      opex: { ...opex, pm: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
-                    })}
+                    value={insuranceInput || formatInputValue((opex.pm || 0) / effectiveGrossIncome, 'percentage')}
+                    onChange={(e) => {
+                      setInsuranceInput(e.target.value);
+                    }}
+                    onFocus={(e) => {
+                      setInsuranceInput(e.target.value);
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value.replace('%', '');
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                        updateOverrides({ 
+                          opex: { ...opex, pm: (numValue / 100) * effectiveGrossIncome }
+                        });
+                      }
+                      setInsuranceInput('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                      }
+                    }}
                     style={{ 
                       padding: '4px', 
                       border: '1px solid #ddd', 
@@ -898,10 +1220,28 @@ export default function PropertyDetails() {
                 <div style={{ textAlign: 'right' }}>
                   <input
                     type="text"
-                    value={formatInputValue((opex.waterSewer || 0) / effectiveGrossIncome, 'percentage')}
-                    onChange={(e) => updateOverrides({ 
-                      opex: { ...opex, waterSewer: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
-                    })}
+                    value={waterSewerInput || formatInputValue((opex.waterSewer || 0) / effectiveGrossIncome, 'percentage')}
+                    onChange={(e) => {
+                      setWaterSewerInput(e.target.value);
+                    }}
+                    onFocus={(e) => {
+                      setWaterSewerInput(e.target.value);
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value.replace('%', '');
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                        updateOverrides({ 
+                          opex: { ...opex, waterSewer: (numValue / 100) * effectiveGrossIncome }
+                        });
+                      }
+                      setWaterSewerInput('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                      }
+                    }}
                     style={{ 
                       padding: '4px', 
                       border: '1px solid #ddd', 
@@ -933,10 +1273,28 @@ export default function PropertyDetails() {
                 <div style={{ textAlign: 'right' }}>
                   <input
                     type="text"
-                    value={formatInputValue((opex.commonElec || 0) / effectiveGrossIncome, 'percentage')}
-                    onChange={(e) => updateOverrides({ 
-                      opex: { ...opex, commonElec: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
-                    })}
+                    value={commonElecInput || formatInputValue((opex.commonElec || 0) / effectiveGrossIncome, 'percentage')}
+                    onChange={(e) => {
+                      setCommonElecInput(e.target.value);
+                    }}
+                    onFocus={(e) => {
+                      setCommonElecInput(e.target.value);
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value.replace('%', '');
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                        updateOverrides({ 
+                          opex: { ...opex, commonElec: (numValue / 100) * effectiveGrossIncome }
+                        });
+                      }
+                      setCommonElecInput('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                      }
+                    }}
                     style={{ 
                       padding: '4px', 
                       border: '1px solid #ddd', 
@@ -968,10 +1326,28 @@ export default function PropertyDetails() {
                 <div style={{ textAlign: 'right' }}>
                   <input
                     type="text"
-                    value={formatInputValue((opex.rubbish || 0) / effectiveGrossIncome, 'percentage')}
-                    onChange={(e) => updateOverrides({ 
-                      opex: { ...opex, rubbish: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
-                    })}
+                    value={rubbishInput || formatInputValue((opex.rubbish || 0) / effectiveGrossIncome, 'percentage')}
+                    onChange={(e) => {
+                      setRubbishInput(e.target.value);
+                    }}
+                    onFocus={(e) => {
+                      setRubbishInput(e.target.value);
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value.replace('%', '');
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                        updateOverrides({ 
+                          opex: { ...opex, rubbish: (numValue / 100) * effectiveGrossIncome }
+                        });
+                      }
+                      setRubbishInput('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                      }
+                    }}
                     style={{ 
                       padding: '4px', 
                       border: '1px solid #ddd', 
@@ -1003,10 +1379,28 @@ export default function PropertyDetails() {
                 <div style={{ textAlign: 'right' }}>
                   <input
                     type="text"
-                    value={formatInputValue((opex.repairs || 0) / effectiveGrossIncome, 'percentage')}
-                    onChange={(e) => updateOverrides({ 
-                      opex: { ...opex, repairs: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
-                    })}
+                    value={repairsInput || formatInputValue((opex.repairs || 0) / effectiveGrossIncome, 'percentage')}
+                    onChange={(e) => {
+                      setRepairsInput(e.target.value);
+                    }}
+                    onFocus={(e) => {
+                      setRepairsInput(e.target.value);
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value.replace('%', '');
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                        updateOverrides({ 
+                          opex: { ...opex, repairs: (numValue / 100) * effectiveGrossIncome }
+                        });
+                      }
+                      setRepairsInput('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                      }
+                    }}
                     style={{ 
                       padding: '4px', 
                       border: '1px solid #ddd', 
@@ -1038,10 +1432,28 @@ export default function PropertyDetails() {
                 <div style={{ textAlign: 'right' }}>
                   <input
                     type="text"
-                    value={formatInputValue((opex.pm || 0) / effectiveGrossIncome, 'percentage')}
-                    onChange={(e) => updateOverrides({ 
-                      opex: { ...opex, pm: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
-                    })}
+                    value={pmInput || formatInputValue((opex.pm || 0) / effectiveGrossIncome, 'percentage')}
+                    onChange={(e) => {
+                      setPmInput(e.target.value);
+                    }}
+                    onFocus={(e) => {
+                      setPmInput(e.target.value);
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value.replace('%', '');
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                        updateOverrides({ 
+                          opex: { ...opex, pm: (numValue / 100) * effectiveGrossIncome }
+                        });
+                      }
+                      setPmInput('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                      }
+                    }}
                     style={{ 
                       padding: '4px', 
                       border: '1px solid #ddd', 
@@ -1073,10 +1485,28 @@ export default function PropertyDetails() {
                                     <div style={{ textAlign: 'right' }}>
                      <input
                        type="text"
-                       value={formatInputValue((opex.licensing || 0) / effectiveGrossIncome, 'percentage')}
-                       onChange={(e) => updateOverrides({ 
-                         opex: { ...opex, licensing: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
-                       })}
+                       value={licensingInput || formatInputValue((opex.licensing || 0) / effectiveGrossIncome, 'percentage')}
+                       onChange={(e) => {
+                         setLicensingInput(e.target.value);
+                       }}
+                       onFocus={(e) => {
+                         setLicensingInput(e.target.value);
+                       }}
+                       onBlur={(e) => {
+                         const value = e.target.value.replace('%', '');
+                         const numValue = parseFloat(value);
+                         if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                           updateOverrides({ 
+                             opex: { ...opex, licensing: (numValue / 100) * effectiveGrossIncome }
+                           });
+                         }
+                         setLicensingInput('');
+                       }}
+                       onKeyDown={(e) => {
+                         if (e.key === 'Enter') {
+                           e.currentTarget.blur();
+                         }
+                       }}
                       style={{ 
                         padding: '4px', 
                         border: '1px solid #ddd', 
@@ -1108,10 +1538,28 @@ export default function PropertyDetails() {
                                 <div style={{ textAlign: 'right' }}>
                    <input
                      type="text"
-                     value={formatInputValue((opex.legal || 0) / effectiveGrossIncome, 'percentage')}
-                     onChange={(e) => updateOverrides({ 
-                       opex: { ...opex, legal: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
-                     })}
+                     value={legalInput || formatInputValue((opex.legal || 0) / effectiveGrossIncome, 'percentage')}
+                     onChange={(e) => {
+                       setLegalInput(e.target.value);
+                     }}
+                     onFocus={(e) => {
+                       setLegalInput(e.target.value);
+                     }}
+                     onBlur={(e) => {
+                       const value = e.target.value.replace('%', '');
+                       const numValue = parseFloat(value);
+                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                         updateOverrides({ 
+                           opex: { ...opex, legal: (numValue / 100) * effectiveGrossIncome }
+                         });
+                       }
+                       setLegalInput('');
+                     }}
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter') {
+                         e.currentTarget.blur();
+                       }
+                     }}
                      style={{ 
                        padding: '4px', 
                        border: '1px solid #ddd', 
@@ -1143,10 +1591,28 @@ export default function PropertyDetails() {
                                 <div style={{ textAlign: 'right' }}>
                    <input
                      type="text"
-                     value={formatInputValue((opex.capex || 0) / effectiveGrossIncome, 'percentage')}
-                     onChange={(e) => updateOverrides({ 
-                       opex: { ...opex, capex: parseInputValue(e.target.value, 'percentage') * effectiveGrossIncome }
-                     })}
+                     value={capexInput || formatInputValue((opex.capex || 0) / effectiveGrossIncome, 'percentage')}
+                     onChange={(e) => {
+                       setCapexInput(e.target.value);
+                     }}
+                     onFocus={(e) => {
+                       setCapexInput(e.target.value);
+                     }}
+                     onBlur={(e) => {
+                       const value = e.target.value.replace('%', '');
+                       const numValue = parseFloat(value);
+                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                         updateOverrides({ 
+                           opex: { ...opex, capex: (numValue / 100) * effectiveGrossIncome }
+                         });
+                       }
+                       setCapexInput('');
+                     }}
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter') {
+                         e.currentTarget.blur();
+                       }
+                     }}
                      style={{ 
                        padding: '4px', 
                        border: '1px solid #ddd', 
@@ -1176,7 +1642,7 @@ export default function PropertyDetails() {
                 {/* Net Cash Flow */}
                 <div style={{ fontWeight: 'bold' }}>Net Cash Flow</div>
                 <div style={{ fontWeight: 'bold', textAlign: 'right', color: monthlyCashFlow >= 0 ? '#28a745' : '#dc3545' }}>
-                  ({formatCurrency(Math.round(Math.abs(toDisplayValue(monthlyCashFlow * 12))))})
+                  {monthlyCashFlow >= 0 ? formatCurrency(Math.round(toDisplayValue(monthlyCashFlow * 12))) : `(${formatCurrency(Math.round(Math.abs(toDisplayValue(monthlyCashFlow * 12))))})`}
                 </div>
                 <div style={{ fontWeight: 'bold', textAlign: 'right', color: monthlyCashFlow >= 0 ? '#28a745' : '#dc3545' }}>
                   {effectiveGrossIncome > 0 ? `${((monthlyCashFlow * 12) / effectiveGrossIncome * 100).toFixed(1)}%` : '0.0%'}
@@ -1190,6 +1656,7 @@ export default function PropertyDetails() {
       
 
       
-    </main>
+      </main>
+    </div>
   );
 }

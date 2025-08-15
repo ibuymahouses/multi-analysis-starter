@@ -52,7 +52,7 @@ function undoRedoReducer(state: UndoRedoState, action: UndoRedoAction): UndoRedo
       if (present === action.payload) return state;
 
       return {
-        past: [...past, present],
+        past: present ? [...past, present] : past,
         present: action.payload,
         future: []
       };

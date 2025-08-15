@@ -148,7 +148,7 @@ export function AssumptionsDialog({ assumptions, onAssumptionsChange }: Assumpti
                       max="40"
                       step="1"
                     />
-                    <span className="text-sm text-muted-foreground">years</span>
+                    <span className="text-sm text-muted-foreground">Years</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Loan amortization period
@@ -196,7 +196,7 @@ export function AssumptionsDialog({ assumptions, onAssumptionsChange }: Assumpti
                 </div>
                 <div>
                   <span className="text-muted-foreground">Loan Term:</span>
-                  <span className="ml-2 font-medium">{localAssumptions.loanTerm} years</span>
+                  <span className="ml-2 font-medium">{localAssumptions.loanTerm} Years</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">DSCR Floor:</span>

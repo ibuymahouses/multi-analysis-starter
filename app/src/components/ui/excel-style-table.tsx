@@ -80,6 +80,12 @@ export function ExcelStyleTable({
     setColumnWidths(widths)
   }, [columns])
 
+
+
+
+
+
+
   const getSortIcon = (field: string) => {
     if (sortField !== field) return <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
     return sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
@@ -270,7 +276,7 @@ export function ExcelStyleTable({
         </div>
       </div>
 
-      {/* Excel-style Table */}
+      {/* Excel-style Table with Sticky Headers */}
       <div 
         ref={tableRef}
         className="border border-gray-300 rounded-lg overflow-hidden bg-white"
@@ -278,12 +284,12 @@ export function ExcelStyleTable({
           boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)'
         }}
       >
-        <div className="overflow-x-auto">
+                <div className="overflow-x-auto max-h-[1152px]">
           <table className="w-full border-collapse">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
               <tr>
                 {selectable && (
-                  <th className="border-r border-gray-200 p-0" style={{ width: 40 }}>
+                  <th className="border-r border-gray-200 p-0 bg-gray-50" style={{ width: 40, backgroundColor: '#f9fafb' }}>
                     <div className="p-2">
                       <Checkbox
                         checked={selectedRows.size === data.length && data.length > 0}
@@ -295,10 +301,11 @@ export function ExcelStyleTable({
                 {columns.map((column) => (
                   <th 
                     key={column.key}
-                    className="border-r border-gray-200 p-0 relative"
+                    className="border-r border-gray-200 p-0 relative bg-gray-50"
                     style={{ 
                       width: columnWidths[column.key] || column.width || 150,
-                      minWidth: column.minWidth || 80
+                      minWidth: column.minWidth || 80,
+                      backgroundColor: '#f9fafb'
                     }}
                   >
                     <div className="p-2">
@@ -316,18 +323,18 @@ export function ExcelStyleTable({
                               {getSortIcon(column.key)}
                             </button>
                           )}
-                                                     {column.filterable && (
-                             <ExcelFilterDropdown
-                               column={{
-                                 id: column.key,
-                                 header: column.label,
-                                 data: data.map(row => row[column.key])
-                               }}
-                               onFilterChange={onFilterChange}
-                               onSortChange={onSort}
-                               currentFilter={Array.isArray(filters[column.key]) ? filters[column.key] : (filters[column.key] ? [filters[column.key]] : [])}
-                             />
-                           )}
+                          {column.filterable && (
+                            <ExcelFilterDropdown
+                              column={{
+                                id: column.key,
+                                header: column.label,
+                                data: data.map(row => row[column.key])
+                              }}
+                              onFilterChange={onFilterChange}
+                              onSortChange={onSort}
+                              currentFilter={Array.isArray(filters[column.key]) ? filters[column.key] : (filters[column.key] ? [filters[column.key]] : [])}
+                            />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -347,6 +354,7 @@ export function ExcelStyleTable({
               {data.map((row, rowIndex) => (
                 <tr 
                   key={rowIndex}
+                  data-row-index={rowIndex}
                   className={cn(
                     "border-b border-gray-100 hover:bg-gray-50 transition-colors",
                     selectedRows.has(rowIndex) && "bg-blue-50 hover:bg-blue-100"
