@@ -566,9 +566,9 @@ export default function PropertyDetails() {
           </button>
         </div>
 
-        {/* Key Metrics Summary */}
+        {/* Key Metrics */}
         <div style={{ 
-          background: '#2c3e50', 
+          background: '#343A40', 
           color: 'white', 
           padding: '16px 20px', 
           fontWeight: 'bold',
@@ -576,42 +576,42 @@ export default function PropertyDetails() {
           borderTopLeftRadius: '8px',
           borderTopRightRadius: '8px'
         }}>
-          Key Metrics Summary
+          Key Metrics
         </div>
         <div style={{ 
           border: '1px solid #ddd', 
           borderTop: 'none',
-          padding: '24px',
-          background: '#f8f9fa'
+          padding: '20px',
+          background: 'white'
         }}>
           <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: '1fr', 
-            gap: '16px' 
+            display: 'flex', 
+            flexDirection: 'column',
+            gap: '12px' 
           }}>
             <div style={{ 
               background: 'white',
               border: '1px solid #ddd',
               borderRadius: '6px',
               padding: '16px',
-              textAlign: 'left',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <div style={{ 
-                fontSize: '18px', 
-                fontWeight: 'bold', 
-                color: dscr >= 1.2 ? '#28a745' : dscr >= 1.0 ? '#ffc107' : '#dc3545'
-              }}>
-                DSCR: {dscr.toFixed(2)}
-              </div>
-              <div style={{ 
-                fontSize: '14px', 
-                color: '#666', 
-                fontStyle: 'italic'
-              }}>
-                {formatLTV(1 - downPayment)} LTV
+              <div>
+                <div style={{ 
+                  fontSize: '16px', 
+                  fontWeight: 'bold', 
+                  color: dscr >= 1.2 ? '#28a745' : dscr >= 1.0 ? '#ffc107' : '#dc3545'
+                }}>
+                  DSCR: {dscr.toFixed(2)}
+                </div>
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#666'
+                }}>
+                  {formatLTV(1 - downPayment)} LTV
+                </div>
               </div>
             </div>
             
@@ -620,24 +620,24 @@ export default function PropertyDetails() {
               border: '1px solid #ddd',
               borderRadius: '6px',
               padding: '16px',
-              textAlign: 'left',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <div style={{ 
-                fontSize: '18px', 
-                fontWeight: 'bold', 
-                color: '#2c3e50'
-              }}>
-                Cap Rate: {formatCapRate(capRate)}
-              </div>
-              <div style={{ 
-                fontSize: '14px', 
-                color: '#666', 
-                fontStyle: 'italic'
-              }}>
-                at ask price
+              <div>
+                <div style={{ 
+                  fontSize: '16px', 
+                  fontWeight: 'bold', 
+                  color: '#2c3e50'
+                }}>
+                  Cap Rate: {formatCapRate(capRate)}
+                </div>
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#666'
+                }}>
+                  at offer price
+                </div>
               </div>
             </div>
             
@@ -646,24 +646,24 @@ export default function PropertyDetails() {
               border: '1px solid #ddd',
               borderRadius: '6px',
               padding: '16px',
-              textAlign: 'left',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <div style={{ 
-                fontSize: '18px', 
-                fontWeight: 'bold', 
-                color: returnOnCapital >= 0.12 ? '#28a745' : '#ffc107'
-              }}>
-                Return: {formatReturnOnCapital(returnOnCapital)}
-              </div>
-              <div style={{ 
-                fontSize: '14px', 
-                color: '#666', 
-                fontStyle: 'italic'
-              }}>
-                on capital
+              <div>
+                <div style={{ 
+                  fontSize: '16px', 
+                  fontWeight: 'bold', 
+                  color: returnOnCapital >= 0.12 ? '#28a745' : '#ffc107'
+                }}>
+                  Return: {formatReturnOnCapital(returnOnCapital)}
+                </div>
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#666'
+                }}>
+                  on capital
+                </div>
               </div>
             </div>
             
@@ -672,24 +672,24 @@ export default function PropertyDetails() {
               border: '1px solid #ddd',
               borderRadius: '6px',
               padding: '16px',
-              textAlign: 'left',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <div style={{ 
-                fontSize: '18px', 
-                fontWeight: 'bold', 
-                color: monthlyCashFlow >= 0 ? '#28a745' : '#dc3545'
-              }}>
-                Cash Flow: {formatCurrency(monthlyCashFlow)}
-              </div>
-              <div style={{ 
-                fontSize: '14px', 
-                color: '#666', 
-                fontStyle: 'italic'
-              }}>
-                monthly
+              <div>
+                <div style={{ 
+                  fontSize: '16px', 
+                  fontWeight: 'bold', 
+                  color: monthlyCashFlow >= 0 ? '#28a745' : '#dc3545'
+                }}>
+                  Cash Flow: {formatCurrency(monthlyCashFlow)}
+                </div>
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#666'
+                }}>
+                  monthly
+                </div>
               </div>
             </div>
             
@@ -698,24 +698,24 @@ export default function PropertyDetails() {
               border: '1px solid #ddd',
               borderRadius: '6px',
               padding: '16px',
-              textAlign: 'left',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <div style={{ 
-                fontSize: '18px', 
-                fontWeight: 'bold', 
-                color: '#2c3e50'
-              }}>
-                Equity: {formatCurrency(equityRequired)}
-              </div>
-              <div style={{ 
-                fontSize: '14px', 
-                color: '#666', 
-                fontStyle: 'italic'
-              }}>
-                required
+              <div>
+                <div style={{ 
+                  fontSize: '16px', 
+                  fontWeight: 'bold', 
+                  color: '#2c3e50'
+                }}>
+                  Equity: {formatCurrency(equityRequired)}
+                </div>
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#666'
+                }}>
+                  required
+                </div>
               </div>
             </div>
           </div>

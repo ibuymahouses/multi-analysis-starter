@@ -1,5 +1,5 @@
 import { Pool, PoolConfig } from 'pg';
-import { DATABASE_CONFIG } from '@multi-analysis/shared';
+import { config } from '@multi-analysis/shared';
 
 export interface DatabaseConfig {
   host: string;
@@ -28,20 +28,20 @@ export function createDatabasePool(config: DatabaseConfig): Pool {
 }
 
 export function getDatabaseConfig(): DatabaseConfig {
-  const config: DatabaseConfig = {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432'),
-    database: process.env.DB_NAME || 'multi_analysis',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || '',
-    ssl: process.env.NODE_ENV === 'production',
+  const dbConfig: DatabaseConfig = {
+    host: config.database.host,
+    port: config.database.port,
+    database: config.database.name,
+    user: config.database.user,
+    password: config.database.password,
+    ssl: config.database.ssl,
   };
 
-  if (!config.password) {
+  if (!dbConfig.password) {
     throw new Error('Database password is required');
   }
 
-  return config;
+  return dbConfig;
 }
 
 // Global pool instance

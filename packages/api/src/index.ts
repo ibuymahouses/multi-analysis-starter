@@ -16,11 +16,11 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// CORS configuration with debugging
+import { config } from '@multi-analysis/shared';
+
+// CORS configuration using shared config
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://multi-analysis.vercel.app', 'https://multi-analysis-git-master-ibuymahouses-projects.vercel.app'] 
-    : ['http://localhost:3000'],
+  origin: config.corsOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
@@ -48,10 +48,10 @@ app.use(express.json({ limit: '10mb' }));
 console.log('Initializing in-memory storage for development...');
 console.log('Test user available: test@example.com / password123');
 
-// Try multiple paths for data files (for Railway deployment)
+// Try multiple paths for data files (for AWS deployment)
 const possibleDataDirs = [
   path.join(process.cwd(), '..', 'data'),           // Local development
-  path.join(process.cwd(), 'data'),                 // Railway deployment
+  path.join(process.cwd(), 'data'),                 // AWS deployment
   path.join(process.cwd(), '..', '..', 'data')      // Alternative path
 ];
 

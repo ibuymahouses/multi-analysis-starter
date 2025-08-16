@@ -1,5 +1,5 @@
 import { createClient, RedisClientType } from 'redis';
-import { CACHE_CONFIG } from '@multi-analysis/shared';
+import { config } from '@multi-analysis/shared';
 
 export interface RedisConfig {
   host: string;
@@ -10,10 +10,10 @@ export interface RedisConfig {
 
 export function getRedisConfig(): RedisConfig {
   return {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    password: process.env.REDIS_PASSWORD,
-    db: parseInt(process.env.REDIS_DB || '0'),
+    host: config.redis.host,
+    port: config.redis.port,
+    password: config.redis.password,
+    db: config.redis.db,
   };
 }
 

@@ -1,13 +1,14 @@
-// API Configuration - Updated for Railway deployment
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL 
-  ? (process.env.NEXT_PUBLIC_API_URL.startsWith('http') 
-      ? process.env.NEXT_PUBLIC_API_URL 
-      : `https://${process.env.NEXT_PUBLIC_API_URL}`)
-  : 'http://localhost:3001';
+import { config } from '@multi-analysis/shared';
 
-// Debug logging
-console.log('API_BASE_URL:', API_BASE_URL);
-console.log('NEXT_PUBLIC_API_URL env var:', process.env.NEXT_PUBLIC_API_URL);
+// Use shared configuration for API base URL
+export const API_BASE_URL = config.apiBaseUrl;
+
+// Debug logging (only in development)
+if (config.isDevelopment) {
+  console.log('API_BASE_URL:', API_BASE_URL);
+  console.log('NEXT_PUBLIC_API_URL env var:', process.env.NEXT_PUBLIC_API_URL);
+  console.log('NODE_ENV:', config.nodeEnv);
+}
 
 // API Endpoints
 export const API_ENDPOINTS = {
