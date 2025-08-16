@@ -3,7 +3,7 @@ import { ExcelFilterDropdown } from '@/components/ui/excel-filter-dropdown';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from 'next/link';
-import { API_ENDPOINTS } from '../../lib/config';
+import { API_ENDPOINTS } from '../lib/config';
 
 // Define the data type
 type Property = {

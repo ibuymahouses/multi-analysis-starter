@@ -4,7 +4,7 @@ import { ColDef, GridReadyEvent, GridApi, ModuleRegistry, AllCommunityModule } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from 'next/link';
-import { API_ENDPOINTS } from '../../lib/config';
+import { API_ENDPOINTS } from '../lib/config';
 
 // Import AG Grid styles
 import 'ag-grid-community/styles/ag-grid.css';
