@@ -11,6 +11,7 @@ import { AssumptionsDialog } from "@/components/ui/assumptions-dialog";
 import Header from '@/components/header';
 import { ValidationModal } from '@/components/ui/validation-modal';
 import { validateDataCompleteness, validateDataQuality, quickValidation } from '@/lib/data-validation';
+import { API_ENDPOINTS } from '@/lib/config';
 
 type Row = {
   LIST_NO: string;
@@ -224,7 +225,7 @@ export default function ListingsPage() {
   const load = async (m: 'below' | 'avg' | 'agg') => {
     setLoading(true);
     try {
-      const r = await fetch(`http://localhost:3001/analyze-all?mode=${m}`);
+      const r = await fetch(API_ENDPOINTS.analyzeAll(m));
       const d = await r.json();
       setRows(d.rows || []);
       
@@ -342,7 +343,7 @@ export default function ListingsPage() {
    }, [mode]);
 
   useEffect(() => { 
-          fetch('http://localhost:3001/rents/metadata')
+          fetch(API_ENDPOINTS.rentsMetadata)
       .then(r => r.json())
       .then(setMeta)
       .catch(() => {});
@@ -872,7 +873,7 @@ export default function ListingsPage() {
               onAssumptionsChange={setAssumptions}
             />
             <a 
-              href={`http://localhost:3001/export/analyzed.csv?mode=${mode}`} 
+                              href={API_ENDPOINTS.export(mode)} 
               target="_blank" 
               rel="noreferrer"
             >
