@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { API_ENDPOINTS } from '../../lib/config';
 
 export default function TestSimplePage() {
   const [data, setData] = useState<any>(null);
@@ -9,7 +10,7 @@ export default function TestSimplePage() {
     const loadData = async () => {
       try {
         console.log('Fetching data...');
-        const response = await fetch('http://localhost:3001/analyze-all?mode=avg');
+        const response = await fetch(API_ENDPOINTS.analyzeAll('avg'));
         console.log('Response status:', response.status);
         
         if (!response.ok) {

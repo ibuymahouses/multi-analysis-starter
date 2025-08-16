@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { API_ENDPOINTS } from '../../lib/config';
 import {
   useReactTable,
   getCoreRowModel,
@@ -48,7 +49,7 @@ export default function TestTablePage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const response = await fetch('http://localhost:3001/analyze-all?mode=avg');
+        const response = await fetch(API_ENDPOINTS.analyzeAll('avg'));
         const result = await response.json();
         setData(result.rows || []);
       } catch (error) {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useUndoRedo } from '../../lib/undo-redo-context';
 import { useKeyboardShortcuts } from '../../lib/use-keyboard-shortcuts';
+import { API_ENDPOINTS } from '../../lib/config';
 
 interface UnitMix {
   bedrooms: number;
@@ -91,7 +92,7 @@ export default function PropertyDetails() {
         // Update server with the restored state
         const updateServer = async () => {
           try {
-            const response = await fetch(`http://localhost:3001/property/${LIST_NO}/overrides`, {
+            const response = await fetch(API_ENDPOINTS.propertyOverrides(LIST_NO as string), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(undoState.property.overrides)
@@ -141,14 +142,14 @@ export default function PropertyDetails() {
         setBhaRentalData(bhaData);
         
         // Fetch analysis data
-        const analysisResponse = await fetch(`http://localhost:3001/analyze/${LIST_NO}`);
+        const analysisResponse = await fetch(API_ENDPOINTS.analyze(LIST_NO as string));
         if (!analysisResponse.ok) {
           throw new Error('Property not found');
         }
         const analysisData = await analysisResponse.json();
 
         // Fetch complete listing data
-        const listingsResponse = await fetch('http://localhost:3001/listings');
+        const listingsResponse = await fetch(API_ENDPOINTS.listings);
         const listingsData = await listingsResponse.json();
         const fullListing = listingsData.listings.find((l: any) => String(l.LIST_NO) === String(LIST_NO));
         
@@ -157,7 +158,7 @@ export default function PropertyDetails() {
         }
 
         // Fetch overrides
-        const overridesResponse = await fetch(`http://localhost:3001/property/${LIST_NO}/overrides`);
+        const overridesResponse = await fetch(API_ENDPOINTS.propertyOverrides(LIST_NO as string));
         const overrides = overridesResponse.ok ? await overridesResponse.json() : {};
 
         // Merge complete listing and analysis data
@@ -235,7 +236,7 @@ export default function PropertyDetails() {
     // Update server unless this is a restoration from undo/redo
     if (!skipServerUpdate) {
       try {
-        const response = await fetch(`http://localhost:3001/property/${LIST_NO}/overrides`, {
+        const response = await fetch(API_ENDPOINTS.propertyOverrides(LIST_NO as string), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newProperty.overrides)
@@ -768,7 +769,29 @@ export default function PropertyDetails() {
                      }}
                    />
                  </div>
-                              <div>{offerPrice === property.LIST_PRICE ? 'List price' : `${formatLTV(offerPricePercent / 100)} of list price`}</div>
+                              <div>
+                                <input
+                                  type="text"
+                                  value={offerPrice === property.LIST_PRICE ? '100%' : `${(offerPricePercent).toFixed(1)}%`}
+                                  onChange={(e) => {
+                                    const cleanValue = e.target.value.replace(/%/g, '');
+                                    const numValue = parseFloat(cleanValue) || 0;
+                                    if (numValue > 0) {
+                                      const newOfferPrice = (property.LIST_PRICE * numValue) / 100;
+                                      updateOverrides({ offerPrice: newOfferPrice });
+                                    }
+                                  }}
+                                  style={{ 
+                                    padding: '4px', 
+                                    border: '1px solid #ddd', 
+                                    borderRadius: '4px',
+                                    width: '80px',
+                                    textAlign: 'right',
+                                    fontSize: '14px'
+                                  }}
+                                />
+                                <span style={{ fontSize: '12px', color: '#666', marginLeft: '4px' }}>of list price</span>
+                              </div>
                
                             <div>Down Payment</div>
                                  <div style={{ textAlign: 'right' }}>

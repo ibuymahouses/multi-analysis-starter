@@ -12,13 +12,26 @@ import memoryStorage from './database/memory-storage.js';
 const app = express();
 
 // Security middleware
-app.use(helmet());
-app.use(cors({
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// CORS configuration with debugging
+const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://multi-analysis.vercel.app', 'https://multi-analysis-git-master-ibuymahouses-projects.vercel.app'] 
     : ['http://localhost:3000'],
-  credentials: true
-}));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+console.log('CORS configuration:', {
+  nodeEnv: process.env.NODE_ENV,
+  origins: corsOptions.origin
+});
+
+app.use(cors(corsOptions));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -83,6 +96,15 @@ function saveOverrides(overrides) {
 
 // health
 app.get('/health', (_, res) => res.json({ ok: true }));
+
+// CORS test endpoint
+app.get('/cors-test', (_, res) => {
+  res.json({ 
+    message: 'CORS test successful',
+    timestamp: new Date().toISOString(),
+    nodeEnv: process.env.NODE_ENV
+  });
+});
 
 // Authentication routes - temporarily disabled
 // app.use('/api/auth', authRoutes.router);

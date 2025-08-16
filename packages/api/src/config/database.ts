@@ -61,3 +61,4 @@ export async function closeDatabasePool(): Promise<void> {
     pool = null;
   }
 }
+

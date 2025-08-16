@@ -4,6 +4,7 @@ import { ColDef, GridReadyEvent, GridApi, ModuleRegistry, AllCommunityModule } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from 'next/link';
+import { API_ENDPOINTS } from '../../lib/config';
 
 // Import AG Grid styles
 import 'ag-grid-community/styles/ag-grid.css';
@@ -42,7 +43,7 @@ export default function TestAGGridPage() {
     const loadData = async () => {
       try {
         console.log('AG Grid: Loading data...');
-        const response = await fetch('http://localhost:3001/analyze-all?mode=avg');
+        const response = await fetch(API_ENDPOINTS.analyzeAll('avg'));
         const result = await response.json();
         console.log('AG Grid: Data loaded, rows:', result.rows?.length);
         setData(result.rows || []);

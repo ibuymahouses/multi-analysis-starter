@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Test</title>
+</head>
+<body>
+    <h1>CORS Test</h1>
+    <div id="results"></div>
+
+    <script>
+        const resultsDiv = document.getElementById('results');
+        
+        async function testCORS() {
+            // Replace this with your actual Railway API URL
+            const apiUrl = 'https://your-railway-app-name.railway.app';
+            
+            const tests = [
+                { name: 'Health Check', url: `${apiUrl}/health` },
+                { name: 'CORS Test', url: `${apiUrl}/cors-test` },
+                { name: 'Listings', url: `${apiUrl}/listings` },
+                { name: 'Analyze Test', url: `${apiUrl}/analyze/73226886` }
+            ];
+            
+            for (const test of tests) {
+                try {
+                    console.log(`Testing ${test.name}...`);
+                    const response = await fetch(test.url);
+                    const data = await response.json();
+                    
+                    resultsDiv.innerHTML += `
+                        <div style="color: green; margin: 10px 0;">
+                            ✅ ${test.name}: Success (${response.status})
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } catch (error) {
+                    resultsDiv.innerHTML += `
+                        <div style="color: red; margin: 10px 0;">
+                            ❌ ${test.name}: Failed
+                            <pre>${error.message}</pre>
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        testCORS();
+    </script>
+</body>
+</html>
