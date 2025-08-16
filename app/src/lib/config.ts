@@ -1,6 +1,10 @@
 // API Configuration - Updated for Railway deployment
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
+// Debug logging
+console.log('API_BASE_URL:', API_BASE_URL);
+console.log('NEXT_PUBLIC_API_URL env var:', process.env.NEXT_PUBLIC_API_URL);
+
 // API Endpoints
 export const API_ENDPOINTS = {
   analyzeAll: (mode: string) => `${API_BASE_URL}/analyze-all?mode=${mode}`,
