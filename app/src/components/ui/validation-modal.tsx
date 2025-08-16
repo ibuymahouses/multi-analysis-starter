@@ -85,7 +85,7 @@ export function ValidationModal({ isOpen, onClose, issues, title, type, onNaviga
                       {issue.listNo ? (
                         <button
                           onClick={() => {
-                            if (onNavigateToProperty) {
+                            if (onNavigateToProperty && issue.listNo) {
                               onNavigateToProperty(issue.listNo);
                               onClose();
                             }
