@@ -15,7 +15,7 @@ const app = express();
 app.use(helmet());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://yourdomain.com'] 
+    ? ['https://multi-analysis.vercel.app', 'https://multi-analysis-git-master-ibuymahouses-projects.vercel.app'] 
     : ['http://localhost:3000'],
   credentials: true
 }));
