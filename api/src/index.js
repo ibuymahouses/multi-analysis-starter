@@ -35,10 +35,21 @@ app.use(express.json({ limit: '10mb' }));
 console.log('Initializing in-memory storage for development...');
 console.log('Test user available: test@example.com / password123');
 
-const dataDir = path.join(process.cwd(), '..', 'data');
-const listingsPath = path.join(dataDir, 'listings.json');
-const rentsPath = path.join(dataDir, 'bha-rents-comprehensive.json');
-const overridesPath = path.join(dataDir, 'overrides.json');
+// Try multiple paths for data files (for Railway deployment)
+const possibleDataDirs = [
+  path.join(process.cwd(), '..', 'data'),           // Local development
+  path.join(process.cwd(), 'data'),                 // Railway deployment
+  path.join(process.cwd(), '..', '..', 'data')      // Alternative path
+];
+
+const listingsPath = possibleDataDirs.map(dir => path.join(dir, 'listings.json')).find(p => fs.existsSync(p)) || path.join(possibleDataDirs[0], 'listings.json');
+const rentsPath = possibleDataDirs.map(dir => path.join(dir, 'bha-rents-comprehensive.json')).find(p => fs.existsSync(p)) || path.join(possibleDataDirs[0], 'bha-rents-comprehensive.json');
+const overridesPath = possibleDataDirs.map(dir => path.join(dir, 'overrides.json')).find(p => fs.existsSync(p)) || path.join(possibleDataDirs[0], 'overrides.json');
+
+console.log('Looking for data files in:', possibleDataDirs);
+console.log('Listings path:', listingsPath, 'exists:', fs.existsSync(listingsPath));
+console.log('Rents path:', rentsPath, 'exists:', fs.existsSync(rentsPath));
+console.log('Overrides path:', overridesPath, 'exists:', fs.existsSync(overridesPath));
 
 function loadListings() {
   if (!fs.existsSync(listingsPath)) return { listings: [] };
