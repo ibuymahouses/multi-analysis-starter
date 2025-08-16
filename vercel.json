@@ -1,0 +1,11 @@
+{
+  "buildCommand": "npm run build --prefix packages/web",
+  "outputDirectory": "packages/web/.next",
+  "installCommand": "npm run install:all",
+  "framework": "nextjs",
+  "functions": {
+    "packages/api/src/**/*.ts": {
+      "runtime": "nodejs18.x"
+    }
+  }
+}

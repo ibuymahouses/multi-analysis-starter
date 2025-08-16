@@ -1,20 +1,29 @@
 {
   "name": "multi-analysis-monorepo",
+  "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "concurrently -n APP,API \"npm run dev --prefix app\" \"npm run dev --prefix api\"",
-    "seed:mls": "node seed/mls-loader.js",
-    "seed:rents": "node seed/rent-loader.js",
-    "check:bha": "node scripts/check-bha-updates.js",
-    "generate:all-zips": "node scripts/generate-all-ma-zips.js",
-    "install:all": "npm install && npm install --prefix app && npm install --prefix api && npm install --prefix worker"
+    "dev": "concurrently -n API,WEB \"npm run dev --prefix packages/api\" \"npm run dev --prefix packages/web\"",
+    "build": "npm run build --prefix packages/shared && npm run build --prefix packages/api && npm run build --prefix packages/web",
+    "start": "npm run start --prefix packages/api",
+    "test": "npm run test --prefix packages/api && npm run test --prefix packages/web",
+    "lint": "npm run lint --prefix packages/api && npm run lint --prefix packages/web",
+    "clean": "npm run clean --prefix packages/api && npm run clean --prefix packages/web && rm -rf node_modules",
+    "install:all": "npm install && npm install --prefix packages/shared && npm install --prefix packages/api && npm install --prefix packages/web && npm install --prefix packages/worker",
+    "db:migrate": "npm run migrate --prefix packages/api",
+    "db:seed": "npm run seed --prefix packages/api",
+    "deploy:aws": "bash scripts/deploy-aws.sh",
+    "deploy:vercel": "vercel --prod"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "typescript": "^5.9.2"
   },
-  "dependencies": {
-    "csv-parse": "^6.1.0",
-    "dotenv": "^17.2.1",
-    "node-fetch": "^3.3.2"
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }
