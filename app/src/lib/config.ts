@@ -1,4 +1,4 @@
-// API Configuration
+// API Configuration - Updated for Railway deployment
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 // API Endpoints
