@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from 'next/link';
+import { API_ENDPOINTS } from '../../lib/config';
 
 // Define the data type
 type Property = {
@@ -34,7 +35,7 @@ export default function TestExcelTablePage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const response = await fetch('http://localhost:3001/analyze-all?mode=avg');
+        const response = await fetch(API_ENDPOINTS.analyzeAll('avg'));
         const result = await response.json();
         setData(result.rows || []);
       } catch (error) {

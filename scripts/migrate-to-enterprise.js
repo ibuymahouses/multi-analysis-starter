@@ -347,3 +347,4 @@ console.log('3. Start databases: docker-compose up -d');
 console.log('4. Run migrations: npm run db:migrate');
 console.log('5. Start development: npm run dev');
 console.log('\n📚 See ENTERPRISE_DEPLOYMENT_GUIDE.md for detailed instructions');
+

@@ -76,3 +76,4 @@ export async function clearCache(pattern: string): Promise<void> {
     await client.del(keys);
   }
 }
+

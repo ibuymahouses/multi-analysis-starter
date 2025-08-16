@@ -1,6 +1,25 @@
 {
   "73226886": {
-    "vacancy": 0.06451612903225806
+    "offerPrice": 377100,
+    "opex": {
+      "waterSewer": 15644.16,
+      "commonElec": 32592.000000000004,
+      "rubbish": 576.25,
+      "pm": 1152.5,
+      "repairs": 2305,
+      "legal": 576.25,
+      "capex": 1728.75,
+      "taxes": 6000,
+      "licensing": 0
+    },
+    "unitMix": [
+      {
+        "bedrooms": 2,
+        "count": 2,
+        "rent": 2500
+      }
+    ],
+    "closingCostsPercentage": 0.56
   },
   "73256226": {
     "unitMix": [
