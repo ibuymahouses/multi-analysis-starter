@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { API_ENDPOINTS } from '../../lib/config';
+import { API_ENDPOINTS } from '../lib/config';
 import {
   useReactTable,
   getCoreRowModel,

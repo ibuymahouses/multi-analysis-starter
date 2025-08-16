@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useUndoRedo } from '../../lib/undo-redo-context';
 import { useKeyboardShortcuts } from '../../lib/use-keyboard-shortcuts';
-import { API_ENDPOINTS } from '../../lib/config';
+import { API_ENDPOINTS } from '../lib/config';
 
 interface UnitMix {
   bedrooms: number;

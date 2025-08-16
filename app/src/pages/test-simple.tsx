@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { API_ENDPOINTS } from '../../lib/config';
+import { API_ENDPOINTS } from '../lib/config';
 
 export default function TestSimplePage() {
   const [data, setData] = useState<any>(null);
