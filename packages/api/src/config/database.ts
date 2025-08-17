@@ -1,5 +1,5 @@
 import { Pool, PoolConfig } from 'pg';
-import { config } from '@multi-analysis/shared';
+import { DATABASE_CONFIG } from '@multi-analysis/shared';
 
 export interface DatabaseConfig {
   host: string;

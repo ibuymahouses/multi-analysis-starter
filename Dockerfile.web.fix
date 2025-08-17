@@ -1,0 +1,11 @@
+FROM node:18-alpine
+WORKDIR /app
+COPY package.json ./
+COPY next.config.mjs ./
+COPY web-next ./.next/
+COPY web-public ./public/
+COPY shared-dist ./shared/dist/
+RUN npm install --production
+EXPOSE 3000
+CMD ["npm", "start"]
+

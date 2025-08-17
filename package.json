@@ -15,7 +15,7 @@
     "install:all": "npm install && npm install --prefix packages/shared && npm install --prefix packages/api && npm install --prefix packages/web && npm install --prefix packages/worker",
     "db:migrate": "npm run migrate --prefix packages/api",
     "db:seed": "npm run seed --prefix packages/api",
-    "deploy:aws": "bash scripts/deploy-aws.sh"
+    "deploy:aws": "bash scripts/deploy-docker.sh"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

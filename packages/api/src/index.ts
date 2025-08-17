@@ -16,11 +16,11 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-import { config } from '@multi-analysis/shared';
+import { API_BASE_PATH, ENVIRONMENTS } from '@multi-analysis/shared';
 
-// CORS configuration using shared config
+// CORS configuration using environment variables
 const corsOptions = {
-  origin: config.corsOrigins,
+  origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']

@@ -1,0 +1,11 @@
+FROM node:18-alpine
+WORKDIR /app
+COPY api-package.json ./api/package.json
+COPY shared-package.json ./shared/package.json
+COPY api-dist ./api/dist/
+COPY shared-dist ./shared/dist/
+RUN cd shared && npm install --production
+RUN cd api && npm install --production
+EXPOSE 3001
+CMD ["node", "api/dist/index.js"]
+

@@ -1,5 +1,5 @@
 import { createClient, RedisClientType } from 'redis';
-import { config } from '@multi-analysis/shared';
+import { CACHE_CONFIG } from '@multi-analysis/shared';
 
 export interface RedisConfig {
   host: string;
