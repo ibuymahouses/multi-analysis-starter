@@ -1,0 +1,141 @@
+{
+  "73226886": {
+    "offerPrice": 377100,
+    "opex": {
+      "waterSewer": 15644.16,
+      "commonElec": 32592.000000000004,
+      "rubbish": 576.25,
+      "pm": 1152.5,
+      "repairs": 2305,
+      "legal": 576.25,
+      "capex": 1728.75,
+      "taxes": 6000,
+      "licensing": 0
+    },
+    "unitMix": [
+      {
+        "bedrooms": 2,
+        "count": 2,
+        "rent": 2500
+      }
+    ],
+    "closingCostsPercentage": 0.56
+  },
+  "73256226": {
+    "unitMix": [
+      {
+        "bedrooms": 1,
+        "count": 5
+      }
+    ]
+  },
+  "73259081": {
+    "offerPrice": 1395000
+  },
+  "73283844": {
+    "offerPrice": 377100,
+    "opex": {
+      "waterSewer": 15644.16,
+      "commonElec": 24444,
+      "rubbish": 576.25,
+      "pm": 1152.5,
+      "repairs": 2305,
+      "legal": 576.25,
+      "capex": 1728.75,
+      "taxes": 6000,
+      "licensing": 0
+    },
+    "unitMix": [
+      {
+        "bedrooms": 2,
+        "count": 2,
+        "rent": 2500
+      }
+    ]
+  },
+  "73312311": {
+    "propertyId": "73312311",
+    "opex": {
+      "legal": 0.08
+    },
+    "lastUpdated": "2025-08-11T23:50:16.780Z"
+  },
+  "73320777": {
+    "offerPrice": 377100,
+    "opex": {
+      "waterSewer": 15644.16,
+      "commonElec": 24444,
+      "rubbish": 576.25,
+      "pm": 1152.5,
+      "repairs": 2305,
+      "legal": 576.25,
+      "capex": 1728.75,
+      "taxes": 6000,
+      "licensing": 0
+    },
+    "unitMix": [
+      {
+        "bedrooms": 2,
+        "count": 2,
+        "rent": 2500
+      }
+    ]
+  },
+  "73387006": {
+    "propertyId": "73387006",
+    "unitMix": [
+      {
+        "bedrooms": 1,
+        "count": 1
+      },
+      {
+        "bedrooms": 2,
+        "count": 1
+      }
+    ],
+    "lastUpdated": "2025-08-12T13:47:08.117Z"
+  },
+  "73391983": {
+    "offerPrice": 800000
+  },
+  "73403520": {
+    "offerPrice": 691664,
+    "monthlyRent": 2700
+  },
+  "73408598": {
+    "downPayment": 0.0506,
+    "vacancy": 0.020499999999999997,
+    "opex": {
+      "waterSewer": 2713.7999999999997,
+      "commonElec": 1809.2,
+      "rubbish": 904.6,
+      "pm": 92.10000000000001,
+      "repairs": 3618.4,
+      "legal": 904.6,
+      "capex": 2713.7999999999997,
+      "taxes": 1000,
+      "licensing": 0
+    },
+    "closingCostsPercentage": 0.025,
+    "dueDiligencePercentage": 0.25,
+    "interestRate": 0.050199999999999995
+  },
+  "73415260": {
+    "opex": {
+      "waterSewer": 1869.6,
+      "commonElec": 0,
+      "rubbish": 2000,
+      "pm": 1246.4,
+      "repairs": 2492.8,
+      "legal": 623.2,
+      "capex": 1869.6,
+      "taxes": 4992
+    }
+  },
+  "metadata": {
+    "description": "Per-property overrides for unit mix and OPEX assumptions",
+    "lastUpdated": "2025-08-11T23:30:00.000Z",
+    "version": "1.0"
+  },
+  "overrides": {}
+}

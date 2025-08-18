@@ -5,33 +5,20 @@ import fs from 'fs';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { computeAnalysis } from './services/analysis.js';
-// import * as authRoutes from './routes/auth-memory.js';
+import { computeAnalysis } from './analysis.js';
+import authRoutes from './routes/auth-memory.js';
 import memoryStorage from './database/memory-storage.js';
 
 const app = express();
 
 // Security middleware
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+app.use(helmet());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://multi-analysis.vercel.app', 'https://multi-analysis-git-master-ibuymahouses-projects.vercel.app'] 
+    : ['http://localhost:3000'],
+  credentials: true
 }));
-
-import { API_BASE_PATH, ENVIRONMENTS } from '@multi-analysis/shared';
-
-// CORS configuration using environment variables
-const corsOptions = {
-  origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['http://localhost:3000'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-};
-
-console.log('CORS configuration:', {
-  nodeEnv: process.env.NODE_ENV,
-  origins: corsOptions.origin
-});
-
-app.use(cors(corsOptions));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -48,10 +35,10 @@ app.use(express.json({ limit: '10mb' }));
 console.log('Initializing in-memory storage for development...');
 console.log('Test user available: test@example.com / password123');
 
-// Try multiple paths for data files (for AWS deployment)
+// Try multiple paths for data files (for Railway deployment)
 const possibleDataDirs = [
   path.join(process.cwd(), '..', 'data'),           // Local development
-  path.join(process.cwd(), 'data'),                 // AWS deployment
+  path.join(process.cwd(), 'data'),                 // Railway deployment
   path.join(process.cwd(), '..', '..', 'data')      // Alternative path
 ];
 
@@ -97,17 +84,8 @@ function saveOverrides(overrides) {
 // health
 app.get('/health', (_, res) => res.json({ ok: true }));
 
-// CORS test endpoint
-app.get('/cors-test', (_, res) => {
-  res.json({ 
-    message: 'CORS test successful',
-    timestamp: new Date().toISOString(),
-    nodeEnv: process.env.NODE_ENV
-  });
-});
-
-// Authentication routes - temporarily disabled
-// app.use('/api/auth', authRoutes.router);
+// Authentication routes
+app.use('/api/auth', authRoutes);
 
 app.get('/listings', (_, res) => {
   try {

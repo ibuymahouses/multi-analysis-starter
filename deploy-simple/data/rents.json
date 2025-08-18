@@ -1,0 +1,3892 @@
+{
+  "generatedAt": "2025-08-12T00:04:56.164Z",
+  "bhaVersion": "2025_COMPREHENSIVE",
+  "totalCoverage": 1587,
+  "results": [
+    {
+      "zip": "02780",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02780",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02382",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02382",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01835",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01835",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02139",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02139",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "02744",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02744",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01952",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01952",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01301",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01301",
+      "county": "Worcester",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02072",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02072",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01604",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01604",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02472",
+      "year": 2025,
+      "source": "ESTIMATED_MA",
+      "rents": {
+        "0": 1200,
+        "1": 1500,
+        "2": 1800,
+        "3": 2200,
+        "4": 2600,
+        "5": 3000
+      }
+    },
+    {
+      "zip": "01037",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01037",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02721",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02721",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02186",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02186",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "01510",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01510",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02143",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02143",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "02720",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02720",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02740",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02740",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01013",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01013",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02019",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02019",
+      "county": "Norfolk",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01841",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01841",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01247",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01247",
+      "county": "Worcester",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02176",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02176",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "01832",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01832",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01606",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01606",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01027",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01027",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01453",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01453",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02301",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02301",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01420",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01420",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01104",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01104",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01069",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01069",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01242",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01242",
+      "county": "Worcester",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01550",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01550",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02191",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02191",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "01610",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01610",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01845",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01845",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01945",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01945",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01108",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01108",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02445",
+      "year": 2025,
+      "source": "ESTIMATED_MA",
+      "rents": {
+        "0": 1200,
+        "1": 1500,
+        "2": 1800,
+        "3": 2200,
+        "4": 2600,
+        "5": 3000
+      }
+    },
+    {
+      "zip": "02048",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02048",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01970",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01970",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01609",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01609",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01801",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01801",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01082",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01082",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02724",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02724",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02170",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02170",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "01109",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01109",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02155",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02155",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "01527",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01527",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02188",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02188",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "01701",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01701",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01749",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01749",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02148",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02148",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "02771",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02771",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01501",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01501",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02746",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02746",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01570",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01570",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02356",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02356",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02532",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02532",
+      "county": "Barnstable",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01851",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01851",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01518",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01518",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02140",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02140",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "01075",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01075",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02351",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02351",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02703",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02703",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02169",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02169",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "01702",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01702",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01906",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01906",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02453",
+      "year": 2025,
+      "source": "ESTIMATED_MA",
+      "rents": {
+        "0": 1200,
+        "1": 1500,
+        "2": 1800,
+        "3": 2200,
+        "4": 2600,
+        "5": 3000
+      }
+    },
+    {
+      "zip": "01930",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01930",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01760",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01760",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01746",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01746",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01902",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01902",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02144",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02144",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "01569",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01569",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01844",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01844",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02145",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02145",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "02492",
+      "year": 2025,
+      "source": "ESTIMATED_MA",
+      "rents": {
+        "0": 1200,
+        "1": 1500,
+        "2": 1800,
+        "3": 2200,
+        "4": 2600,
+        "5": 3000
+      }
+    },
+    {
+      "zip": "02760",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02760",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01854",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01854",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01201",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01201",
+      "county": "Worcester",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01826",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01826",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02324",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02324",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01440",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01440",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01475",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01475",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02648",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02648",
+      "county": "Barnstable",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02038",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02038",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01040",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01040",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01020",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01020",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02149",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02149",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "02052",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02052",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02723",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02723",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01535",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01535",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02081",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02081",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01151",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01151",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02738",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02738",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02189",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02189",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "01562",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01562",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01740",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01740",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01852",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01852",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01890",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01890",
+      "county": "Essex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01929",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01929",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02668",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02668",
+      "county": "Barnstable",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01605",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01605",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02481",
+      "year": 2025,
+      "source": "ESTIMATED_MA",
+      "rents": {
+        "0": 1200,
+        "1": 1500,
+        "2": 1800,
+        "3": 2200,
+        "4": 2600,
+        "5": 3000
+      }
+    },
+    {
+      "zip": "02021",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02021",
+      "county": "Norfolk",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01588",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01588",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02745",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02745",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01060",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01060",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01089",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01089",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01507",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01507",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01834",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01834",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01529",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01529",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02190",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02190",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "02748",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02748",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01840",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01840",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02360",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02360",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02346",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02346",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02790",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02790",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01376",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01376",
+      "county": "Worcester",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01095",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01095",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02332",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02332",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02465",
+      "year": 2025,
+      "source": "ESTIMATED_MA",
+      "rents": {
+        "0": 1200,
+        "1": 1500,
+        "2": 1800,
+        "3": 2200,
+        "4": 2600,
+        "5": 3000
+      }
+    },
+    {
+      "zip": "02461",
+      "year": 2025,
+      "source": "ESTIMATED_MA",
+      "rents": {
+        "0": 1200,
+        "1": 1500,
+        "2": 1800,
+        "3": 2200,
+        "4": 2600,
+        "5": 3000
+      }
+    },
+    {
+      "zip": "01602",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01602",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01105",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01105",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01757",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01757",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02141",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02141",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "01062",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01062",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01603",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01603",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02743",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02743",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01515",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01515",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01093",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01093",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01880",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01880",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01350",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01350",
+      "county": "Worcester",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01843",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01843",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01331",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01331",
+      "county": "Worcester",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02062",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02062",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01077",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01077",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02180",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02180",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "02726",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02726",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01002",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01002",
+      "county": "Hampshire",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02446",
+      "year": 2025,
+      "source": "ESTIMATED_MA",
+      "rents": {
+        "0": 1200,
+        "1": 1500,
+        "2": 1800,
+        "3": 2200,
+        "4": 2600,
+        "5": 3000
+      }
+    },
+    {
+      "zip": "01752",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01752",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01913",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01913",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01830",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01830",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01451",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01451",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02338",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02338",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02747",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02747",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02644",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02644",
+      "county": "Barnstable",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02770",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02770",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01464",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01464",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01984",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01984",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01905",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01905",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02476",
+      "year": 2025,
+      "source": "ESTIMATED_MA",
+      "rents": {
+        "0": 1200,
+        "1": 1500,
+        "2": 1800,
+        "3": 2200,
+        "4": 2600,
+        "5": 3000
+      }
+    },
+    {
+      "zip": "01951",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01951",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02536",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02536",
+      "county": "Barnstable",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02138",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02138",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "01742",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01742",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01950",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01950",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01810",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01810",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01908",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01908",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02601",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02601",
+      "county": "Barnstable",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02364",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02364",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01886",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01886",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02673",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02673",
+      "county": "Barnstable",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02459",
+      "year": 2025,
+      "source": "ESTIMATED_MA",
+      "rents": {
+        "0": 1200,
+        "1": 1500,
+        "2": 1800,
+        "3": 2200,
+        "4": 2600,
+        "5": 3000
+      }
+    },
+    {
+      "zip": "01560",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01560",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01462",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01462",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01915",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01915",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01080",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01080",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02184",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02184",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "01373",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01373",
+      "county": "Worcester",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02368",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02368",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01463",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01463",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01581",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01581",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01057",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01057",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01982",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01982",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02043",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02043",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01901",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01901",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01005",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01005",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01516",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01516",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02171",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02171",
+      "county": "Plymouth",
+      "marketTier": "premium",
+      "rents": {
+        "0": 1800,
+        "1": 2200,
+        "2": 2800,
+        "3": 3500,
+        "4": 4200,
+        "5": 5000
+      }
+    },
+    {
+      "zip": "01850",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01850",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01532",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01532",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02563",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02563",
+      "county": "Nantucket",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01960",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01960",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02302",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02302",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01821",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01821",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02478",
+      "year": 2025,
+      "source": "ESTIMATED_MA",
+      "rents": {
+        "0": 1200,
+        "1": 1500,
+        "2": 1800,
+        "3": 2200,
+        "4": 2600,
+        "5": 3000
+      }
+    },
+    {
+      "zip": "01469",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01469",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02719",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02719",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02333",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02333",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01907",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01907",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01523",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01523",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01824",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01824",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01611",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01611",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01519",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01519",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01460",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01460",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01107",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01107",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02671",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02671",
+      "county": "Barnstable",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01720",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01720",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02494",
+      "year": 2025,
+      "source": "ESTIMATED_MA",
+      "rents": {
+        "0": 1200,
+        "1": 1500,
+        "2": 1800,
+        "3": 2200,
+        "4": 2600,
+        "5": 3000
+      }
+    },
+    {
+      "zip": "01938",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01938",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02066",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02066",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02556",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02556",
+      "county": "Nantucket",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02045",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02045",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02458",
+      "year": 2025,
+      "source": "ESTIMATED_MA",
+      "rents": {
+        "0": 1200,
+        "1": 1500,
+        "2": 1800,
+        "3": 2200,
+        "4": 2600,
+        "5": 3000
+      }
+    },
+    {
+      "zip": "01220",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01220",
+      "county": "Worcester",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02702",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02702",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02639",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02639",
+      "county": "Barnstable",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02571",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02571",
+      "county": "Nantucket",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01072",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01072",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01607",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01607",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01863",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01863",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02460",
+      "year": 2025,
+      "source": "ESTIMATED_MA",
+      "rents": {
+        "0": 1200,
+        "1": 1500,
+        "2": 1800,
+        "3": 2200,
+        "4": 2600,
+        "5": 3000
+      }
+    },
+    {
+      "zip": "02739",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02739",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01339",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01339",
+      "county": "Worcester",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01748",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01748",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01430",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01430",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01436",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01436",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02322",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02322",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01225",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01225",
+      "county": "Worcester",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02538",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02538",
+      "county": "Barnstable",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01585",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01585",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01520",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01520",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02467",
+      "year": 2025,
+      "source": "ESTIMATED_MA",
+      "rents": {
+        "0": 1200,
+        "1": 1500,
+        "2": 1800,
+        "3": 2200,
+        "4": 2600,
+        "5": 3000
+      }
+    },
+    {
+      "zip": "02370",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02370",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02657",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02657",
+      "county": "Barnstable",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01119",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01119",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01035",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01035",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01014",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01014",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "02464",
+      "year": 2025,
+      "source": "ESTIMATED_MA",
+      "rents": {
+        "0": 1200,
+        "1": 1500,
+        "2": 1800,
+        "3": 2200,
+        "4": 2600,
+        "5": 3000
+      }
+    },
+    {
+      "zip": "01226",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01226",
+      "county": "Worcester",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02652",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02652",
+      "county": "Barnstable",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02777",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02777",
+      "county": "Bristol",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01050",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01050",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01068",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01068",
+      "county": "Worcester",
+      "marketTier": "medium",
+      "rents": {
+        "0": 1100,
+        "1": 1400,
+        "2": 1700,
+        "3": 2100,
+        "4": 2500,
+        "5": 2900
+      }
+    },
+    {
+      "zip": "01238",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01238",
+      "county": "Worcester",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02540",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02540",
+      "county": "Dukes",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02359",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02359",
+      "county": "Plymouth",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "02535",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02535",
+      "county": "Barnstable",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02466",
+      "year": 2025,
+      "source": "ESTIMATED_MA",
+      "rents": {
+        "0": 1200,
+        "1": 1500,
+        "2": 1800,
+        "3": 2200,
+        "4": 2600,
+        "5": 3000
+      }
+    },
+    {
+      "zip": "01923",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01923",
+      "county": "Essex",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "02564",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_02564",
+      "county": "Nantucket",
+      "marketTier": "low",
+      "rents": {
+        "0": 900,
+        "1": 1200,
+        "2": 1500,
+        "3": 1900,
+        "4": 2300,
+        "5": 2700
+      }
+    },
+    {
+      "zip": "01745",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01745",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    },
+    {
+      "zip": "01754",
+      "year": 2025,
+      "source": "BHA_2025_COMPREHENSIVE",
+      "town": "ZIP_01754",
+      "county": "Middlesex",
+      "marketTier": "high",
+      "rents": {
+        "0": 1400,
+        "1": 1700,
+        "2": 2100,
+        "3": 2600,
+        "4": 3100,
+        "5": 3700
+      }
+    }
+  ]
+}
