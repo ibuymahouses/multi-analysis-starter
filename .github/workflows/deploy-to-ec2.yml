@@ -219,47 +219,115 @@ jobs:
           
           echo "🔨 Building application..."
           echo "Building shared package..."
-          npm run build --prefix packages/shared || {
+          cd packages/shared
+          npm run build || {
             echo "❌ Failed to build shared package"
             exit 1
           }
+          cd ../..
           
           echo "Building API package..."
-          npm run build --prefix packages/api || {
+          cd packages/api
+          npm run build || {
             echo "❌ Failed to build API package"
             exit 1
           }
+          cd ../..
           
           echo "Building web package..."
-          npm run build --prefix packages/web || {
+          cd packages/web
+          npm run build || {
             echo "❌ Failed to build web package"
             exit 1
           }
+          cd ../..
           
           echo "🔄 Restarting application..."
           
-          # Check which deployment method is being used
-          if [ -f "docker-compose.yml" ] || [ -f "docker-compose.prod.yml" ]; then
+          # Check what's actually running and what's available
+          echo "🔍 Checking current deployment status..."
+          
+          # Check if any processes are running on expected ports
+          if netstat -tlnp 2>/dev/null | grep -q ":3000\|:3001"; then
+            echo "Found processes running on ports 3000/3001"
+            netstat -tlnp 2>/dev/null | grep ":3000\|:3001" || echo "No specific process info available"
+          else
+            echo "No processes found on ports 3000/3001"
+          fi
+          
+          # Check what process managers are available
+          echo "Available process managers:"
+          command -v docker-compose && echo "- Docker Compose available"
+          command -v docker && echo "- Docker available"
+          command -v pm2 && echo "- PM2 available"
+          systemctl list-units --type=service | grep -i multi-analysis && echo "- systemd service available"
+          
+          # Check if there are any running containers
+          if command -v docker &> /dev/null; then
+            echo "Running Docker containers:"
+            docker ps 2>/dev/null || echo "No Docker containers running or Docker not accessible"
+          fi
+          
+          # Check if there are any PM2 processes
+          if command -v pm2 &> /dev/null; then
+            echo "PM2 processes:"
+            pm2 list 2>/dev/null || echo "No PM2 processes running"
+          fi
+          
+          # Try to restart based on what's actually available
+          if [ -f "docker-compose.yml" ] && command -v docker-compose &> /dev/null; then
             echo "🐳 Restarting Docker containers..."
-            if [ -f "docker-compose.prod.yml" ]; then
-              docker-compose -f docker-compose.prod.yml down || echo "Docker compose down failed (might not be running)"
-              docker-compose -f docker-compose.prod.yml up -d --build
-            else
-              docker-compose down || echo "Docker compose down failed (might not be running)"
-              docker-compose up -d --build
-            fi
+            docker-compose down || echo "Docker compose down failed (might not be running)"
+            docker-compose up -d --build
+          elif [ -f "docker-compose.prod.yml" ] && command -v docker-compose &> /dev/null; then
+            echo "🐳 Restarting Docker containers (prod)..."
+            docker-compose -f docker-compose.prod.yml down || echo "Docker compose down failed (might not be running)"
+            docker-compose -f docker-compose.prod.yml up -d --build
           elif command -v pm2 &> /dev/null; then
             echo "⚡ Restarting PM2 processes..."
             pm2 restart all || echo "PM2 restart failed (might not be running)"
-          elif systemctl is-active --quiet multi-analysis; then
+          elif systemctl is-active --quiet multi-analysis 2>/dev/null; then
             echo "🔧 Restarting systemd service..."
             sudo systemctl restart multi-analysis
           else
-            echo "⚠️  No known process manager found. Please restart manually."
-            echo "Available process managers:"
-            command -v docker-compose && echo "- Docker Compose available"
-            command -v pm2 && echo "- PM2 available"
-            systemctl list-units --type=service | grep multi-analysis && echo "- systemd service available"
+            echo "⚠️  No known process manager found or configured."
+            echo "🔄 Attempting to set up PM2 as fallback..."
+            
+            # Try to install and set up PM2
+            if ! command -v pm2 &> /dev/null; then
+              echo "Installing PM2..."
+              npm install -g pm2 || echo "Failed to install PM2 globally"
+            fi
+            
+            if command -v pm2 &> /dev/null; then
+              echo "Setting up PM2 processes..."
+              # Stop any existing PM2 processes
+              pm2 delete all 2>/dev/null || echo "No existing PM2 processes to delete"
+              
+              # Start API
+              cd packages/api
+              pm2 start npm --name "api" -- start --cwd . || echo "Failed to start API with PM2"
+              cd ../..
+              
+              # Start web
+              cd packages/web
+              pm2 start npm --name "web" -- start --cwd . || echo "Failed to start web with PM2"
+              cd ../..
+              
+              echo "PM2 processes started:"
+              pm2 list
+            else
+              echo "📋 Manual restart required. You may need to:"
+              echo "   1. Install Docker Compose: sudo yum install -y docker-compose"
+              echo "   2. Install PM2: npm install -g pm2"
+              echo "   3. Or start the application manually"
+              echo ""
+              echo "🔍 Current system status:"
+              echo "Memory: $(free -h | grep Mem)"
+              echo "Disk: $(df -h / | tail -1)"
+              echo "Node.js: $(node --version)"
+              echo "npm: $(npm --version)"
+            fi
           fi
           
           echo "✅ Automatic deployment completed successfully!"
