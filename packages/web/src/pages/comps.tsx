@@ -142,8 +142,8 @@ export default function CompsPage() {
 
     // Sort data
     filtered.sort((a, b) => {
-      let aValue: any = a[sortField];
-      let bValue: any = b[sortField];
+      let aValue: any;
+      let bValue: any;
 
       if (sortField === 'pricePerUnit') {
         aValue = (a.SALE_PRICE && a.UNITS_FINAL && a.UNITS_FINAL > 0) ? a.SALE_PRICE / a.UNITS_FINAL : 0;
@@ -153,10 +153,26 @@ export default function CompsPage() {
         const bBedrooms = b.UNIT_MIX?.reduce((sum, unit) => sum + (unit.bedrooms * unit.count), 0) || 0;
         aValue = (aBedrooms > 0 && a.SALE_PRICE) ? a.SALE_PRICE / aBedrooms : 0;
         bValue = (bBedrooms > 0 && b.SALE_PRICE) ? b.SALE_PRICE / bBedrooms : 0;
+      } else if (sortField === 'monthlyGross') {
+        aValue = a.analysis?.monthlyGross || 0;
+        bValue = b.analysis?.monthlyGross || 0;
+      } else if (sortField === 'noi') {
+        aValue = a.analysis?.noi || 0;
+        bValue = b.analysis?.noi || 0;
+      } else if (sortField === 'capAtAsk') {
+        aValue = a.analysis?.capAtAsk || 0;
+        bValue = b.analysis?.capAtAsk || 0;
+      } else if (sortField === 'dscr') {
+        aValue = a.analysis?.dscr || 0;
+        bValue = b.analysis?.dscr || 0;
       } else if (sortField.startsWith('analysis.')) {
-        const field = sortField.replace('analysis.', '');
+        const field = sortField.replace('analysis.', '') as keyof typeof a.analysis;
         aValue = a.analysis?.[field] || 0;
         bValue = b.analysis?.[field] || 0;
+      } else {
+        // Safe indexing for direct Row properties
+        aValue = (a as any)[sortField];
+        bValue = (b as any)[sortField];
       }
 
       if (typeof aValue === 'string') {
@@ -172,21 +188,18 @@ export default function CompsPage() {
     return filtered;
   }, [rows, priceMin, priceMax, unitsMin, unitsMax, searchFilters, sortField, sortDirection]);
 
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
+  const handleSort = (field: string) => {
+    const sortFieldTyped = field as SortField;
+    if (sortField === sortFieldTyped) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortField(field);
+      setSortField(sortFieldTyped);
       setSortDirection('asc');
     }
   };
 
-  const handleRowSelect = (index: number) => {
-    setSelectedRows(prev => 
-      prev.includes(index) 
-        ? prev.filter(i => i !== index)
-        : [...prev, index]
-    );
+  const handleRowSelect = (selectedRows: any[]) => {
+    setSelectedRows(selectedRows.map((_, index) => index));
   };
 
   const handleSelectAll = () => {
@@ -394,12 +407,21 @@ export default function CompsPage() {
                 sortField={sortField}
                 sortDirection={sortDirection}
                 onSort={handleSort}
-                selectedRows={selectedRows}
                 onRowSelect={handleRowSelect}
-                onSelectAll={handleSelectAll}
-                tableRef={tableRef}
                 filters={tableFilters}
-                onFiltersChange={setTableFilters}
+                onFilterChange={(field: string, value: any) => {
+                  setTableFilters(prev => ({ ...prev, [field]: value }));
+                }}
+                onClearFilter={(field: string) => {
+                  setTableFilters(prev => {
+                    const newFilters = { ...prev };
+                    delete newFilters[field];
+                    return newFilters;
+                  });
+                }}
+                onClearAllFilters={() => setTableFilters({})}
+                selectable={true}
+                copyable={true}
               />
             )}
           </CardContent>
