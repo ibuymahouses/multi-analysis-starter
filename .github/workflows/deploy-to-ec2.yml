@@ -63,16 +63,42 @@ jobs:
           if [[ "$CURRENT_NODE_VERSION" != "v22"* ]]; then
             echo "🔄 Updating to Node.js 22..."
             
+            # Detect Linux distribution
+            if [ -f /etc/os-release ]; then
+              . /etc/os-release
+              OS=$NAME
+              VER=$VERSION_ID
+              echo "Detected OS: $OS $VER"
+            else
+              echo "Could not detect OS, assuming Amazon Linux"
+              OS="Amazon Linux"
+            fi
+            
             # Remove old Node.js if present
             if command -v node &> /dev/null; then
               echo "Removing old Node.js installation..."
-              sudo apt remove -y nodejs npm 2>/dev/null || echo "No old Node.js to remove"
+              if command -v yum &> /dev/null; then
+                sudo yum remove -y nodejs npm 2>/dev/null || echo "No old Node.js to remove via yum"
+              elif command -v apt &> /dev/null; then
+                sudo apt remove -y nodejs npm 2>/dev/null || echo "No old Node.js to remove via apt"
+              fi
             fi
             
-            # Install Node.js 22
+            # Install Node.js 22 based on distribution
             echo "Installing Node.js 22..."
-            curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-            sudo apt-get install -y nodejs
+            if [[ "$OS" == *"Amazon Linux"* ]] || [[ "$OS" == *"Red Hat"* ]] || [[ "$OS" == *"CentOS"* ]]; then
+              echo "Using NodeSource for RHEL/CentOS/Amazon Linux..."
+              curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo bash -
+              sudo yum install -y nodejs
+            elif [[ "$OS" == *"Ubuntu"* ]] || [[ "$OS" == *"Debian"* ]]; then
+              echo "Using NodeSource for Ubuntu/Debian..."
+              curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+            else
+              echo "Unknown distribution, trying NodeSource RHEL method..."
+              curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo bash -
+              sudo yum install -y nodejs 2>/dev/null || sudo apt-get install -y nodejs
+            fi
             
             # Verify installation
             echo "Node.js version: $(node --version)"
@@ -80,7 +106,23 @@ jobs:
             
             if [[ "$(node --version)" != "v22"* ]]; then
               echo "❌ Failed to install Node.js 22"
-              exit 1
+              echo "Trying alternative installation method..."
+              
+              # Fallback: Install Node.js via nvm
+              echo "Installing Node.js via nvm..."
+              curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+              export NVM_DIR="$HOME/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+              nvm install 22
+              nvm use 22
+              nvm alias default 22
+              
+              # Verify nvm installation
+              echo "Node.js version (nvm): $(node --version)"
+              if [[ "$(node --version)" != "v22"* ]]; then
+                echo "❌ All Node.js 22 installation methods failed"
+                exit 1
+              fi
             fi
           else
             echo "✅ Node.js 22 already installed"
@@ -88,7 +130,11 @@ jobs:
           
           # Update npm to latest version
           echo "🔄 Updating npm to latest version..."
-          sudo npm install -g npm@latest
+          sudo npm install -g npm@latest || {
+            echo "Failed to update npm globally, trying alternative method..."
+            # Try updating npm without sudo if sudo fails
+            npm install -g npm@latest || echo "npm update failed, continuing with current version"
+          }
           echo "Updated npm version: $(npm --version)"
           
           # Check if git repository exists
