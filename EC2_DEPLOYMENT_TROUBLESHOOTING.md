@@ -10,17 +10,22 @@ This guide helps troubleshoot common issues with the GitHub Actions deployment t
 **Solution:** The updated workflow automatically installs Node.js 18 if it's missing.
 
 ### 2. Dependency Installation Failures
-**Symptoms:** `npm run install:all` fails
+**Symptoms:** `npm run install:all` fails or process gets killed
 **Causes:**
 - Insufficient disk space
+- Insufficient memory (especially for Next.js installations)
 - Network connectivity issues
 - Corrupted npm cache
 - Missing system dependencies
 
 **Solutions:**
 - Check disk space: `df -h`
+- Check available memory: `free -h`
+- Setup swap space: `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile`
+- Set Node.js memory limits: `export NODE_OPTIONS="--max-old-space-size=4096"`
 - Clear npm cache: `npm cache clean --force`
 - Remove node_modules and reinstall: `rm -rf node_modules && npm install`
+- Use memory-optimized install: `npm install --no-optional --maxsockets=1`
 
 ### 3. Build Failures
 **Symptoms:** `npm run build` fails

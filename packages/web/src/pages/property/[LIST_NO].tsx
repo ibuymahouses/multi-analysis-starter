@@ -1313,20 +1313,17 @@ export default function PropertyDetails() {
                                                                                        {/* Unit-level income detail */}
                  {currentUnitMix.length > 0 && unitMixTotal === (property.UNITS_FINAL || 0) ? (
                    currentUnitMix.map((unit, index) => {
-                     const unitRent = getRentForBedrooms(unit.bedrooms, property.ZIP_CODE);
+                     const unitRent = unit.rent || getRentForBedrooms(unit.bedrooms, property.ZIP_CODE);
                      const unitAnnualRent = unitRent * unit.count * 12;
                      return (
                        <React.Fragment key={index}>
-                         <div style={{ paddingLeft: '20px', fontSize: '13px' }}>
-                           {unit.count} {unit.bedrooms}-BR unit{unit.count > 1 ? 's' : ''} @ 
-                           <input
-                             type="text"
-                             value={formatInputValue(unitRent, 'currency')}
+                         <div style={{ paddingLeft: '20px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                           <select
+                             value={unit.bedrooms}
                              onChange={(e) => {
-                               const newRent = parseInputValue(e.target.value, 'currency');
-                               // Update the unit mix with new rent for this bedroom type
+                               const newBedrooms = parseInt(e.target.value);
                                const updatedUnitMix = currentUnitMix.map((u, i) => 
-                                 u.bedrooms === unit.bedrooms ? { ...u, rent: newRent } : u
+                                 i === index ? { ...u, bedrooms: newBedrooms } : u
                                );
                                updateOverrides({ unitMix: updatedUnitMix });
                              }}
@@ -1334,13 +1331,77 @@ export default function PropertyDetails() {
                                padding: '2px 4px', 
                                border: '1px solid #ddd', 
                                borderRadius: '3px',
-                               width: '80px',
+                               width: '60px',
+                               fontSize: '11px'
+                             }}
+                           >
+                             <option value={0}>0-BR</option>
+                             <option value={1}>1-BR</option>
+                             <option value={2}>2-BR</option>
+                             <option value={3}>3-BR</option>
+                             <option value={4}>4-BR</option>
+                             <option value={5}>5-BR</option>
+                           </select>
+                           <select
+                             value={unit.count}
+                             onChange={(e) => {
+                               const newCount = parseInt(e.target.value);
+                               const updatedUnitMix = currentUnitMix.map((u, i) => 
+                                 i === index ? { ...u, count: newCount } : u
+                               );
+                               updateOverrides({ unitMix: updatedUnitMix });
+                             }}
+                             style={{ 
+                               padding: '2px 4px', 
+                               border: '1px solid #ddd', 
+                               borderRadius: '3px',
+                               width: '50px',
+                               fontSize: '11px'
+                             }}
+                           >
+                             {Array.from({ length: 20 }, (_, i) => i + 1).map(num => (
+                               <option key={num} value={num}>{num}</option>
+                             ))}
+                           </select>
+                           <span style={{ fontSize: '11px' }}>@</span>
+                           <input
+                             type="text"
+                             value={formatInputValue(unitRent, 'currency')}
+                             onChange={(e) => {
+                               const newRent = parseInputValue(e.target.value, 'currency');
+                               const updatedUnitMix = currentUnitMix.map((u, i) => 
+                                 i === index ? { ...u, rent: newRent } : u
+                               );
+                               updateOverrides({ unitMix: updatedUnitMix });
+                             }}
+                             style={{ 
+                               padding: '2px 4px', 
+                               border: '1px solid #ddd', 
+                               borderRadius: '3px',
+                               width: '70px',
                                textAlign: 'right',
-                               fontSize: '12px',
-                               marginLeft: '4px'
+                               fontSize: '11px'
                              }}
                            />
-                           /mo
+                           <span style={{ fontSize: '11px' }}>/mo</span>
+                           <button
+                             onClick={() => {
+                               const updatedUnitMix = currentUnitMix.filter((_, i) => i !== index);
+                               updateOverrides({ unitMix: updatedUnitMix });
+                             }}
+                             style={{
+                               padding: '1px 4px',
+                               fontSize: '10px',
+                               background: '#ffebee',
+                               border: '1px solid #f44336',
+                               borderRadius: '2px',
+                               cursor: 'pointer',
+                               color: '#d32f2f',
+                               marginLeft: '4px'
+                             }}
+                           >
+                             ×
+                           </button>
                          </div>
                          <div style={{ textAlign: 'right', fontSize: '13px' }}>
                            {formatCurrency(toDisplayValue(unitAnnualRent))}
@@ -1351,16 +1412,164 @@ export default function PropertyDetails() {
                        </React.Fragment>
                      );
                    })
+                   
+                   {/* Add new unit button for existing unit mix */}
+                   <div style={{ paddingLeft: '20px', marginTop: '8px' }}>
+                     <button
+                       onClick={() => {
+                         const newUnit = { bedrooms: 1, count: 1, rent: getRentForBedrooms(1, property.ZIP_CODE) };
+                         const updatedUnitMix = [...currentUnitMix, newUnit];
+                         updateOverrides({ unitMix: updatedUnitMix });
+                       }}
+                       style={{
+                         padding: '2px 6px',
+                         fontSize: '10px',
+                         background: '#e8f5e8',
+                         border: '1px solid #4caf50',
+                         borderRadius: '3px',
+                         cursor: 'pointer',
+                         color: '#2e7d32'
+                       }}
+                     >
+                       + Add Unit
+                     </button>
+                   </div>
                  ) : (
                    <React.Fragment>
-                     <div style={{ paddingLeft: '20px', fontSize: '13px', color: '#666', fontStyle: 'italic' }}>
-                       {currentUnitMix.length > 0 
-                         ? `${unitMixTotal} units defined in unit mix (${property.UNITS_FINAL} total units)`
-                         : 'No unit mix defined'
-                       }
+                     {/* Dynamic Unit Mix Input */}
+                     <div style={{ paddingLeft: '20px', fontSize: '13px' }}>
+                       {currentUnitMix.length > 0 ? (
+                         // Show existing unit mix with edit capability
+                         currentUnitMix.map((unit, index) => {
+                           const unitRent = unit.rent || getRentForBedrooms(unit.bedrooms, property.ZIP_CODE);
+                           const unitAnnualRent = unitRent * unit.count * 12;
+                           return (
+                             <div key={index} style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                               <select
+                                 value={unit.bedrooms}
+                                 onChange={(e) => {
+                                   const newBedrooms = parseInt(e.target.value);
+                                   const updatedUnitMix = currentUnitMix.map((u, i) => 
+                                     i === index ? { ...u, bedrooms: newBedrooms } : u
+                                   );
+                                   updateOverrides({ unitMix: updatedUnitMix });
+                                 }}
+                                 style={{ 
+                                   padding: '2px 4px', 
+                                   border: '1px solid #ddd', 
+                                   borderRadius: '3px',
+                                   width: '60px',
+                                   fontSize: '11px'
+                                 }}
+                               >
+                                 <option value={0}>0-BR</option>
+                                 <option value={1}>1-BR</option>
+                                 <option value={2}>2-BR</option>
+                                 <option value={3}>3-BR</option>
+                                 <option value={4}>4-BR</option>
+                                 <option value={5}>5-BR</option>
+                               </select>
+                               <select
+                                 value={unit.count}
+                                 onChange={(e) => {
+                                   const newCount = parseInt(e.target.value);
+                                   const updatedUnitMix = currentUnitMix.map((u, i) => 
+                                     i === index ? { ...u, count: newCount } : u
+                                   );
+                                   updateOverrides({ unitMix: updatedUnitMix });
+                                 }}
+                                 style={{ 
+                                   padding: '2px 4px', 
+                                   border: '1px solid #ddd', 
+                                   borderRadius: '3px',
+                                   width: '50px',
+                                   fontSize: '11px'
+                                 }}
+                               >
+                                 {Array.from({ length: 20 }, (_, i) => i + 1).map(num => (
+                                   <option key={num} value={num}>{num}</option>
+                                 ))}
+                               </select>
+                               <span style={{ fontSize: '11px' }}>@</span>
+                               <input
+                                 type="text"
+                                 value={formatInputValue(unitRent, 'currency')}
+                                 onChange={(e) => {
+                                   const newRent = parseInputValue(e.target.value, 'currency');
+                                   const updatedUnitMix = currentUnitMix.map((u, i) => 
+                                     i === index ? { ...u, rent: newRent } : u
+                                   );
+                                   updateOverrides({ unitMix: updatedUnitMix });
+                                 }}
+                                 style={{ 
+                                   padding: '2px 4px', 
+                                   border: '1px solid #ddd', 
+                                   borderRadius: '3px',
+                                   width: '70px',
+                                   textAlign: 'right',
+                                   fontSize: '11px'
+                                 }}
+                               />
+                               <span style={{ fontSize: '11px' }}>/mo</span>
+                               <button
+                                 onClick={() => {
+                                   const updatedUnitMix = currentUnitMix.filter((_, i) => i !== index);
+                                   updateOverrides({ unitMix: updatedUnitMix });
+                                 }}
+                                 style={{
+                                   padding: '1px 4px',
+                                   fontSize: '10px',
+                                   background: '#ffebee',
+                                   border: '1px solid #f44336',
+                                   borderRadius: '2px',
+                                   cursor: 'pointer',
+                                   color: '#d32f2f',
+                                   marginLeft: '4px'
+                                 }}
+                               >
+                                 ×
+                               </button>
+                             </div>
+                           );
+                         })
+                       ) : (
+                         <div style={{ color: '#666', fontStyle: 'italic', marginBottom: '8px' }}>
+                           No units defined
+                         </div>
+                       )}
+                       
+                       {/* Add new unit button */}
+                       <button
+                         onClick={() => {
+                           const newUnit = { bedrooms: 1, count: 1, rent: getRentForBedrooms(1, property.ZIP_CODE) };
+                           const updatedUnitMix = [...currentUnitMix, newUnit];
+                           updateOverrides({ unitMix: updatedUnitMix });
+                         }}
+                         style={{
+                           padding: '2px 6px',
+                           fontSize: '10px',
+                           background: '#e8f5e8',
+                           border: '1px solid #4caf50',
+                           borderRadius: '3px',
+                           cursor: 'pointer',
+                           color: '#2e7d32'
+                         }}
+                       >
+                         + Add Unit
+                       </button>
                      </div>
-                     <div style={{ textAlign: 'right', fontSize: '13px' }}></div>
-                     <div style={{ textAlign: 'right', fontSize: '13px' }}></div>
+                     
+                     {/* Show totals for dynamic unit mix */}
+                     {currentUnitMix.length > 0 && (
+                       <React.Fragment>
+                         <div style={{ textAlign: 'right', fontSize: '13px' }}>
+                           {formatCurrency(toDisplayValue(annualGross))}
+                         </div>
+                         <div style={{ textAlign: 'right', fontSize: '13px' }}>
+                           100.0%
+                         </div>
+                       </React.Fragment>
+                     )}
                    </React.Fragment>
                  )}
                

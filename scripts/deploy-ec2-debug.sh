@@ -42,6 +42,24 @@ echo "🧠 Memory:"
 free -h
 echo ""
 
+# Setup swap space if needed
+echo "💾 Setting up swap space for memory management..."
+if ! swapon --show | grep -q "/swapfile"; then
+    echo "Creating swap file..."
+    sudo fallocate -l 2G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+fi
+echo "Swap space: $(free -h | grep Swap)"
+echo ""
+
+# Set Node.js memory limits
+export NODE_OPTIONS="--max-old-space-size=4096"
+echo "🔧 Set NODE_OPTIONS: $NODE_OPTIONS"
+echo ""
+
 # Navigate to app directory
 echo "📁 Navigating to app directory..."
 cd ~/app
@@ -122,8 +140,17 @@ else
     exit 1
 fi
 
-echo "4. Installing web package dependencies..."
-npm install --prefix packages/web
+echo "4. Installing web package dependencies (with memory optimization)..."
+cd packages/web
+npm install --no-optional --production=false || {
+    echo "❌ Failed to install web package dependencies"
+    echo "Trying with reduced memory usage..."
+    npm install --no-optional --production=false --maxsockets=1 || {
+        echo "❌ Web package installation failed even with reduced memory"
+        exit 1
+    }
+}
+cd ../..
 if [ $? -eq 0 ]; then
     echo "✅ Web package dependencies installed successfully"
 else
