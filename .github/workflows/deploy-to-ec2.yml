@@ -150,8 +150,8 @@ jobs:
         proxy_timeout: "5m"
         script_stop: false
         script: |
-          echo "⚡ PHASE 4: Full Process Management (No Killing)"
-          echo "=============================================="
+          echo "⚡ PHASE 4: Smart Process Management"
+          echo "==================================="
           echo "Start time: $(date)"
           echo "User: $(whoami)"
           echo "PWD: $(pwd)"
@@ -170,24 +170,38 @@ jobs:
           ps aux | grep node | grep -v grep || echo "No Node.js processes"
           echo ""
           
-          # Note: Skipping process killing to avoid timeouts
-          echo "⚠️ Skipping process killing (causes timeouts)"
-          echo "Starting new processes alongside existing ones..."
+          # Check port availability
+          echo "Checking port availability..."
+          API_PORT=3001
+          WEB_PORT=3000
+          
+          if netstat -tlnp 2>/dev/null | grep -q ":3001 "; then
+            echo "⚠️ Port 3001 is in use, trying 3002..."
+            API_PORT=3002
+          fi
+          
+          if netstat -tlnp 2>/dev/null | grep -q ":3000 "; then
+            echo "⚠️ Port 3000 is in use, trying 3003..."
+            WEB_PORT=3003
+          fi
+          
+          echo "Using API port: $API_PORT"
+          echo "Using web port: $WEB_PORT"
           echo ""
           
-          # Start API with detailed logging
-          echo "Starting API..."
+          # Start API with smart port selection
+          echo "Starting API on port $API_PORT..."
           cd packages/api
           echo "API directory: $(pwd)"
           echo "API package.json exists: $([ -f package.json ] && echo 'YES' || echo 'NO')"
           
-          # Start API and capture PID immediately
-          nohup npm start > api.log 2>&1 &
+          # Start API with custom port
+          PORT=$API_PORT nohup npm start > api.log 2>&1 &
           API_PID=$!
-          echo "API started with PID: $API_PID at $(date)"
+          echo "API started with PID: $API_PID on port $API_PORT at $(date)"
           
           # Verify API process started
-          sleep 2
+          sleep 3
           if ps -p $API_PID > /dev/null; then
             echo "✅ API process confirmed running (PID: $API_PID)"
           else
@@ -197,23 +211,23 @@ jobs:
           fi
           cd ../..
           
-          # Start web with detailed logging
-          echo "Starting web..."
+          # Start web with smart port selection
+          echo "Starting web on port $WEB_PORT..."
           cd packages/web
           echo "Web directory: $(pwd)"
           echo "Web package.json exists: $([ -f package.json ] && echo 'YES' || echo 'NO')"
           
-          # Set environment variable
-          export NEXT_PUBLIC_API_URL=http://localhost:3001
+          # Set environment variable with dynamic port
+          export NEXT_PUBLIC_API_URL=http://localhost:$API_PORT
           echo "Set NEXT_PUBLIC_API_URL: $NEXT_PUBLIC_API_URL"
           
-          # Start web and capture PID immediately
-          nohup npm start > web.log 2>&1 &
+          # Start web with custom port
+          PORT=$WEB_PORT nohup npm start > web.log 2>&1 &
           WEB_PID=$!
-          echo "Web started with PID: $WEB_PID at $(date)"
+          echo "Web started with PID: $WEB_PID on port $WEB_PORT at $(date)"
           
           # Verify web process started
-          sleep 2
+          sleep 3
           if ps -p $WEB_PID > /dev/null; then
             echo "✅ Web process confirmed running (PID: $WEB_PID)"
           else
@@ -226,12 +240,15 @@ jobs:
           # Final status check
           echo ""
           echo "Final status at $(date):"
-          echo "API PID: $API_PID"
-          echo "Web PID: $WEB_PID"
+          echo "API PID: $API_PID on port $API_PORT"
+          echo "Web PID: $WEB_PID on port $WEB_PORT"
           echo "All Node.js processes:"
           ps aux | grep node | grep -v grep || echo "No Node.js processes"
           echo ""
-          echo "✅ Full process management complete (without killing)"
+          echo "Port usage:"
+          netstat -tlnp 2>/dev/null | grep ":300[0-9]" || echo "No processes on ports 3000-3009"
+          echo ""
+          echo "✅ Smart process management complete"
           
     - name: Phase 5 - Verification
       uses: appleboy/ssh-action@v1.0.3
@@ -255,18 +272,36 @@ jobs:
           echo "Checking processes..."
           ps aux | grep node | grep -v grep || echo "No Node.js processes found"
           
-          # Check ports
+          # Check ports and determine which ones are being used
           echo "Checking ports..."
-          netstat -tlnp 2>/dev/null | grep ":3000\|:3001" || echo "No processes on expected ports"
+          netstat -tlnp 2>/dev/null | grep ":300[0-9]" || echo "No processes on expected ports"
+          
+          # Determine actual ports being used
+          API_PORT=$(netstat -tlnp 2>/dev/null | grep "node.*dist/index.js" | awk '{print $4}' | cut -d: -f2 | head -1)
+          WEB_PORT=$(netstat -tlnp 2>/dev/null | grep "next" | awk '{print $4}' | cut -d: -f2 | head -1)
+          
+          if [ -z "$API_PORT" ]; then
+            API_PORT=3001
+            echo "⚠️ Could not detect API port, using default: $API_PORT"
+          else
+            echo "✅ Detected API port: $API_PORT"
+          fi
+          
+          if [ -z "$WEB_PORT" ]; then
+            WEB_PORT=3000
+            echo "⚠️ Could not detect web port, using default: $WEB_PORT"
+          else
+            echo "✅ Detected web port: $WEB_PORT"
+          fi
           
           # Test endpoints
           echo "Testing endpoints..."
-          curl -s --connect-timeout 5 http://localhost:3001/health > /dev/null && echo "✅ API health endpoint working" || echo "❌ API health endpoint failed"
-          curl -s --connect-timeout 5 http://localhost:3000 > /dev/null && echo "✅ Web endpoint working" || echo "❌ Web endpoint failed"
+          curl -s --connect-timeout 5 http://localhost:$API_PORT/health > /dev/null && echo "✅ API health endpoint working on port $API_PORT" || echo "❌ API health endpoint failed on port $API_PORT"
+          curl -s --connect-timeout 5 http://localhost:$WEB_PORT > /dev/null && echo "✅ Web endpoint working on port $WEB_PORT" || echo "❌ Web endpoint failed on port $WEB_PORT"
           
           echo "✅ Verification complete"
-          echo "🌐 Frontend: http://${{ secrets.EC2_HOST }}:3000"
-          echo "🔌 API: http://${{ secrets.EC2_HOST }}:3001"
+          echo "🌐 Frontend: http://${{ secrets.EC2_HOST }}:$WEB_PORT"
+          echo "🔌 API: http://${{ secrets.EC2_HOST }}:$API_PORT"
           
     - name: Final Health Check
       run: |
