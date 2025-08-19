@@ -9,7 +9,7 @@ echo "🚀 Deploying Data Pipeline to EC2..."
 
 # Configuration
 # Prefer IP from environment or aws-config file; fall back to required env
-SSH_KEY="multi-analysis-key-496.pem"
+SSH_KEY="multi-analysis-key-496-new.pem"
 REMOTE_USER="ec2-user"
 
 # Load IP from aws-config if present and not overridden

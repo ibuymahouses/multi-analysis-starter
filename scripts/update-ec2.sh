@@ -32,7 +32,7 @@ print_step() {
 }
 
 # Configuration
-KEY_FILE="multi-analysis-key-496.pem"
+KEY_FILE="multi-analysis-key-496-new.pem"
 EC2_USER="ec2-user"
 APP_DIR="~/app"
 

@@ -26,7 +26,7 @@ chmod +x scripts/deploy-data-pipeline.sh
 
 SSH into your EC2 instance:
 ```bash
-ssh -i multi-analysis-key-496.pem ec2-user@<EC2_IP>
+ssh -i multi-analysis-key-496-new.pem ec2-user@<EC2_IP>
 ```
 
 Edit the environment file:

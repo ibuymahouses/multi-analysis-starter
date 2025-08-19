@@ -48,14 +48,14 @@
 ### **Step 2: Verify SSH Key**
 ```bash
 # Ensure you have the correct .pem file
-ls -la multi-analysis-key-496.pem
+ls -la multi-analysis-key-496-new.pem
 # Should be 1704 bytes, permissions 400 or 600
 ```
 
 ### **Step 3: Test SSH Connection**
 ```bash
 # Test SSH connection to current EC2 instance
-ssh -i multi-analysis-key-496.pem ec2-user@<EC2_IP> "echo 'SSH working'"
+ssh -i multi-analysis-key-496-new.pem ec2-user@<EC2_IP> "echo 'SSH working'"
 ```
 
 ### **Step 4: Deploy BHA Pipeline**
@@ -115,7 +115,7 @@ multi-analysis-starter/
 │   ├── setup-bha-cron.sh
 │   ├── deploy-bha-ecs.sh
 │   └── deploy-bha-ecs.ps1
-├── multi-analysis-key-496.pem
+├── multi-analysis-key-496-new.pem
 └── BHA_ECS_DEPLOYMENT_GUIDE.md
 ```
 
@@ -135,7 +135,7 @@ After deployment, you should see:
 ## 📞 **If Issues Arise**
 
 **Common problems and solutions:**
-- **SSH key permissions:** `chmod 400 multi-analysis-key-496.pem`
+- **SSH key permissions:** `chmod 400 multi-analysis-key-496-new.pem`
 - **Wrong IP:** Check AWS Console for actual EC2 public IP
 - **Python dependencies:** Ensure python3 and pip are installed
 - **Database connection:** Verify PostgreSQL is running and accessible

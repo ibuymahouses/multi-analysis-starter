@@ -3,7 +3,7 @@
 
 param(
     [string]$EC2_IP,
-    [string]$KeyFile = "multi-analysis-key-496.pem",
+    [string]$KeyFile = "multi-analysis-key-496-new.pem",
     [string]$EC2User = "ec2-user"
 )
 

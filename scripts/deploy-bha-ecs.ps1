@@ -3,7 +3,7 @@
 
 param(
     [string]$EC2_IP = $env:EC2_IP,
-    [string]$SSH_KEY = "multi-analysis-key-496.pem",
+    [string]$SSH_KEY = "multi-analysis-key-496-new.pem",
     [string]$REMOTE_USER = "ec2-user"
 )
 

@@ -58,10 +58,10 @@ npm run deploy:aws
 - **EC2 Instance**: <EC2_IP>
 - **RDS Database**: multi-analysis-db-496.cwhu64m6gqur.us-east-1.rds.amazonaws.com
 - **S3 Bucket**: multi-analysis-data-496
-- **SSH Key**: multi-analysis-key-496.pem
+- **SSH Key**: multi-analysis-key-496-new.pem
 
 ## Files You Need:
-1. **SSH Key**: `multi-analysis-key-496.pem` (from your work laptop)
+1. **SSH Key**: `multi-analysis-key-496-new.pem` (from your work laptop)
 2. **AWS Credentials**: Access Key ID and Secret Access Key
 3. **Database Password**: The password you set for your RDS instance
 

@@ -36,12 +36,12 @@ This guide will help you set up automatic deployment from GitHub to your EC2 ins
 
 1. **On Windows (PowerShell):**
    ```powershell
-   Get-Content multi-analysis-key-496.pem
+   Get-Content multi-analysis-key-496-new.pem
    ```
 
 2. **On Linux/Mac:**
    ```bash
-   cat multi-analysis-key-496.pem
+   cat multi-analysis-key-496-new.pem
    ```
 
 3. Copy the entire content (including `-----BEGIN` and `-----END` lines)
@@ -107,7 +107,7 @@ You can manually trigger deployments:
 
 ```bash
 # SSH into your EC2 instance
-ssh -i multi-analysis-key-496.pem ec2-user@YOUR_EC2_IP
+ssh -i multi-analysis-key-496-new.pem ec2-user@YOUR_EC2_IP
 
 # Check if application is running
 docker-compose ps  # If using Docker

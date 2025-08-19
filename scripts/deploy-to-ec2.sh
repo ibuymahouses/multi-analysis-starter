@@ -33,7 +33,7 @@ print_step() {
 
 # Configuration
 # Prefer IP from environment or aws-config file; fall back to required env
-KEY_FILE="multi-analysis-key-496.pem"
+KEY_FILE="multi-analysis-key-496-new.pem"
 EC2_USER="ec2-user"
 APP_DIR="~/app"
 

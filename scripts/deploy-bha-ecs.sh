@@ -9,7 +9,7 @@ echo "🚀 Deploying BHA Data Pipeline to ECS..."
 
 # Configuration
 # Prefer IP from environment or aws-config file; fall back to script default
-SSH_KEY="multi-analysis-key-496.pem"
+SSH_KEY="multi-analysis-key-496-new.pem"
 REMOTE_USER="ec2-user"
 
 # Load IP from aws-config if present and not overridden

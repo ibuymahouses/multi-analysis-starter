@@ -2,7 +2,7 @@
 # This script helps you extract your SSH private key content for GitHub Actions
 
 param(
-    [string]$KeyFile = "multi-analysis-key-496.pem"
+    [string]$KeyFile = "multi-analysis-key-496-new.pem"
 )
 
 Write-Host "🔑 Extracting SSH key content for GitHub Secrets..." -ForegroundColor Green

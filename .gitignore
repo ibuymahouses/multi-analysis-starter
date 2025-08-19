@@ -113,3 +113,10 @@ Thumbs.db
 
 # Local development
 *.local
+
+# SSH Keys and sensitive files
+*.pem
+*.key
+*.p12
+*.pfx
+aws-config-*.env
