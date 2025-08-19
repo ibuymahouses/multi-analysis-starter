@@ -13,20 +13,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Test SSH Connection
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        port: ${{ secrets.EC2_PORT }}
-        script: |
-          echo "🔍 Testing SSH connection..."
-          echo "Current user: $(whoami)"
-          echo "Current directory: $(pwd)"
-          echo "Home directory: $HOME"
-          echo "SSH connection successful!"
-      
     - name: Deploy to EC2
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -35,19 +21,14 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         port: ${{ secrets.EC2_PORT }}
         script: |
-          set -e  # Exit on any error
-          echo "🚀 Starting systematic deployment..."
+          set -e
+          echo "🚀 Simple deployment starting..."
           
-          # ========================================
-          # PHASE 1: ENVIRONMENT SETUP
-          # ========================================
-          echo "📁 Setting up environment..."
+          # Setup environment
           mkdir -p ~/app
           cd ~/app
-          echo "Working directory: $(pwd)"
           
           # Setup swap space
-          echo "💾 Setting up swap space..."
           if ! swapon --show | grep -q "/swapfile"; then
             sudo fallocate -l 2G /swapfile
             sudo chmod 600 /swapfile
@@ -55,57 +36,12 @@ jobs:
             sudo swapon /swapfile
             echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
           fi
-          echo "Swap space: $(free -h | grep Swap)"
           
-          # ========================================
-          # PHASE 2: NODE.JS SETUP
-          # ========================================
-          echo "🔧 Setting up Node.js 22..."
-          CURRENT_NODE_VERSION=$(node --version 2>/dev/null || echo "not_installed")
-          echo "Current Node.js version: $CURRENT_NODE_VERSION"
-          
-          if [[ "$CURRENT_NODE_VERSION" != "v22"* ]]; then
-            echo "Installing Node.js 22..."
-            
-            # Detect OS
-            if [ -f /etc/os-release ]; then
-              . /etc/os-release
-              OS=$NAME
-            else
-              OS="Amazon Linux"
-            fi
-            
-            # Remove old Node.js
-            if command -v node &> /dev/null; then
-              if command -v yum &> /dev/null; then
-                sudo yum remove -y nodejs npm 2>/dev/null || echo "No old Node.js to remove"
-              elif command -v apt &> /dev/null; then
-                sudo apt remove -y nodejs npm 2>/dev/null || echo "No old Node.js to remove"
-              fi
-            fi
-            
-            # Install Node.js 22
-            if [[ "$OS" == *"Amazon Linux"* ]] || [[ "$OS" == *"Red Hat"* ]] || [[ "$OS" == *"CentOS"* ]]; then
-              curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo bash -
-              sudo yum install -y nodejs
-            else
-              curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-              sudo apt-get install -y nodejs
-            fi
-            
-            # Verify installation
-            if [[ "$(node --version)" != "v22"* ]]; then
-              echo "❌ Node.js 22 installation failed"
-              exit 1
-            fi
+          # Ensure Node.js 22
+          if [[ "$(node --version 2>/dev/null)" != "v22"* ]]; then
+            curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo bash -
+            sudo yum install -y nodejs
           fi
-          
-          echo "✅ Node.js $(node --version) ready"
-          
-          # ========================================
-          # PHASE 3: CODE DEPLOYMENT
-          # ========================================
-          echo "📦 Deploying code..."
           
           # Clean deployment
           rm -rf multi-analysis-starter
@@ -115,123 +51,79 @@ jobs:
           # Set memory limits
           export NODE_OPTIONS="--max-old-space-size=4096"
           
-          # Clean install
+          # Install dependencies
           echo "Installing dependencies..."
-          npm cache clean --force
-          rm -rf node_modules packages/*/node_modules
-          rm -rf package-lock.json packages/*/package-lock.json
-          
           npm install --no-optional
           
           # Install package dependencies
           for package in shared api worker web; do
-            echo "Installing $package dependencies..."
             cd packages/$package
             npm install --no-optional
             cd ../..
           done
           
-          # ========================================
-          # PHASE 4: DATA FILES
-          # ========================================
-          echo "📁 Setting up data files..."
+          # Copy data files
+          echo "Setting up data files..."
+          mkdir -p packages/api/data
+          cp -r data/* packages/api/data/
           
-          # Ensure data directory exists
-          mkdir -p data packages/api/data
+          # Build packages
+          echo "Building packages..."
+          cd packages/shared && npm run build && cd ../..
+          cd packages/api && npm run build && cd ../..
+          cd packages/web && npm run build && cd ../..
           
-          # Copy data files to both locations
-          if [ -d "data" ] && [ "$(ls -A data)" ]; then
-            echo "Data files found, copying..."
-            cp -r data/* packages/api/data/
-            echo "✅ Data files copied to API package"
-          else
-            echo "❌ No data files found in repository"
-            exit 1
-          fi
+          # Kill existing processes
+          echo "Stopping existing processes..."
+          pkill -f "node.*3000" 2>/dev/null || echo "No web process to kill"
+          pkill -f "node.*3001" 2>/dev/null || echo "No API process to kill"
+          sleep 2
           
-          # ========================================
-          # PHASE 5: BUILD
-          # ========================================
-          echo "🔨 Building application..."
-          
-          # Build shared first
-          cd packages/shared
-          npm run build
-          cd ../..
-          
-          # Build API
-          cd packages/api
-          npm run build
-          cd ../..
-          
-          # Build web
-          cd packages/web
-          npm run build
-          cd ../..
-          
-          echo "✅ All packages built successfully"
-          
-          # ========================================
-          # PHASE 6: PROCESS MANAGEMENT
-          # ========================================
-          echo "⚡ Setting up process management..."
-          
-          # Install PM2 globally
-          npm install -g pm2
-          
-          # Kill ALL existing Node.js processes
-          echo "Stopping all existing Node.js processes..."
-          pkill -f "node" 2>/dev/null || echo "No existing Node.js processes"
-          sleep 3
-          
-          # Clear PM2
-          pm2 delete all 2>/dev/null || echo "No existing PM2 processes"
-          pm2 kill 2>/dev/null || echo "PM2 not running"
-          
-          # Start API with PM2
+          # Start API (simple nohup)
           echo "Starting API..."
           cd packages/api
-          pm2 start npm --name "api" -- start
+          nohup npm start > api.log 2>&1 &
+          API_PID=$!
           cd ../..
           
-          # Start web with PM2
+          # Start web (simple nohup)
           echo "Starting web..."
           cd packages/web
-          # Set environment variable for API URL
           export NEXT_PUBLIC_API_URL=http://localhost:3001
-          pm2 start npm --name "web" -- start
+          nohup npm start > web.log 2>&1 &
+          WEB_PID=$!
           cd ../..
           
-          # Save PM2 configuration
-          pm2 save
-          pm2 startup
-          
-          # ========================================
-          # PHASE 7: VERIFICATION
-          # ========================================
-          echo "🧪 Verifying deployment..."
-          
           # Wait for processes to start
+          echo "Waiting for processes to start..."
           sleep 10
           
-          # Check PM2 status
-          echo "PM2 Status:"
-          pm2 list
+          # Verify processes are running
+          echo "Checking processes..."
+          if ps -p $API_PID > /dev/null; then
+            echo "✅ API process running (PID: $API_PID)"
+          else
+            echo "❌ API process failed to start"
+            echo "API logs:"
+            tail -20 packages/api/api.log
+          fi
           
-          # Test API endpoints
-          echo "Testing API health..."
-          HEALTH_RESPONSE=$(curl -s http://localhost:3001/health 2>/dev/null || echo "FAILED")
-          echo "Health response: $HEALTH_RESPONSE"
+          if ps -p $WEB_PID > /dev/null; then
+            echo "✅ Web process running (PID: $WEB_PID)"
+          else
+            echo "❌ Web process failed to start"
+            echo "Web logs:"
+            tail -20 packages/web/web.log
+          fi
           
-          echo "Testing API listings..."
-          LISTINGS_RESPONSE=$(curl -s http://localhost:3001/listings 2>/dev/null | head -c 100 || echo "FAILED")
-          echo "Listings response: $LISTINGS_RESPONSE"
+          # Test API
+          echo "Testing API..."
+          sleep 5
+          curl -s http://localhost:3001/health || echo "Health endpoint failed"
+          curl -s http://localhost:3001/listings | head -c 100 || echo "Listings endpoint failed"
+          curl -s http://localhost:3001/rents | head -c 100 || echo "Rents endpoint failed"
           
-          echo "Testing API rents..."
-          RENTS_RESPONSE=$(curl -s http://localhost:3001/rents 2>/dev/null | head -c 100 || echo "FAILED")
-          echo "Rents response: $RENTS_RESPONSE"
-          
-          # Check if processes are listening
+          # Check ports
           echo "Processes on ports:"
           netstat -tlnp 2>/dev/null | grep ":3000\|:3001" || echo "No processes found"
           
