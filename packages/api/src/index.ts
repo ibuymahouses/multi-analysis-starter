@@ -14,6 +14,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    dataFiles: {
+      listings: loadListings().listings.length,
+      rents: loadRentsComprehensive().rents.length,
+      overrides: Object.keys(loadOverrides()).length
+    }
+  });
+});
+
 // Data loading functions
 function loadListings() {
   const dataPaths = [
@@ -497,5 +510,7 @@ app.post('/analyze/unlisted', (req, res) => {
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  // Server started successfully
+  console.log(`🚀 API server running on port ${PORT}`);
+  console.log(`📊 Data loaded: ${loadListings().listings.length} listings, ${loadRentsComprehensive().rents.length} rent records`);
+  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
 });
