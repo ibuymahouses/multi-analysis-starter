@@ -8,6 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # Increase timeout
     
     steps:
     - name: Checkout code
@@ -20,6 +21,7 @@ jobs:
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
         port: ${{ secrets.EC2_PORT }}
+        command_timeout: "10m"  # Increase command timeout
         script: |
           set -e
           echo "🚀 Simple deployment starting..."
@@ -73,17 +75,18 @@ jobs:
           cd packages/api && npm run build && cd ../..
           cd packages/web && npm run build && cd ../..
           
-          # Kill existing processes
+          # Kill existing processes (with timeout)
           echo "Stopping existing processes..."
-          pkill -f "node.*3000" 2>/dev/null || echo "No web process to kill"
-          pkill -f "node.*3001" 2>/dev/null || echo "No API process to kill"
-          sleep 2
+          timeout 30s pkill -f "node.*3000" 2>/dev/null || echo "No web process to kill"
+          timeout 30s pkill -f "node.*3001" 2>/dev/null || echo "No API process to kill"
+          sleep 3
           
           # Start API (simple nohup)
           echo "Starting API..."
           cd packages/api
           nohup npm start > api.log 2>&1 &
           API_PID=$!
+          echo "API started with PID: $API_PID"
           cd ../..
           
           # Start web (simple nohup)
@@ -92,11 +95,12 @@ jobs:
           export NEXT_PUBLIC_API_URL=http://localhost:3001
           nohup npm start > web.log 2>&1 &
           WEB_PID=$!
+          echo "Web started with PID: $WEB_PID"
           cd ../..
           
           # Wait for processes to start
           echo "Waiting for processes to start..."
-          sleep 10
+          sleep 15
           
           # Verify processes are running
           echo "Checking processes..."
@@ -116,12 +120,31 @@ jobs:
             tail -20 packages/web/web.log
           fi
           
-          # Test API
+          # Test API with retries
           echo "Testing API..."
-          sleep 5
-          curl -s http://localhost:3001/health || echo "Health endpoint failed"
-          curl -s http://localhost:3001/listings | head -c 100 || echo "Listings endpoint failed"
-          curl -s http://localhost:3001/rents | head -c 100 || echo "Rents endpoint failed"
+          for i in {1..3}; do
+            echo "Attempt $i: Testing API endpoints..."
+            sleep 5
+            
+            if curl -s http://localhost:3001/health > /dev/null; then
+              echo "✅ Health endpoint working"
+              break
+            else
+              echo "❌ Health endpoint failed (attempt $i)"
+            fi
+          done
+          
+          if curl -s http://localhost:3001/listings | head -c 100 > /dev/null; then
+            echo "✅ Listings endpoint working"
+          else
+            echo "❌ Listings endpoint failed"
+          fi
+          
+          if curl -s http://localhost:3001/rents | head -c 100 > /dev/null; then
+            echo "✅ Rents endpoint working"
+          else
+            echo "❌ Rents endpoint failed"
+          fi
           
           # Check ports
           echo "Processes on ports:"
@@ -134,17 +157,17 @@ jobs:
     - name: Health Check
       run: |
         echo "🔍 Final health check..."
-        sleep 30
+        sleep 45  # Give more time for processes to stabilize
         
         echo "Testing frontend..."
-        if curl -f -s --connect-timeout 10 http://${{ secrets.EC2_HOST }}:3000 > /dev/null; then
+        if curl -f -s --connect-timeout 15 http://${{ secrets.EC2_HOST }}:3000 > /dev/null; then
           echo "✅ Frontend responding"
         else
           echo "❌ Frontend not responding"
         fi
         
         echo "Testing API..."
-        if curl -f -s --connect-timeout 10 http://${{ secrets.EC2_HOST }}:3001/health > /dev/null; then
+        if curl -f -s --connect-timeout 15 http://${{ secrets.EC2_HOST }}:3001/health > /dev/null; then
           echo "✅ API responding"
         else
           echo "❌ API not responding"
