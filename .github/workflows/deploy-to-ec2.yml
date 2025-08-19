@@ -143,35 +143,55 @@ jobs:
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
         port: ${{ secrets.EC2_PORT }}
-        command_timeout: "3m"
+        command_timeout: "8m"
         script: |
           echo "⚡ PHASE 4: Process Management"
           echo "============================="
           
           cd ~/app/multi-analysis-starter
           
-          # Stop existing processes
+          # Stop existing processes (quick)
           echo "Stopping existing processes..."
           pkill -f "node.*3000" 2>/dev/null || echo "No web process to stop"
           pkill -f "node.*3001" 2>/dev/null || echo "No API process to stop"
-          sleep 3
+          sleep 2
           
-          # Start API (simple approach)
+          # Start API (with immediate feedback)
           echo "Starting API..."
           cd packages/api
           nohup npm start > api.log 2>&1 &
-          echo "API started with PID: $!"
+          API_PID=$!
+          echo "API started with PID: $API_PID"
           cd ../..
           
-          # Start web (simple approach)
+          # Quick check if API started
+          sleep 3
+          if ps -p $API_PID > /dev/null; then
+            echo "✅ API process confirmed running"
+          else
+            echo "⚠️ API process may have failed to start"
+          fi
+          
+          # Start web (with immediate feedback)
           echo "Starting web..."
           cd packages/web
           export NEXT_PUBLIC_API_URL=http://localhost:3001
           nohup npm start > web.log 2>&1 &
-          echo "Web started with PID: $!"
+          WEB_PID=$!
+          echo "Web started with PID: $WEB_PID"
           cd ../..
           
+          # Quick check if web started
+          sleep 3
+          if ps -p $WEB_PID > /dev/null; then
+            echo "✅ Web process confirmed running"
+          else
+            echo "⚠️ Web process may have failed to start"
+          fi
+          
           echo "✅ Process management complete"
+          echo "API PID: $API_PID"
+          echo "Web PID: $WEB_PID"
           
     - name: Phase 5 - Verification
       uses: appleboy/ssh-action@v1.0.3
