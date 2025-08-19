@@ -1,0 +1,114 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm run install:all
+      
+    - name: Build application
+      run: npm run build
+      
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        port: ${{ secrets.EC2_PORT }}
+        script: |
+          echo "🚀 Starting automatic deployment from GitHub..."
+          
+          # Navigate to app directory
+          cd ~/app
+          
+          # Check if git repository exists
+          if [ -d "multi-analysis-starter" ]; then
+            echo "📁 Found existing repository, pulling latest changes..."
+            cd multi-analysis-starter
+            
+            # Stash any local changes (if any)
+            git stash
+            
+            # Pull latest changes
+            git pull origin main
+            
+            # If there were stashed changes, pop them back
+            git stash pop 2>/dev/null || true
+          else
+            echo "📁 No existing repository found, cloning fresh..."
+            rm -rf multi-analysis-starter
+            git clone https://github.com/${{ github.repository }}.git multi-analysis-starter
+            cd multi-analysis-starter
+          fi
+          
+          echo "📦 Installing dependencies..."
+          npm run install:all
+          
+          echo "🔨 Building application..."
+          npm run build
+          
+          echo "🔄 Restarting application..."
+          
+          # Check which deployment method is being used
+          if [ -f "docker-compose.yml" ] || [ -f "docker-compose.prod.yml" ]; then
+            echo "🐳 Restarting Docker containers..."
+            if [ -f "docker-compose.prod.yml" ]; then
+              docker-compose -f docker-compose.prod.yml down
+              docker-compose -f docker-compose.prod.yml up -d --build
+            else
+              docker-compose down
+              docker-compose up -d --build
+            fi
+          elif command -v pm2 &> /dev/null; then
+            echo "⚡ Restarting PM2 processes..."
+            pm2 restart all
+          elif systemctl is-active --quiet multi-analysis; then
+            echo "🔧 Restarting systemd service..."
+            sudo systemctl restart multi-analysis
+          else
+            echo "⚠️  No known process manager found. Please restart manually."
+          fi
+          
+          echo "✅ Automatic deployment completed successfully!"
+          echo "🌐 Frontend: http://${{ secrets.EC2_HOST }}:3000"
+          echo "🔌 API: http://${{ secrets.EC2_HOST }}:3001"
+          
+    - name: Health Check
+      run: |
+        echo "🔍 Performing health check..."
+        sleep 30  # Wait for services to start
+        
+        # Check if frontend is responding
+        if curl -f -s http://${{ secrets.EC2_HOST }}:3000 > /dev/null; then
+          echo "✅ Frontend is responding"
+        else
+          echo "❌ Frontend is not responding"
+          exit 1
+        fi
+        
+        # Check if API is responding
+        if curl -f -s http://${{ secrets.EC2_HOST }}:3001 > /dev/null; then
+          echo "✅ API is responding"
+        else
+          echo "❌ API is not responding"
+          exit 1
+        fi
+        
+        echo "🎉 All health checks passed!"

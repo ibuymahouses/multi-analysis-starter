@@ -1,5 +1,0 @@
-[33mf33b4d7[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix filtering functionality in listings page
-[33m1749076[m Update listings page with Shadcn/ui components and Excel-style table
-[33mfcabb58[m Complete project update: Shadcn/ui components, Excel-style table, assumptions dialog, 80% LTV defaults
-[33maa2824c[m Switch from pnpm to npm for easier setup
-[33mca05e1d[m Initial commit: Multi-analysis starter project

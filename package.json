@@ -15,7 +15,10 @@
     "install:all": "npm install && npm install --prefix packages/shared && npm install --prefix packages/api && npm install --prefix packages/web && npm install --prefix packages/worker",
     "db:migrate": "npm run migrate --prefix packages/api",
     "db:seed": "npm run seed --prefix packages/api",
-    "deploy:aws": "bash scripts/deploy-docker.sh"
+    "deploy:aws": "bash scripts/deploy-docker.sh",
+    "update:ec2": "bash scripts/update-ec2.sh",
+    "update:ec2:ps": "powershell -ExecutionPolicy Bypass -File scripts/update-ec2.ps1",
+    "get-ssh-key": "powershell -ExecutionPolicy Bypass -File scripts/get-ssh-key.ps1"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
