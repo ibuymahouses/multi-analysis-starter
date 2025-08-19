@@ -66,6 +66,8 @@ export default function PropertyDetails() {
   const [viewMode, setViewMode] = useState<'annual' | 'monthly'>('annual');
   const [closingCostsInput, setClosingCostsInput] = useState<string>('');
   const [dueDiligenceInput, setDueDiligenceInput] = useState<string>('');
+  const [downPaymentInput, setDownPaymentInput] = useState<string>('');
+  const [interestRateInput, setInterestRateInput] = useState<string>('');
   const [vacancyInput, setVacancyInput] = useState<string>('');
   const [taxesInput, setTaxesInput] = useState<string>('');
   const [insuranceInput, setInsuranceInput] = useState<string>('');
@@ -137,7 +139,7 @@ export default function PropertyDetails() {
         setLoading(true);
         
         // Fetch BHA rental data
-        const bhaResponse = await fetch('/api/rental-rates');
+        const bhaResponse = await fetch(API_ENDPOINTS.rents);
         const bhaData = await bhaResponse.json();
         setBhaRentalData(bhaData);
         
@@ -300,15 +302,31 @@ export default function PropertyDetails() {
   const totalOpex = Object.values(opex).reduce((sum, val) => sum + (val || 0), 0);
 
   // Calculate derived values
-  const totalUnits = currentUnitMix.reduce((sum, u) => sum + u.count, 0);
-  const totalBedrooms = currentUnitMix.reduce((sum, u) => sum + (u.bedrooms * u.count), 0);
+  const unitMixTotal = currentUnitMix.length > 0 
+    ? currentUnitMix.reduce((sum, u) => sum + u.count, 0)
+    : 0;
+  
+  // Use UNITS_FINAL if unit mix is empty or doesn't account for all units
+  const totalUnits = unitMixTotal > 0 && unitMixTotal === (property.UNITS_FINAL || 0)
+    ? unitMixTotal
+    : (property.UNITS_FINAL || 0);
+    
+  const totalBedrooms = currentUnitMix.length > 0 && unitMixTotal === (property.UNITS_FINAL || 0)
+    ? currentUnitMix.reduce((sum, u) => sum + (u.bedrooms * u.count), 0)
+    : (property.UNITS_FINAL || 0) * 2; // Default to 2 bedrooms per unit if no unit mix or incomplete unit mix
   const averageBedrooms = totalUnits > 0 ? totalBedrooms / totalUnits : 0;
   
+  // Calculate price per unit and price per bedroom
+  const pricePerUnit = totalUnits > 0 ? offerPrice / totalUnits : 0;
+  const pricePerBedroom = totalBedrooms > 0 ? offerPrice / totalBedrooms : 0;
+  
   // Calculate annual gross based on unit mix and individual unit rents
-  const annualGross = currentUnitMix.reduce((total, unit) => {
-    const unitRent = getRentForBedrooms(unit.bedrooms, property.ZIP_CODE);
-    return total + (unitRent * unit.count * 12);
-  }, 0);
+  const annualGross = currentUnitMix.length > 0 && unitMixTotal === (property.UNITS_FINAL || 0)
+    ? currentUnitMix.reduce((total, unit) => {
+        const unitRent = getRentForBedrooms(unit.bedrooms, property.ZIP_CODE);
+        return total + (unitRent * unit.count * 12);
+      }, 0)
+    : (property.analysis?.monthlyGross || 0) * 12; // Fall back to property's monthly gross if no unit mix or incomplete unit mix
   const vacancyAmount = annualGross * vacancy;
   const effectiveGrossIncome = annualGross - vacancyAmount;
   const noi = effectiveGrossIncome - totalOpex;
@@ -326,10 +344,14 @@ export default function PropertyDetails() {
   console.log('Debug values:', {
     property: property,
     currentUnitMix,
+    unitMixTotal,
+    totalUnits,
+    totalBedrooms,
+    propertyUNITS_FINAL: property.UNITS_FINAL,
+    propertyOverrides: property.overrides,
     monthlyRent,
     opex,
     totalOpex,
-    totalUnits,
     annualGross,
     noi,
     loanAmount,
@@ -524,6 +546,36 @@ export default function PropertyDetails() {
           💡 <strong>Tip:</strong> Changes made to editable fields update all calculations throughout the page.
         </div>
 
+        {/* Unit Mix Sync Warning */}
+        {currentUnitMix.length > 0 && unitMixTotal !== (property.UNITS_FINAL || 0) && (
+          <div style={{ 
+            marginBottom: '16px', 
+            padding: '8px 12px', 
+            background: '#fff3cd', 
+            border: '1px solid #ffc107', 
+            borderRadius: '4px',
+            fontSize: '12px',
+            color: '#856404'
+          }}>
+            ⚠️ <strong>Unit Mix Mismatch:</strong> Unit mix shows {unitMixTotal} units but property has {property.UNITS_FINAL} units.
+            <button
+              onClick={syncUnitMixToTotal}
+              style={{
+                marginLeft: '8px',
+                padding: '2px 6px',
+                fontSize: '10px',
+                background: '#28a745',
+                border: '1px solid #28a745',
+                borderRadius: '3px',
+                cursor: 'pointer',
+                color: 'white'
+              }}
+            >
+              Sync to {property.UNITS_FINAL} units
+            </button>
+          </div>
+        )}
+
         {/* Undo/Redo Buttons */}
         <div style={{ 
           marginBottom: '16px',
@@ -566,7 +618,7 @@ export default function PropertyDetails() {
           </button>
         </div>
 
-        {/* Key Metrics Summary */}
+        {/* Key Metrics */}
         <div style={{ 
           background: '#2c3e50', 
           color: 'white', 
@@ -576,7 +628,7 @@ export default function PropertyDetails() {
           borderTopLeftRadius: '8px',
           borderTopRightRadius: '8px'
         }}>
-          Key Metrics Summary
+          Key Metrics
         </div>
         <div style={{ 
           border: '1px solid #ddd', 
@@ -594,22 +646,32 @@ export default function PropertyDetails() {
               border: '1px solid #ddd',
               borderRadius: '6px',
               padding: '16px',
-              textAlign: 'left',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
+              textAlign: 'left'
             }}>
               <div style={{ 
-                fontSize: '18px', 
-                fontWeight: 'bold', 
-                color: dscr >= 1.2 ? '#28a745' : dscr >= 1.0 ? '#ffc107' : '#dc3545'
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px'
               }}>
-                DSCR: {dscr.toFixed(2)}
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#dc3545'
+                }}>
+                  DSCR:
+                </div>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#dc3545'
+                }}>
+                  {dscr.toFixed(2)}
+                </div>
               </div>
               <div style={{ 
                 fontSize: '14px', 
-                color: '#666', 
-                fontStyle: 'italic'
+                color: '#666'
               }}>
                 {formatLTV(1 - downPayment)} LTV
               </div>
@@ -620,24 +682,34 @@ export default function PropertyDetails() {
               border: '1px solid #ddd',
               borderRadius: '6px',
               padding: '16px',
-              textAlign: 'left',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
+              textAlign: 'left'
             }}>
               <div style={{ 
-                fontSize: '18px', 
-                fontWeight: 'bold', 
-                color: '#2c3e50'
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px'
               }}>
-                Cap Rate: {formatCapRate(capRate)}
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#2c3e50'
+                }}>
+                  Cap Rate:
+                </div>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#2c3e50'
+                }}>
+                  {formatCapRate(capRate)}
+                </div>
               </div>
               <div style={{ 
                 fontSize: '14px', 
-                color: '#666', 
-                fontStyle: 'italic'
+                color: '#666'
               }}>
-                at ask price
+                at offer price
               </div>
             </div>
             
@@ -646,22 +718,32 @@ export default function PropertyDetails() {
               border: '1px solid #ddd',
               borderRadius: '6px',
               padding: '16px',
-              textAlign: 'left',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
+              textAlign: 'left'
             }}>
               <div style={{ 
-                fontSize: '18px', 
-                fontWeight: 'bold', 
-                color: returnOnCapital >= 0.12 ? '#28a745' : '#ffc107'
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px'
               }}>
-                Return: {formatReturnOnCapital(returnOnCapital)}
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#ffc107'
+                }}>
+                  Return:
+                </div>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#ffc107'
+                }}>
+                  {formatReturnOnCapital(returnOnCapital)}
+                </div>
               </div>
               <div style={{ 
                 fontSize: '14px', 
-                color: '#666', 
-                fontStyle: 'italic'
+                color: '#666'
               }}>
                 on capital
               </div>
@@ -672,22 +754,32 @@ export default function PropertyDetails() {
               border: '1px solid #ddd',
               borderRadius: '6px',
               padding: '16px',
-              textAlign: 'left',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
+              textAlign: 'left'
             }}>
               <div style={{ 
-                fontSize: '18px', 
-                fontWeight: 'bold', 
-                color: monthlyCashFlow >= 0 ? '#28a745' : '#dc3545'
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px'
               }}>
-                Cash Flow: {formatCurrency(monthlyCashFlow)}
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#dc3545'
+                }}>
+                  Cash Flow:
+                </div>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#dc3545'
+                }}>
+                  {formatCurrency(monthlyCashFlow)}
+                </div>
               </div>
               <div style={{ 
                 fontSize: '14px', 
-                color: '#666', 
-                fontStyle: 'italic'
+                color: '#666'
               }}>
                 monthly
               </div>
@@ -698,24 +790,106 @@ export default function PropertyDetails() {
               border: '1px solid #ddd',
               borderRadius: '6px',
               padding: '16px',
-              textAlign: 'left',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
+              textAlign: 'left'
             }}>
               <div style={{ 
-                fontSize: '18px', 
-                fontWeight: 'bold', 
-                color: '#2c3e50'
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px'
               }}>
-                Equity: {formatCurrency(equityRequired)}
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#2c3e50'
+                }}>
+                  Equity:
+                </div>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#2c3e50'
+                }}>
+                  {formatCurrency(equityRequired)}
+                </div>
               </div>
               <div style={{ 
                 fontSize: '14px', 
-                color: '#666', 
-                fontStyle: 'italic'
+                color: '#666'
               }}>
                 required
+              </div>
+            </div>
+            
+            <div style={{ 
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              padding: '16px',
+              textAlign: 'left'
+            }}>
+              <div style={{ 
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px'
+              }}>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#28a745'
+                }}>
+                  $/Unit:
+                </div>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#28a745'
+                }}>
+                  {formatCurrency(pricePerUnit)}
+                </div>
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#666'
+              }}>
+                {totalUnits} units
+              </div>
+            </div>
+            
+            <div style={{ 
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              padding: '16px',
+              textAlign: 'left'
+            }}>
+              <div style={{ 
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px'
+              }}>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#17a2b8'
+                }}>
+                  $/Bed:
+                </div>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#17a2b8'
+                }}>
+                  {formatCurrency(pricePerBedroom)}
+                </div>
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#666'
+              }}>
+                {totalBedrooms} total beds
               </div>
             </div>
           </div>
@@ -729,80 +903,61 @@ export default function PropertyDetails() {
 
              {/* Initial Costs and Financing - Side by Side */}
        <div style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
-         {/* Initial Costs */}
-         <section style={{ flex: '1' }}>
-           <div style={{ 
-             background: '#2c3e50', 
-             color: 'white', 
-             padding: '12px 16px', 
-             fontWeight: 'bold',
-             fontSize: '16px',
-             borderTopLeftRadius: '6px',
-             borderTopRightRadius: '6px'
-           }}>
-             Initial Costs
-           </div>
-           <div style={{ 
-             border: '1px solid #ddd', 
-             borderTop: 'none',
-             padding: '20px',
-             background: '#f8f9fa'
-           }}>
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-               <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Item</div>
-               <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>$'s</div>
-               <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>%'s</div>
-               
-                            <div>Purchase Price</div>
-                                 <div style={{ textAlign: 'right' }}>
+                   {/* Initial Costs */}
+          <section style={{ flex: '1' }}>
+            <div style={{ 
+              background: '#2c3e50', 
+              color: 'white', 
+              padding: '12px 16px', 
+              fontWeight: 'bold',
+              fontSize: '16px',
+              borderTopLeftRadius: '6px',
+              borderTopRightRadius: '6px'
+            }}>
+              Initial Costs
+            </div>
+            <div style={{ 
+              border: '1px solid #ddd', 
+              borderTop: 'none',
+              padding: '20px',
+              background: 'white'
+            }}>
+                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px 16px', alignItems: 'center' }}>
+                 <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Item</div>
+                 <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'center' }}>$'s</div>
+                 <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'center' }}>%'s</div>
+                 <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Notes</div>
+                
+                                 <div>Purchase Price</div>
+                 <div style={{ textAlign: 'center' }}>
                    <input
                      type="text"
                      value={formatInputValue(offerPrice, 'currency')}
-                     onChange={(e) => updateOverrides({ offerPrice: parseInputValue(e.target.value, 'currency') })}
+                     onChange={(e) => {
+                       const newPrice = parseInputValue(e.target.value, 'currency');
+                       updateOverrides({ offerPrice: newPrice });
+                     }}
                      style={{ 
                        padding: '4px', 
                        border: '1px solid #ddd', 
                        borderRadius: '4px',
                        width: '120px',
                        textAlign: 'right',
-                       fontSize: '14px'
+                       fontSize: '14px',
+                       backgroundColor: '#f8f9fa'
                      }}
                    />
                  </div>
-                              <div>
-                                <input
-                                  type="text"
-                                  value={offerPrice === property.LIST_PRICE ? '100%' : `${(offerPricePercent).toFixed(1)}%`}
-                                  onChange={(e) => {
-                                    const cleanValue = e.target.value.replace(/%/g, '');
-                                    const numValue = parseFloat(cleanValue) || 0;
-                                    if (numValue > 0) {
-                                      const newOfferPrice = (property.LIST_PRICE * numValue) / 100;
-                                      updateOverrides({ offerPrice: newOfferPrice });
-                                    }
-                                  }}
-                                  style={{ 
-                                    padding: '4px', 
-                                    border: '1px solid #ddd', 
-                                    borderRadius: '4px',
-                                    width: '80px',
-                                    textAlign: 'right',
-                                    fontSize: '14px'
-                                  }}
-                                />
-                                <span style={{ fontSize: '12px', color: '#666', marginLeft: '4px' }}>of list price</span>
-                              </div>
-               
-                            <div>Down Payment</div>
-                                 <div style={{ textAlign: 'right' }}>
+                 <div style={{ textAlign: 'center' }}>
                    <input
                      type="text"
-                     value={`${Math.round(downPayment * 100)}%`}
+                     value={`${offerPricePercent.toFixed(1)}%`}
                      onChange={(e) => {
                        const cleanValue = e.target.value.replace(/%/g, '');
-                       const numValue = parseInt(cleanValue) || 0;
-                       if (numValue >= 0 && numValue <= 100) {
-                         updateOverrides({ downPayment: numValue / 100 });
+                       const numValue = parseFloat(cleanValue) || 0;
+                       if (numValue >= 0 && numValue <= 200) {
+                         const newPrice = (numValue / 100) * property.LIST_PRICE;
+                         updateOverrides({ offerPrice: newPrice });
                        }
                      }}
                      style={{ 
@@ -811,15 +966,100 @@ export default function PropertyDetails() {
                        borderRadius: '4px',
                        width: '80px',
                        textAlign: 'right',
-                       fontSize: '14px'
+                       fontSize: '14px',
+                       backgroundColor: '#f8f9fa'
                      }}
                    />
                  </div>
-                              <div>of purchase price</div>
-               
-                               <div>Closing Costs</div>
-                <div style={{ textAlign: 'right' }}>{formatCurrency(offerPrice * closingCostsPercentage)}</div>
-                                 <div>
+                 <div style={{ fontSize: '14px', color: '#666' }}>
+                   of list price
+                 </div>
+                
+                                 <div>Down Payment</div>
+                 <div style={{ textAlign: 'center' }}>
+                   <input
+                     type="text"
+                     value={formatCurrency(offerPrice * downPayment)}
+                     onChange={(e) => {
+                       const newAmount = parseInputValue(e.target.value, 'currency');
+                       const newPercentage = newAmount / offerPrice;
+                       if (newPercentage >= 0 && newPercentage <= 1) {
+                         updateOverrides({ downPayment: newPercentage });
+                       }
+                     }}
+                     style={{ 
+                       padding: '4px', 
+                       border: '1px solid #ddd', 
+                       borderRadius: '4px',
+                       width: '120px',
+                       textAlign: 'right',
+                       fontSize: '14px',
+                       backgroundColor: '#f8f9fa'
+                     }}
+                   />
+                 </div>
+                 <div style={{ textAlign: 'center' }}>
+                   <input
+                     type="text"
+                     value={downPaymentInput || `${(downPayment * 100).toFixed(1)}%`}
+                     onChange={(e) => {
+                       setDownPaymentInput(e.target.value);
+                     }}
+                     onFocus={(e) => {
+                       setDownPaymentInput(e.target.value);
+                     }}
+                     onBlur={(e) => {
+                       const value = e.target.value.replace('%', '');
+                       const numValue = parseFloat(value);
+                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                         updateOverrides({ downPayment: numValue / 100 });
+                       }
+                       setDownPaymentInput('');
+                     }}
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter') {
+                         e.currentTarget.blur();
+                       }
+                     }}
+                     style={{ 
+                       padding: '4px', 
+                       border: '1px solid #ddd', 
+                       borderRadius: '4px',
+                       width: '80px',
+                       textAlign: 'right',
+                       fontSize: '14px',
+                       backgroundColor: '#f8f9fa'
+                     }}
+                   />
+                 </div>
+                 <div style={{ fontSize: '14px', color: '#666' }}>
+                   of purchase price
+                 </div>
+                
+                                 <div>Closing Costs</div>
+                 <div style={{ textAlign: 'center' }}>
+                   <input
+                     type="text"
+                     value={formatCurrency(offerPrice * closingCostsPercentage)}
+                     onChange={(e) => {
+                       const newAmount = parseInputValue(e.target.value, 'currency');
+                       const newPercentage = newAmount / offerPrice;
+                       if (newPercentage >= 0 && newPercentage <= 0.1) {
+                         updateOverrides({ closingCostsPercentage: newPercentage });
+                       }
+                     }}
+                     style={{ 
+                       padding: '4px', 
+                       border: '1px solid #ddd', 
+                       borderRadius: '4px',
+                       width: '120px',
+                       textAlign: 'right',
+                       fontSize: '14px',
+                       backgroundColor: '#f8f9fa'
+                     }}
+                   />
+                 </div>
+                 <div style={{ textAlign: 'center' }}>
                    <input
                      type="text"
                      value={closingCostsInput || `${(closingCostsPercentage * 100).toFixed(1)}%`}
@@ -832,7 +1072,7 @@ export default function PropertyDetails() {
                      onBlur={(e) => {
                        const value = e.target.value.replace('%', '');
                        const numValue = parseFloat(value);
-                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 10) {
                          updateOverrides({ closingCostsPercentage: numValue / 100 });
                        }
                        setClosingCostsInput('');
@@ -846,16 +1086,41 @@ export default function PropertyDetails() {
                        padding: '4px', 
                        border: '1px solid #ddd', 
                        borderRadius: '4px',
-                       width: '60px',
+                       width: '80px',
                        textAlign: 'right',
-                       fontSize: '14px'
+                       fontSize: '14px',
+                       backgroundColor: '#f8f9fa'
                      }}
                    />
                  </div>
-               
-                               <div>Due Diligence</div>
-                <div style={{ textAlign: 'right' }}>{formatCurrency(offerPrice * dueDiligencePercentage)}</div>
-                                 <div>
+                 <div style={{ fontSize: '14px', color: '#666' }}>
+                   of purchase price
+                 </div>
+                
+                                 <div>Due Diligence</div>
+                 <div style={{ textAlign: 'center' }}>
+                   <input
+                     type="text"
+                     value={formatCurrency(offerPrice * dueDiligencePercentage)}
+                     onChange={(e) => {
+                       const newAmount = parseInputValue(e.target.value, 'currency');
+                       const newPercentage = newAmount / offerPrice;
+                       if (newPercentage >= 0 && newPercentage <= 0.05) {
+                         updateOverrides({ dueDiligencePercentage: newPercentage });
+                       }
+                     }}
+                     style={{ 
+                       padding: '4px', 
+                       border: '1px solid #ddd', 
+                       borderRadius: '4px',
+                       width: '120px',
+                       textAlign: 'right',
+                       fontSize: '14px',
+                       backgroundColor: '#f8f9fa'
+                     }}
+                   />
+                 </div>
+                 <div style={{ textAlign: 'center' }}>
                    <input
                      type="text"
                      value={dueDiligenceInput || `${(dueDiligencePercentage * 100).toFixed(1)}%`}
@@ -868,7 +1133,7 @@ export default function PropertyDetails() {
                      onBlur={(e) => {
                        const value = e.target.value.replace('%', '');
                        const numValue = parseFloat(value);
-                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 5) {
                          updateOverrides({ dueDiligencePercentage: numValue / 100 });
                        }
                        setDueDiligenceInput('');
@@ -882,21 +1147,39 @@ export default function PropertyDetails() {
                        padding: '4px', 
                        border: '1px solid #ddd', 
                        borderRadius: '4px',
-                       width: '60px',
+                       width: '80px',
                        textAlign: 'right',
-                       fontSize: '14px'
+                       fontSize: '14px',
+                       backgroundColor: '#f8f9fa'
                      }}
                    />
                  </div>
-               
-               <div style={{ fontWeight: 'bold', borderTop: '2px solid #2c3e50', paddingTop: '8px' }}>Total Equity Required</div>
-               <div style={{ fontWeight: 'bold', textAlign: 'right', borderTop: '2px solid #2c3e50', paddingTop: '8px' }}>
-                 {formatCurrency(equityRequired)}
-               </div>
-               <div></div>
-             </div>
-           </div>
-         </section>
+                 <div style={{ fontSize: '14px', color: '#666' }}>
+                   of purchase price
+                 </div>
+                
+                                 <div style={{ 
+                   fontWeight: 'bold', 
+                   borderTop: '2px solid #2c3e50', 
+                   paddingTop: '8px',
+                   gridColumn: '1 / 2'
+                 }}>
+                   Total Equity Required
+                 </div>
+                 <div style={{ 
+                   fontWeight: 'bold', 
+                   textAlign: 'right', 
+                   borderTop: '2px solid #2c3e50', 
+                   paddingTop: '8px',
+                   gridColumn: '2 / 3'
+                 }}>
+                   {formatCurrency(equityRequired)}
+                 </div>
+                 <div style={{ gridColumn: '3 / 4' }}></div>
+                 <div style={{ gridColumn: '4 / 5' }}></div>
+              </div>
+            </div>
+          </section>
 
          {/* Financing */}
          <section style={{ flex: '1' }}>
@@ -930,8 +1213,26 @@ export default function PropertyDetails() {
                 <div style={{ textAlign: 'right' }}>
                   <input
                     type="text"
-                    value={formatInputValue(interestRate, 'percentage')}
-                    onChange={(e) => updateOverrides({ interestRate: parseInputValue(e.target.value, 'percentage') })}
+                    value={interestRateInput || formatInputValue(interestRate, 'percentage')}
+                    onChange={(e) => {
+                      setInterestRateInput(e.target.value);
+                    }}
+                    onFocus={(e) => {
+                      setInterestRateInput(e.target.value);
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value.replace('%', '');
+                      const numValue = parseFloat(value);
+                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 20) {
+                        updateOverrides({ interestRate: numValue / 100 });
+                      }
+                      setInterestRateInput('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                      }
+                    }}
                     style={{ 
                       padding: '4px', 
                       border: '1px solid #ddd', 
@@ -1010,45 +1311,58 @@ export default function PropertyDetails() {
                 </div>
               
                                                                                        {/* Unit-level income detail */}
-                 {currentUnitMix.map((unit, index) => {
-                   const unitRent = getRentForBedrooms(unit.bedrooms, property.ZIP_CODE);
-                   const unitAnnualRent = unitRent * unit.count * 12;
-                   return (
-                     <React.Fragment key={index}>
-                       <div style={{ paddingLeft: '20px', fontSize: '13px' }}>
-                         {unit.count} {unit.bedrooms}-BR unit{unit.count > 1 ? 's' : ''} @ 
-                         <input
-                           type="text"
-                           value={formatInputValue(unitRent, 'currency')}
-                           onChange={(e) => {
-                             const newRent = parseInputValue(e.target.value, 'currency');
-                             // Update the unit mix with new rent for this bedroom type
-                             const updatedUnitMix = currentUnitMix.map((u, i) => 
-                               u.bedrooms === unit.bedrooms ? { ...u, rent: newRent } : u
-                             );
-                             updateOverrides({ unitMix: updatedUnitMix });
-                           }}
-                           style={{ 
-                             padding: '2px 4px', 
-                             border: '1px solid #ddd', 
-                             borderRadius: '3px',
-                             width: '80px',
-                             textAlign: 'right',
-                             fontSize: '12px',
-                             marginLeft: '4px'
-                           }}
-                         />
-                         /mo
-                       </div>
-                       <div style={{ textAlign: 'right', fontSize: '13px' }}>
-                         {formatCurrency(toDisplayValue(unitAnnualRent))}
-                       </div>
-                       <div style={{ textAlign: 'right', fontSize: '13px' }}>
-                         {annualGross > 0 ? `${(unitAnnualRent / annualGross * 100).toFixed(1)}%` : '0.0%'}
-                       </div>
-                     </React.Fragment>
-                   );
-                 })}
+                 {currentUnitMix.length > 0 && unitMixTotal === (property.UNITS_FINAL || 0) ? (
+                   currentUnitMix.map((unit, index) => {
+                     const unitRent = getRentForBedrooms(unit.bedrooms, property.ZIP_CODE);
+                     const unitAnnualRent = unitRent * unit.count * 12;
+                     return (
+                       <React.Fragment key={index}>
+                         <div style={{ paddingLeft: '20px', fontSize: '13px' }}>
+                           {unit.count} {unit.bedrooms}-BR unit{unit.count > 1 ? 's' : ''} @ 
+                           <input
+                             type="text"
+                             value={formatInputValue(unitRent, 'currency')}
+                             onChange={(e) => {
+                               const newRent = parseInputValue(e.target.value, 'currency');
+                               // Update the unit mix with new rent for this bedroom type
+                               const updatedUnitMix = currentUnitMix.map((u, i) => 
+                                 u.bedrooms === unit.bedrooms ? { ...u, rent: newRent } : u
+                               );
+                               updateOverrides({ unitMix: updatedUnitMix });
+                             }}
+                             style={{ 
+                               padding: '2px 4px', 
+                               border: '1px solid #ddd', 
+                               borderRadius: '3px',
+                               width: '80px',
+                               textAlign: 'right',
+                               fontSize: '12px',
+                               marginLeft: '4px'
+                             }}
+                           />
+                           /mo
+                         </div>
+                         <div style={{ textAlign: 'right', fontSize: '13px' }}>
+                           {formatCurrency(toDisplayValue(unitAnnualRent))}
+                         </div>
+                         <div style={{ textAlign: 'right', fontSize: '13px' }}>
+                           {annualGross > 0 ? `${(unitAnnualRent / annualGross * 100).toFixed(1)}%` : '0.0%'}
+                         </div>
+                       </React.Fragment>
+                     );
+                   })
+                 ) : (
+                   <React.Fragment>
+                     <div style={{ paddingLeft: '20px', fontSize: '13px', color: '#666', fontStyle: 'italic' }}>
+                       {currentUnitMix.length > 0 
+                         ? `${unitMixTotal} units defined in unit mix (${property.UNITS_FINAL} total units)`
+                         : 'No unit mix defined'
+                       }
+                     </div>
+                     <div style={{ textAlign: 'right', fontSize: '13px' }}></div>
+                     <div style={{ textAlign: 'right', fontSize: '13px' }}></div>
+                   </React.Fragment>
+                 )}
                
                                             {/* Gross Rental Income Total */}
                  <div style={{ fontWeight: 'bold', borderTop: '1px solid #ddd', paddingTop: '8px' }}>Gross Rental Income</div>

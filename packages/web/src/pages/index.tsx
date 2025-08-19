@@ -49,7 +49,34 @@ export default function Home() {
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span className="text-green-600">💰</span>
+                <span className="text-green-600">🏠</span>
+                Custom Property Analysis
+              </CardTitle>
+              <CardDescription>
+                Analyze any property with the same comprehensive financial metrics as MLS listings
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span>Analysis:</span>
+                  <Badge variant="outline">Same Metrics</Badge>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Auto-populate:</span>
+                  <Badge variant="outline">Market Rents</Badge>
+                </div>
+                <Link href="/analyze-unlisted">
+                  <Button className="w-full mt-4">Analyze Property</Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-purple-600">💰</span>
                 Financial Analysis
               </CardTitle>
               <CardDescription>
@@ -76,7 +103,7 @@ export default function Home() {
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span className="text-purple-600">🏘️</span>
+                <span className="text-orange-600">🏘️</span>
                 Market Insights
               </CardTitle>
               <CardDescription>
@@ -102,7 +129,7 @@ export default function Home() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <Card>
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-blue-600">1,000+</div>
@@ -111,20 +138,26 @@ export default function Home() {
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">14</div>
+              <div className="text-2xl font-bold text-green-600">∞</div>
+              <div className="text-sm text-gray-600">Custom Properties</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-purple-600">14</div>
               <div className="text-sm text-gray-600">Counties</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-purple-600">3</div>
+              <div className="text-2xl font-bold text-orange-600">3</div>
               <div className="text-sm text-gray-600">Analysis Modes</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-orange-600">10+</div>
-              <div className="text-sm text-gray-600">Financial Metrics</div>
+              <div className="text-2xl font-bold text-indigo-600">10+</div>
+              <div className="text-sm text-gray-600">Key Metrics</div>
             </CardContent>
           </Card>
         </div>

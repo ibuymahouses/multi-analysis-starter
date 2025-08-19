@@ -16,8 +16,10 @@ export const API_ENDPOINTS = {
   property: (listNo: string) => `${API_BASE_URL}/property/${listNo}`,
   propertyOverrides: (listNo: string) => `${API_BASE_URL}/property/${listNo}/overrides`,
   analyze: (listNo: string) => `${API_BASE_URL}/analyze/${listNo}`,
+  analyzeUnlisted: `${API_BASE_URL}/analyze/unlisted`,
   listings: `${API_BASE_URL}/listings`,
   rentsMetadata: `${API_BASE_URL}/rents/metadata`,
+  rents: `${API_BASE_URL}/rents`,
   export: (mode: string) => `${API_BASE_URL}/export/analyzed.csv?mode=${mode}`,
   auth: {
     login: `${API_BASE_URL}/api/auth/login`,

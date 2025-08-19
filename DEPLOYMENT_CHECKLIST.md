@@ -55,7 +55,7 @@ npm run deploy:aws
 ```
 
 ## Your AWS Infrastructure (Already Set Up):
-- **EC2 Instance**: 52.44.168.76
+- **EC2 Instance**: <EC2_IP>
 - **RDS Database**: multi-analysis-db-496.cwhu64m6gqur.us-east-1.rds.amazonaws.com
 - **S3 Bucket**: multi-analysis-data-496
 - **SSH Key**: multi-analysis-key-496.pem
@@ -73,4 +73,4 @@ npm run build
 npm run deploy:aws
 ```
 
-Your application will be available at: **http://52.44.168.76:3000**
+Your application will be available at: **http://<EC2_IP>:3000**

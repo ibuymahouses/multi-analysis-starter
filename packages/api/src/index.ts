@@ -1,0 +1,445 @@
+import express from 'express';
+import cors from 'cors';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Data loading functions
+function loadListings() {
+  const dataPaths = [
+    join(__dirname, '../../../data/listings.json'),
+    join(__dirname, '../../data/listings.json'),
+    join(process.cwd(), 'data/listings.json')
+  ];
+
+  for (const path of dataPaths) {
+    try {
+      const data = readFileSync(path, 'utf8');
+      return JSON.parse(data);
+    } catch (e) {
+      // Continue to next path
+    }
+  }
+  
+  console.error('Could not find listings.json in any expected location');
+  return { listings: [] };
+}
+
+function loadRentsComprehensive() {
+  const dataPaths = [
+    join(__dirname, '../../../data/bha-rents-comprehensive.json'),
+    join(__dirname, '../../data/bha-rents-comprehensive.json'),
+    join(process.cwd(), 'data/bha-rents-comprehensive.json')
+  ];
+
+  for (const path of dataPaths) {
+    try {
+      const data = readFileSync(path, 'utf8');
+      const json = JSON.parse(data);
+      
+      // Process the data into a Map for efficient lookup
+      const map = new Map(); // zip -> { rents:{'0'..'5'}, marketTier, county, town }
+      for (const row of json.rents || []) {
+        map.set(String(row.zip).trim(), {
+          rents: row.rents || {},
+          marketTier: row.marketTier || 'unknown',
+          county: row.county || '',
+          town: row.town || ''
+        });
+      }
+      
+      return { 
+        rents: json.rents || [], 
+        map: map,
+        metadata: json.metadata || null
+      };
+    } catch (e) {
+      // Continue to next path
+    }
+  }
+  
+  console.error('Could not find bha-rents-comprehensive.json in any expected location');
+  return { rents: [], map: new Map(), metadata: null };
+}
+
+function loadOverrides() {
+  const dataPaths = [
+    join(__dirname, '../../../data/overrides.json'),
+    join(__dirname, '../../data/overrides.json'),
+    join(process.cwd(), 'data/overrides.json')
+  ];
+
+  for (const path of dataPaths) {
+    try {
+      const data = readFileSync(path, 'utf8');
+      return JSON.parse(data);
+    } catch (e) {
+      // Continue to next path
+    }
+  }
+  
+  console.error('Could not find overrides.json in any expected location');
+  return {};
+}
+
+// Analysis computation function
+function computeAnalysis(listing: any, rentLookupByZip: Map<string, any>, rentMode: string = 'avg', overrides: any = null) {
+  // rentMode: 'below'|'avg'|'agg' -> 0.90 / 1.00 / 1.10
+  const mult = rentMode === 'below' ? 0.90 : rentMode === 'agg' ? 1.10 : 1.00;
+  const zip = (listing.ZIP_CODE || '').trim();
+  
+  // Apply unit mix overrides
+  let unitMix = overrides?.unitMix || listing.UNIT_MIX || []; // [{bedrooms,count}]
+  
+  // If unit mix is empty, create a default based on UNITS_FINAL and NO_UNITS_MF
+  if (unitMix.length === 0 && listing.UNITS_FINAL > 0) {
+    const totalUnits = listing.UNITS_FINAL;
+    const totalBedrooms = listing.NO_UNITS_MF || totalUnits * 2; // Default to 2 bedrooms per unit if NO_UNITS_MF is not available
+    
+    // Calculate average bedrooms per unit
+    const avgBedrooms = totalBedrooms / totalUnits;
+    
+    // Distribute bedrooms evenly without fractional units
+    const floorAvg = Math.floor(avgBedrooms);
+    const remainder = totalBedrooms - (floorAvg * totalUnits);
+    
+    unitMix = [];
+    
+    // Add units with floor average bedrooms
+    if (floorAvg > 0) {
+      unitMix.push({ bedrooms: floorAvg, count: totalUnits - remainder });
+    }
+    
+    // Add units with one extra bedroom to handle remainder
+    if (remainder > 0) {
+      unitMix.push({ bedrooms: floorAvg + 1, count: remainder });
+    }
+    
+    // If we have no units yet (edge case), default to 2-bedroom units
+    if (unitMix.length === 0) {
+      unitMix = [{ bedrooms: 2, count: totalUnits }];
+    }
+  }
+  
+  const zipInfo = rentLookupByZip.get(zip) || {}; // {rents:{'0':..,'1':..}, marketTier, county, town}
+  const rents = zipInfo.rents || {};
+  
+  // Gross rent (monthly) from SAFMR by BR
+  const monthlyGross = unitMix.reduce((sum: number, u: any) => {
+    const br = String(u.bedrooms ?? 0);
+    const safmr = rents[br] || 0;
+    return sum + (safmr * mult * (u.count || 0));
+  }, 0);
+
+  // OPEX defaults with overrides
+  const annualGross = monthlyGross * 12;
+  const units = listing.UNITS_FINAL || 0;
+  const buildings = 1; // MVP: single-building assumption
+  
+  // Apply OPEX overrides
+  const opexOverrides = overrides?.opex || {};
+  const waterSewer = (opexOverrides.waterSewer ?? 400) * units;                 // $400/unit/yr default
+  const commonElec = (opexOverrides.commonElec ?? 100) * 12 * buildings;       // $100/mo/building default
+  const rubbish = (units >= 5) ? (opexOverrides.rubbish ?? 200) * 12 : 0;      // $200/mo if 5+ units default
+  const pm = (opexOverrides.pm ?? 0.08) * annualGross;                         // 8% of gross default
+  const repairs = (opexOverrides.repairs ?? 0.02) * annualGross;                // 2% default
+  const legal = (opexOverrides.legal ?? 0.01) * annualGross;                   // 1% default
+  const capex = (opexOverrides.capex ?? 0.01) * annualGross;                   // 1% default
+  const taxes = opexOverrides.taxes ?? Number(listing.TAXES || 0);             // from listing or override
+  const opex = waterSewer + commonElec + rubbish + pm + repairs + legal + capex + taxes;
+
+  const noi = annualGross - opex;
+
+  // Financing
+  const price = Number(listing.LIST_PRICE || 0);
+  const ltvMax = 0.80; // 80% LTV for all property types
+  const rate = 0.065; // 6.5% baseline rate
+  const amortYears = 30;
+  const dscrFloor = 1.20;
+  const loanByLTV = price * ltvMax;
+
+  // Payment calc
+  const i = rate / 12;
+  const n = amortYears * 12;
+  const pmt = (pv: number) => (i === 0) ? (pv / n) : (pv * (i * Math.pow(1 + i, n)) / (Math.pow(1 + i, n) - 1));
+  // size by DSCR
+  const annualDebtLimit = noi / dscrFloor;
+  const monthlyDebtLimit = annualDebtLimit / 12;
+  // invert payment to get PV (approximate via binary search)
+  function pvFromPayment(payment: number) {
+    let lo = 0, hi = price; // cap at price for MVP
+    for (let k = 0; k < 40; k++) {
+      const mid = (lo + hi) / 2;
+      const midPmt = pmt(mid);
+      if (midPmt > payment) hi = mid; else lo = mid;
+    }
+    return (lo + hi) / 2;
+  }
+  const loanByDSCR = pvFromPayment(monthlyDebtLimit);
+  const loan = Math.max(0, Math.min(loanByLTV, loanByDSCR));
+  const annualDebtService = pmt(loan) * 12;
+  const dscr = annualDebtService ? (noi / annualDebtService) : null;
+
+  // Simple valuations
+  const capAtAsk = price ? (noi / price) : null;
+
+  return {
+    rentMode,
+    monthlyGross: Math.round(monthlyGross),
+    annualGross: Math.round(annualGross),
+    opex: Math.round(opex),
+    noi: Math.round(noi),
+    loanSized: Math.round(loan),
+    annualDebtService: Math.round(annualDebtService),
+    dscr: dscr ? Number(dscr.toFixed(2)) : null,
+    capAtAsk: capAtAsk ? Number((capAtAsk * 100).toFixed(2)) : null, // %
+    marketTier: zipInfo.marketTier || 'unknown',
+    county: zipInfo.county || '',
+    town: zipInfo.town || ''
+  };
+}
+
+// Routes
+app.get('/listings', (req, res) => {
+  try {
+    const { listings } = loadListings();
+    res.json({ listings });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to load listings' });
+  }
+});
+
+app.get('/property/:listNo', (req, res) => {
+  try {
+    const { listNo } = req.params;
+    const { listings } = loadListings();
+    const listing = listings.find((l: any) => l.LIST_NO === listNo);
+    
+    if (!listing) {
+      return res.status(404).json({ error: 'Property not found' });
+    }
+    
+    const overrides = loadOverrides();
+    const listingOverrides = overrides[listNo] || {};
+    
+    const { map: rentMap } = loadRentsComprehensive();
+    const analysis = computeAnalysis(listing, rentMap, 'avg', listingOverrides);
+    
+    res.json({
+      ...listing,
+      analysis,
+      overrides: listingOverrides
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to load property' });
+  }
+});
+
+app.get('/property/:listNo/overrides', (req, res) => {
+  try {
+    const { listNo } = req.params;
+    const overrides = loadOverrides();
+    const propertyOverrides = overrides[listNo] || {};
+    res.json(propertyOverrides);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to load overrides' });
+  }
+});
+
+app.post('/property/:listNo/overrides', (req, res) => {
+  try {
+    const { listNo } = req.params;
+    const overrides = req.body;
+    
+    // In a real implementation, you'd save this to a database
+    // For now, we'll just return success
+    console.log(`Saving overrides for ${listNo}:`, overrides);
+    
+    res.json({ success: true, message: 'Overrides saved' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to save overrides' });
+  }
+});
+
+app.get('/analyze/:listNo', (req, res) => {
+  try {
+    const { listNo } = req.params;
+    const { mode = 'avg' } = req.query;
+    
+    const { listings } = loadListings();
+    const listing = listings.find((l: any) => l.LIST_NO === listNo);
+    
+    if (!listing) {
+      return res.status(404).json({ error: 'Property not found' });
+    }
+    
+    const overrides = loadOverrides();
+    const listingOverrides = overrides[listNo] || {};
+    
+    const { map: rentMap } = loadRentsComprehensive();
+    const analysis = computeAnalysis(listing, rentMap, mode as string, listingOverrides);
+    
+    res.json({ listing, analysis });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Analysis failed' });
+  }
+});
+
+app.get('/rents', (req, res) => {
+  try {
+    const { rents } = loadRentsComprehensive();
+    res.json({ rents });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to load rents' });
+  }
+});
+
+app.get('/rents/metadata', (req, res) => {
+  try {
+    const { rents } = loadRentsComprehensive();
+    const metadata = {
+      totalZips: rents.length,
+      lastUpdated: new Date().toISOString(),
+      source: 'BHA Comprehensive Rent Data'
+    };
+    res.json(metadata);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to load rent metadata' });
+  }
+});
+
+// Analyze all listings endpoint
+app.get('/analyze-all', (req, res) => {
+  try {
+    const { mode = 'avg' } = req.query;
+    const { listings } = loadListings();
+    const { map: rentMap } = loadRentsComprehensive();
+    const overrides = loadOverrides();
+    
+    const rows = listings.map((listing: any) => {
+      const listingOverrides = overrides[listing.LIST_NO] || {};
+      const analysis = computeAnalysis(listing, rentMap, mode as string, listingOverrides);
+      return {
+        ...listing,
+        analysis
+      };
+    });
+    
+    res.json({ rows });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Analysis failed' });
+  }
+});
+
+// Export endpoint
+app.get('/export/analyzed.csv', (req, res) => {
+  try {
+    const { mode = 'avg' } = req.query;
+    const { listings } = loadListings();
+    const { map: rentMap } = loadRentsComprehensive();
+    const overrides = loadOverrides();
+    
+    const rows = listings.map((listing: any) => {
+      const listingOverrides = overrides[listing.LIST_NO] || {};
+      const analysis = computeAnalysis(listing, rentMap, mode as string, listingOverrides);
+      return {
+        ...listing,
+        analysis
+      };
+    });
+    
+    // Convert to CSV
+    const headers = ['LIST_NO', 'ADDRESS', 'TOWN', 'LIST_PRICE', 'UNITS_FINAL', 'monthlyGross', 'annualGross', 'noi', 'dscr', 'capAtAsk'];
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row: any) => 
+        headers.map(header => {
+          const value = header.startsWith('analysis.') 
+            ? row.analysis?.[header.replace('analysis.', '')] 
+            : row[header];
+          return typeof value === 'string' ? `"${value}"` : value;
+        }).join(',')
+      )
+    ].join('\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="analyzed-properties.csv"');
+    res.send(csvContent);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Export failed' });
+  }
+});
+
+// NEW: Analyze unlisted property (no MLS number)
+app.post('/analyze/unlisted', (req, res) => {
+  try {
+    const {
+      ADDRESS,
+      TOWN,
+      STATE,
+      ZIP_CODE,
+      LIST_PRICE,
+      UNITS_FINAL,
+      NO_UNITS_MF,
+      UNIT_MIX,
+      TAXES,
+      overrides
+    } = req.body;
+
+    // Create a mock listing object that matches the expected format
+    const mockListing = {
+      LIST_NO: 'UNLISTED_' + Date.now(), // Generate a unique ID
+      ADDRESS: ADDRESS || '',
+      TOWN: TOWN || '',
+      STATE: STATE || 'MA',
+      ZIP_CODE: ZIP_CODE || '',
+      LIST_PRICE: Number(LIST_PRICE || 0),
+      UNITS_FINAL: Number(UNITS_FINAL || 0),
+      NO_UNITS_MF: Number(NO_UNITS_MF || 0),
+      UNIT_MIX: UNIT_MIX || [],
+      TAXES: Number(TAXES || 0)
+    };
+
+    const mode = 'avg'; // Default to average rent mode
+    const { map: rentMap } = loadRentsComprehensive();
+    
+    // Apply overrides if provided
+    let analysisOverrides = null;
+    if (overrides) {
+      analysisOverrides = overrides;
+    }
+
+    const result = computeAnalysis(mockListing, rentMap, mode, analysisOverrides);
+    
+    res.json({ 
+      listing: mockListing, 
+      analysis: result,
+      message: 'Analysis completed successfully'
+    });
+  } catch (e) {
+    console.error('Unlisted property analysis failed:', e);
+    res.status(500).json({ error: 'Analysis failed' });
+  }
+});
+
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`API listening on :${PORT}`));

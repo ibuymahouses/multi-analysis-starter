@@ -335,5 +335,57 @@ app.get('/search/radius', (req, res) => {
   }
 });
 
+// NEW: Analyze unlisted property (no MLS number)
+app.post('/analyze/unlisted', (req, res) => {
+  try {
+    const {
+      ADDRESS,
+      TOWN,
+      STATE,
+      ZIP_CODE,
+      LIST_PRICE,
+      UNITS_FINAL,
+      NO_UNITS_MF,
+      UNIT_MIX,
+      TAXES,
+      overrides
+    } = req.body;
+
+    // Create a mock listing object that matches the expected format
+    const mockListing = {
+      LIST_NO: 'UNLISTED_' + Date.now(), // Generate a unique ID
+      ADDRESS: ADDRESS || '',
+      TOWN: TOWN || '',
+      STATE: STATE || 'MA',
+      ZIP_CODE: ZIP_CODE || '',
+      LIST_PRICE: Number(LIST_PRICE || 0),
+      UNITS_FINAL: Number(UNITS_FINAL || 0),
+      NO_UNITS_MF: Number(NO_UNITS_MF || 0),
+      UNIT_MIX: UNIT_MIX || [],
+      TAXES: Number(TAXES || 0)
+    };
+
+    const mode = 'avg'; // Default to average rent mode
+    const { map: rentMap } = loadRentsComprehensive();
+    
+    // Apply overrides if provided
+    let analysisOverrides = null;
+    if (overrides) {
+      analysisOverrides = overrides;
+    }
+
+    const result = computeAnalysis(mockListing, rentMap, mode, analysisOverrides);
+    
+    res.json({ 
+      listing: mockListing, 
+      analysis: result,
+      message: 'Analysis completed successfully'
+    });
+  } catch (e) {
+    console.error('Unlisted property analysis failed:', e);
+    res.status(500).json({ error: 'Analysis failed' });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`API listening on :${PORT}`));

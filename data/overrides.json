@@ -1,25 +1,45 @@
 {
   "73226886": {
-    "offerPrice": 377100,
+    "downPayment": 0.020499999999999997,
+    "offerPrice": 32359.5,
+    "vacancy": 0.43,
     "opex": {
-      "waterSewer": 15644.16,
-      "commonElec": 32592.000000000004,
-      "rubbish": 576.25,
-      "pm": 1152.5,
-      "repairs": 2305,
-      "legal": 576.25,
-      "capex": 1728.75,
-      "taxes": 6000,
+      "waterSewer": 7541.1,
+      "commonElec": 1412,
+      "rubbish": 706,
+      "pm": 1598.7132000000001,
+      "repairs": 2824,
+      "legal": 706,
+      "capex": 25639.74,
+      "taxes": 5770,
       "licensing": 0
     },
-    "unitMix": [
-      {
-        "bedrooms": 2,
-        "count": 2,
-        "rent": 2500
-      }
-    ],
-    "closingCostsPercentage": 0.56
+    "closingCostsPercentage": 0.012199999999999999,
+    "dueDiligencePercentage": 0.03,
+    "interestRate": 0.020499999999999997
+  },
+  "73227226": {
+    "downPayment": 0.020499999999999997,
+    "offerPrice": 32359.5,
+    "vacancy": 0.43,
+    "opex": {
+      "waterSewer": 7541.1,
+      "commonElec": 1412,
+      "rubbish": 706,
+      "pm": 1598.7132000000001,
+      "repairs": 2824,
+      "legal": 706,
+      "capex": 25639.74,
+      "taxes": 5770,
+      "licensing": 0
+    },
+    "closingCostsPercentage": 0.012199999999999999,
+    "dueDiligencePercentage": 0.03,
+    "interestRate": 0.020499999999999997
+  },
+  "73231571": {
+    "interestRate": 0.0305,
+    "downPayment": 0.0305
   },
   "73256226": {
     "unitMix": [

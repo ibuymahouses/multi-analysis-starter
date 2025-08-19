@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
+import { API_ENDPOINTS } from '@/lib/config';
 
 interface RentalData {
   zip: string;
@@ -19,7 +20,7 @@ export default function RentalRatesPage() {
   useEffect(() => {
     const loadRentalData = async () => {
       try {
-        const response = await fetch('/api/rental-rates');
+        const response = await fetch(API_ENDPOINTS.rents);
         const data = await response.json();
         setRentalData(data.rents || []);
       } catch (error) {

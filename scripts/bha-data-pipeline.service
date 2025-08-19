@@ -1,0 +1,15 @@
+[Unit]
+Description=BHA Payment Standards Data Pipeline
+After=network.target
+
+[Service]
+Type=oneshot
+User=ec2-user
+WorkingDirectory=/opt/rent-api
+Environment=PATH=/opt/rent-api/venv/bin
+ExecStart=/opt/rent-api/venv/bin/python /opt/rent-api/bha-payment-standards-future.py
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

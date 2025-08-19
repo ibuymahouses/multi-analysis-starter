@@ -32,10 +32,20 @@ print_step() {
 }
 
 # Configuration
-EC2_IP="52.44.168.76"
+# Prefer IP from environment or aws-config file; fall back to required env
 KEY_FILE="multi-analysis-key-496.pem"
 EC2_USER="ec2-user"
 APP_DIR="~/app"
+
+# Load IP from aws-config if present and not overridden
+if [ -z "$EC2_IP" ] && [ -f "aws-config-496.env" ]; then
+    EC2_IP=$(grep -E '^PUBLIC_IP=' aws-config-496.env | cut -d'=' -f2)
+fi
+
+if [ -z "$EC2_IP" ]; then
+    print_error "EC2_IP is not set. Please export EC2_IP or update aws-config-*.env"
+    exit 1
+fi
 
 # Check if key file exists
 if [ ! -f "$KEY_FILE" ]; then
@@ -90,16 +100,16 @@ DB_USER=postgres
 DB_PASSWORD=YOUR_DB_PASSWORD_HERE
 REDIS_HOST=localhost
 REDIS_PORT=6379
-NEXT_PUBLIC_API_URL=http://52.44.168.76:3001
-CORS_ORIGINS=http://52.44.168.76:3000
+NEXT_PUBLIC_API_URL=http://$EC2_IP:3001
+CORS_ORIGINS=http://$EC2_IP:3000
 ENVEOF
 
 # Start services using Docker Compose
 docker-compose up -d
 
 echo "✅ Application deployed successfully!"
-echo "🌐 Frontend: http://52.44.168.76:3000"
-echo "🔌 API: http://52.44.168.76:3001"
+echo "🌐 Frontend: http://$EC2_IP:3000"
+echo "🔌 API: http://$EC2_IP:3001"
 EOF
 
 print_step "Cleaning up..."
