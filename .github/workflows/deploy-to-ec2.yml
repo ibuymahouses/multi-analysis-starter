@@ -150,39 +150,54 @@ jobs:
         proxy_timeout: "5m"
         script_stop: false
         script: |
-          echo "⚡ PHASE 4: Start New Processes"
-          echo "=============================="
+          echo "⚡ PHASE 4: Full Process Management (No Killing)"
+          echo "=============================================="
           echo "Start time: $(date)"
           echo "User: $(whoami)"
           echo "PWD: $(pwd)"
+          echo "Memory: $(free -h | grep Mem)"
           echo ""
           
           cd ~/app/multi-analysis-starter
           echo "Changed to app directory: $(pwd)"
-          echo ""
           
           echo "Checking if directories exist:"
           ls -la packages/
           echo ""
           
-          # Quick check of current processes (no killing)
+          # Check what's currently running
           echo "Current Node.js processes:"
-          ps aux | grep node | grep -v grep | head -5 || echo "No Node.js processes"
+          ps aux | grep node | grep -v grep || echo "No Node.js processes"
           echo ""
           
-          # Start API directly (don't kill existing)
+          # Note: Skipping process killing to avoid timeouts
+          echo "⚠️ Skipping process killing (causes timeouts)"
+          echo "Starting new processes alongside existing ones..."
+          echo ""
+          
+          # Start API with detailed logging
           echo "Starting API..."
           cd packages/api
           echo "API directory: $(pwd)"
           echo "API package.json exists: $([ -f package.json ] && echo 'YES' || echo 'NO')"
           
-          # Start API in background
+          # Start API and capture PID immediately
           nohup npm start > api.log 2>&1 &
           API_PID=$!
           echo "API started with PID: $API_PID at $(date)"
+          
+          # Verify API process started
+          sleep 2
+          if ps -p $API_PID > /dev/null; then
+            echo "✅ API process confirmed running (PID: $API_PID)"
+          else
+            echo "❌ API process failed to start"
+            echo "API log contents:"
+            tail -10 api.log
+          fi
           cd ../..
           
-          # Start web directly (don't kill existing)
+          # Start web with detailed logging
           echo "Starting web..."
           cd packages/web
           echo "Web directory: $(pwd)"
@@ -192,10 +207,20 @@ jobs:
           export NEXT_PUBLIC_API_URL=http://localhost:3001
           echo "Set NEXT_PUBLIC_API_URL: $NEXT_PUBLIC_API_URL"
           
-          # Start web in background
+          # Start web and capture PID immediately
           nohup npm start > web.log 2>&1 &
           WEB_PID=$!
           echo "Web started with PID: $WEB_PID at $(date)"
+          
+          # Verify web process started
+          sleep 2
+          if ps -p $WEB_PID > /dev/null; then
+            echo "✅ Web process confirmed running (PID: $WEB_PID)"
+          else
+            echo "❌ Web process failed to start"
+            echo "Web log contents:"
+            tail -10 web.log
+          fi
           cd ../..
           
           # Final status check
@@ -206,7 +231,7 @@ jobs:
           echo "All Node.js processes:"
           ps aux | grep node | grep -v grep || echo "No Node.js processes"
           echo ""
-          echo "✅ Process startup complete"
+          echo "✅ Full process management complete (without killing)"
           
     - name: Phase 5 - Verification
       uses: appleboy/ssh-action@v1.0.3
