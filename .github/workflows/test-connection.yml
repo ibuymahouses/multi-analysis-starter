@@ -1,0 +1,70 @@
+name: Test EC2 Connection
+
+on:
+  workflow_dispatch: # Manual trigger only
+
+jobs:
+  test-connection:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Test SSH Connection
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        port: ${{ secrets.EC2_PORT }}
+        script: |
+          echo "🔍 Testing SSH connection to EC2..."
+          echo "Current user: $(whoami)"
+          echo "Current directory: $(pwd)"
+          echo "Home directory: $HOME"
+          echo "System info: $(uname -a)"
+          echo "Available disk space:"
+          df -h
+          echo "Memory usage:"
+          free -h
+          echo "SSH connection successful!"
+          
+    - name: Check App Directory
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        port: ${{ secrets.EC2_PORT }}
+        script: |
+          echo "📁 Checking app directory..."
+          ls -la ~/
+          if [ -d "~/app" ]; then
+            echo "App directory exists"
+            ls -la ~/app
+          else
+            echo "App directory does not exist"
+          fi
+          
+    - name: Check Node.js and npm
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        port: ${{ secrets.EC2_PORT }}
+        script: |
+          echo "🔧 Checking Node.js and npm..."
+          node --version || echo "Node.js not installed"
+          npm --version || echo "npm not installed"
+          
+    - name: Check Process Managers
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        port: ${{ secrets.EC2_PORT }}
+        script: |
+          echo "⚙️  Checking process managers..."
+          command -v docker-compose && echo "Docker Compose available" || echo "Docker Compose not available"
+          command -v pm2 && echo "PM2 available" || echo "PM2 not available"
+          systemctl list-units --type=service | grep multi-analysis && echo "systemd service available" || echo "systemd service not available"
