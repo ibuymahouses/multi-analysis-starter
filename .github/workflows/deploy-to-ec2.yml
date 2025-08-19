@@ -36,17 +36,19 @@ jobs:
         port: ${{ secrets.EC2_PORT }}
         script: |
           set -e  # Exit on any error
-          echo "🚀 Starting automatic deployment from GitHub..."
+          echo "🚀 Starting systematic deployment..."
           
-          # Create app directory if it doesn't exist
+          # ========================================
+          # PHASE 1: ENVIRONMENT SETUP
+          # ========================================
+          echo "📁 Setting up environment..."
           mkdir -p ~/app
           cd ~/app
-          echo "📁 Working directory: $(pwd)"
+          echo "Working directory: $(pwd)"
           
-          # Setup swap space to handle memory constraints
-          echo "💾 Setting up swap space for memory management..."
+          # Setup swap space
+          echo "💾 Setting up swap space..."
           if ! swapon --show | grep -q "/swapfile"; then
-            echo "Creating swap file..."
             sudo fallocate -l 2G /swapfile
             sudo chmod 600 /swapfile
             sudo mkswap /swapfile
@@ -55,355 +57,203 @@ jobs:
           fi
           echo "Swap space: $(free -h | grep Swap)"
           
-          # Ensure Node.js 22 is installed
-          echo "🔍 Checking Node.js environment..."
+          # ========================================
+          # PHASE 2: NODE.JS SETUP
+          # ========================================
+          echo "🔧 Setting up Node.js 22..."
           CURRENT_NODE_VERSION=$(node --version 2>/dev/null || echo "not_installed")
           echo "Current Node.js version: $CURRENT_NODE_VERSION"
           
           if [[ "$CURRENT_NODE_VERSION" != "v22"* ]]; then
-            echo "🔄 Updating to Node.js 22..."
+            echo "Installing Node.js 22..."
             
-            # Detect Linux distribution
+            # Detect OS
             if [ -f /etc/os-release ]; then
               . /etc/os-release
               OS=$NAME
-              VER=$VERSION_ID
-              echo "Detected OS: $OS $VER"
             else
-              echo "Could not detect OS, assuming Amazon Linux"
               OS="Amazon Linux"
             fi
             
-            # Remove old Node.js if present
+            # Remove old Node.js
             if command -v node &> /dev/null; then
-              echo "Removing old Node.js installation..."
               if command -v yum &> /dev/null; then
-                sudo yum remove -y nodejs npm 2>/dev/null || echo "No old Node.js to remove via yum"
+                sudo yum remove -y nodejs npm 2>/dev/null || echo "No old Node.js to remove"
               elif command -v apt &> /dev/null; then
-                sudo apt remove -y nodejs npm 2>/dev/null || echo "No old Node.js to remove via apt"
+                sudo apt remove -y nodejs npm 2>/dev/null || echo "No old Node.js to remove"
               fi
             fi
             
-            # Install Node.js 22 based on distribution
-            echo "Installing Node.js 22..."
+            # Install Node.js 22
             if [[ "$OS" == *"Amazon Linux"* ]] || [[ "$OS" == *"Red Hat"* ]] || [[ "$OS" == *"CentOS"* ]]; then
-              echo "Using NodeSource for RHEL/CentOS/Amazon Linux..."
               curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo bash -
               sudo yum install -y nodejs
-            elif [[ "$OS" == *"Ubuntu"* ]] || [[ "$OS" == *"Debian"* ]]; then
-              echo "Using NodeSource for Ubuntu/Debian..."
+            else
               curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
               sudo apt-get install -y nodejs
-            else
-              echo "Unknown distribution, trying NodeSource RHEL method..."
-              curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo bash -
-              sudo yum install -y nodejs 2>/dev/null || sudo apt-get install -y nodejs
             fi
             
             # Verify installation
-            echo "Node.js version: $(node --version)"
-            echo "npm version: $(npm --version)"
-            
             if [[ "$(node --version)" != "v22"* ]]; then
-              echo "❌ Failed to install Node.js 22"
-              echo "Trying alternative installation method..."
-              
-              # Fallback: Install Node.js via nvm
-              echo "Installing Node.js via nvm..."
-              curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-              export NVM_DIR="$HOME/.nvm"
-              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-              nvm install 22
-              nvm use 22
-              nvm alias default 22
-              
-              # Verify nvm installation
-              echo "Node.js version (nvm): $(node --version)"
-              if [[ "$(node --version)" != "v22"* ]]; then
-                echo "❌ All Node.js 22 installation methods failed"
-                exit 1
-              fi
-            fi
-          else
-            echo "✅ Node.js 22 already installed"
-          fi
-          
-          # Update npm to latest version
-          echo "🔄 Updating npm to latest version..."
-          sudo npm install -g npm@latest || {
-            echo "Failed to update npm globally, trying alternative method..."
-            # Try updating npm without sudo if sudo fails
-            npm install -g npm@latest || echo "npm update failed, continuing with current version"
-          }
-          echo "Updated npm version: $(npm --version)"
-          
-          # Check if git repository exists
-          if [ -d "multi-analysis-starter" ]; then
-            echo "📁 Found existing repository, pulling latest changes..."
-            cd multi-analysis-starter
-            
-            # Check current branch
-            echo "Current branch: $(git branch --show-current)"
-            
-            # Stash any local changes (if any)
-            git stash || echo "No changes to stash"
-            
-            # Pull latest changes from master branch
-            git pull origin master
-            
-            # If there were stashed changes, pop them back
-            git stash pop 2>/dev/null || echo "No stashed changes to pop"
-          else
-            echo "📁 No existing repository found, cloning fresh..."
-            rm -rf multi-analysis-starter
-            git clone https://github.com/${{ github.repository }}.git multi-analysis-starter
-            cd multi-analysis-starter
-          fi
-          
-          # Set Node.js memory limits
-          export NODE_OPTIONS="--max-old-space-size=4096"
-          echo "🔧 Set NODE_OPTIONS: $NODE_OPTIONS"
-          
-          # Clear npm cache and node_modules to ensure clean install
-          echo "🧹 Cleaning npm cache and node_modules..."
-          npm cache clean --force || echo "npm cache clean failed (continuing)"
-          rm -rf node_modules || echo "No root node_modules to remove"
-          rm -rf packages/*/node_modules || echo "No package node_modules to remove"
-          rm -rf packages/*/package-lock.json || echo "No package-lock files to remove"
-          
-          echo "📦 Installing dependencies..."
-          echo "Installing root dependencies..."
-          npm install --no-optional || {
-            echo "❌ Failed to install root dependencies"
-            echo "npm error log:"
-            npm ls --depth=0 || echo "npm ls failed"
-            exit 1
-          }
-          
-          echo "Installing shared package dependencies..."
-          cd packages/shared
-          npm install --no-optional || {
-            echo "❌ Failed to install shared package dependencies"
-            exit 1
-          }
-          cd ../..
-          
-          echo "Installing API package dependencies..."
-          cd packages/api
-          npm install --no-optional || {
-            echo "❌ Failed to install API package dependencies"
-            exit 1
-          }
-          cd ../..
-          
-          echo "Installing worker package dependencies..."
-          cd packages/worker
-          npm install --no-optional || {
-            echo "❌ Failed to install worker package dependencies"
-            exit 1
-          }
-          cd ../..
-          
-          echo "Installing web package dependencies (with memory optimization)..."
-          # Install web dependencies with memory optimization
-          cd packages/web
-          npm install --no-optional --production=false || {
-            echo "❌ Failed to install web package dependencies"
-            echo "Trying with reduced memory usage..."
-            npm install --no-optional --production=false --maxsockets=1 || {
-              echo "❌ Web package installation failed even with reduced memory"
+              echo "❌ Node.js 22 installation failed"
               exit 1
-            }
-          }
-          cd ../..
-          
-          # Copy data files to API package for local data serving
-          echo "📁 Copying data files for API..."
-          if [ -d "data" ]; then
-            # Copy to API package
-            mkdir -p packages/api/data
-            cp -r data/* packages/api/data/ || echo "Failed to copy data files to API package"
-            
-            # Copy to root for fallback
-            mkdir -p data
-            cp -r data/* data/ || echo "Failed to copy data files to root"
-            
-            echo "✅ Data files copied to packages/api/data/ and root data/"
-          else
-            echo "⚠️  No data directory found in repository"
+            fi
           fi
           
+          echo "✅ Node.js $(node --version) ready"
+          
+          # ========================================
+          # PHASE 3: CODE DEPLOYMENT
+          # ========================================
+          echo "📦 Deploying code..."
+          
+          # Clean deployment
+          rm -rf multi-analysis-starter
+          git clone https://github.com/${{ github.repository }}.git multi-analysis-starter
+          cd multi-analysis-starter
+          
+          # Set memory limits
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          
+          # Clean install
+          echo "Installing dependencies..."
+          npm cache clean --force
+          rm -rf node_modules packages/*/node_modules
+          rm -rf package-lock.json packages/*/package-lock.json
+          
+          npm install --no-optional
+          
+          # Install package dependencies
+          for package in shared api worker web; do
+            echo "Installing $package dependencies..."
+            cd packages/$package
+            npm install --no-optional
+            cd ../..
+          done
+          
+          # ========================================
+          # PHASE 4: DATA FILES
+          # ========================================
+          echo "📁 Setting up data files..."
+          
+          # Ensure data directory exists
+          mkdir -p data packages/api/data
+          
+          # Copy data files to both locations
+          if [ -d "data" ] && [ "$(ls -A data)" ]; then
+            echo "Data files found, copying..."
+            cp -r data/* packages/api/data/
+            echo "✅ Data files copied to API package"
+          else
+            echo "❌ No data files found in repository"
+            exit 1
+          fi
+          
+          # ========================================
+          # PHASE 5: BUILD
+          # ========================================
           echo "🔨 Building application..."
-          echo "Building shared package..."
+          
+          # Build shared first
           cd packages/shared
-          npm run build || {
-            echo "❌ Failed to build shared package"
-            exit 1
-          }
+          npm run build
           cd ../..
           
-          echo "Building API package..."
+          # Build API
           cd packages/api
-          npm run build || {
-            echo "❌ Failed to build API package"
-            exit 1
-          }
+          npm run build
           cd ../..
           
-          echo "Building web package..."
+          # Build web
           cd packages/web
-          npm run build || {
-            echo "❌ Failed to build web package"
-            exit 1
-          }
+          npm run build
           cd ../..
           
-          echo "🔄 Restarting application..."
+          echo "✅ All packages built successfully"
           
-          # Check what's actually running and what's available
-          echo "🔍 Checking current deployment status..."
+          # ========================================
+          # PHASE 6: PROCESS MANAGEMENT
+          # ========================================
+          echo "⚡ Setting up process management..."
           
-          # Check if any processes are running on expected ports
-          if netstat -tlnp 2>/dev/null | grep -q ":3000\|:3001"; then
-            echo "Found processes running on ports 3000/3001"
-            netstat -tlnp 2>/dev/null | grep ":3000\|:3001" || echo "No specific process info available"
-          else
-            echo "No processes found on ports 3000/3001"
-          fi
+          # Install PM2 globally
+          npm install -g pm2
           
-          # Check what process managers are available
-          echo "Available process managers:"
-          command -v docker-compose && echo "- Docker Compose available"
-          command -v docker && echo "- Docker available"
-          command -v pm2 && echo "- PM2 available"
-          systemctl list-units --type=service | grep -i multi-analysis && echo "- systemd service available"
+          # Kill ALL existing Node.js processes
+          echo "Stopping all existing Node.js processes..."
+          pkill -f "node" 2>/dev/null || echo "No existing Node.js processes"
+          sleep 3
           
-          # Check if there are any running containers
-          if command -v docker &> /dev/null; then
-            echo "Running Docker containers:"
-            docker ps 2>/dev/null || echo "No Docker containers running or Docker not accessible"
-          fi
+          # Clear PM2
+          pm2 delete all 2>/dev/null || echo "No existing PM2 processes"
+          pm2 kill 2>/dev/null || echo "PM2 not running"
           
-          # Check if there are any PM2 processes
-          if command -v pm2 &> /dev/null; then
-            echo "PM2 processes:"
-            pm2 list 2>/dev/null || echo "No PM2 processes running"
-          fi
+          # Start API with PM2
+          echo "Starting API..."
+          cd packages/api
+          pm2 start npm --name "api" -- start
+          cd ../..
           
-          # Try to restart based on what's actually available
-          if [ -f "docker-compose.yml" ] && command -v docker-compose &> /dev/null; then
-            echo "🐳 Restarting Docker containers..."
-            docker-compose down || echo "Docker compose down failed (might not be running)"
-            docker-compose up -d --build
-          elif [ -f "docker-compose.prod.yml" ] && command -v docker-compose &> /dev/null; then
-            echo "🐳 Restarting Docker containers (prod)..."
-            docker-compose -f docker-compose.prod.yml down || echo "Docker compose down failed (might not be running)"
-            docker-compose -f docker-compose.prod.yml up -d --build
-          elif command -v pm2 &> /dev/null; then
-            echo "⚡ Restarting PM2 processes..."
-            pm2 restart all || echo "PM2 restart failed (might not be running)"
-          elif systemctl is-active --quiet multi-analysis 2>/dev/null; then
-            echo "🔧 Restarting systemd service..."
-            sudo systemctl restart multi-analysis
-          else
-            echo "⚠️  No known process manager found or configured."
-            echo "🔄 Attempting to set up PM2 as fallback..."
-            
-            # Try to install and set up PM2
-            if ! command -v pm2 &> /dev/null; then
-              echo "Installing PM2..."
-              npm install -g pm2 || echo "Failed to install PM2 globally"
-            fi
-            
-            if command -v pm2 &> /dev/null; then
-              echo "Setting up PM2 processes..."
-              # Stop any existing PM2 processes
-              pm2 delete all 2>/dev/null || echo "No existing PM2 processes to delete"
-              
-              # Kill any existing Node.js processes on port 3001
-              echo "Stopping any existing Node.js processes on port 3001..."
-              pkill -f "node.*3001" 2>/dev/null || echo "No existing Node.js processes to kill"
-              sleep 2
-              
-              # Start API
-              cd packages/api
-              pm2 start npm --name "api" -- start --cwd . || echo "Failed to start API with PM2"
-              cd ../..
-              
-              # Start web
-              cd packages/web
-              pm2 start npm --name "web" -- start --cwd . || echo "Failed to start web with PM2"
-              cd ../..
-              
-              echo "PM2 processes started:"
-              pm2 list
-              
-              # Wait a moment for processes to start
-              echo "Waiting for processes to start..."
-              sleep 5
-              
-              # Test the new health endpoint
-              echo "Testing new health endpoint..."
-              curl -s http://localhost:3001/health || echo "Health endpoint not responding"
-            else
-              echo "📋 PM2 not available, attempting manual restart..."
-              
-              # Kill any existing Node.js processes
-              echo "Stopping any existing Node.js processes..."
-              pkill -f "node.*3001" 2>/dev/null || echo "No existing Node.js processes to kill"
-              pkill -f "node.*3000" 2>/dev/null || echo "No existing Node.js processes to kill"
-              sleep 2
-              
-              # Start API manually
-              echo "Starting API manually..."
-              cd packages/api
-              nohup npm start > api.log 2>&1 &
-              cd ../..
-              
-              # Start web manually
-              echo "Starting web manually..."
-              cd packages/web
-              nohup npm start > web.log 2>&1 &
-              cd ../..
-              
-              echo "Processes started manually. Check logs with:"
-              echo "tail -f packages/api/api.log"
-              echo "tail -f packages/web/web.log"
-              
-              # Wait and test
-              sleep 5
-              echo "Testing API..."
-              curl -s http://localhost:3001/health || echo "API not responding"
-            fi
-          fi
+          # Start web with PM2
+          echo "Starting web..."
+          cd packages/web
+          # Set environment variable for API URL
+          export NEXT_PUBLIC_API_URL=http://localhost:3001
+          pm2 start npm --name "web" -- start
+          cd ../..
           
-          echo "✅ Automatic deployment completed successfully!"
+          # Save PM2 configuration
+          pm2 save
+          pm2 startup
+          
+          # ========================================
+          # PHASE 7: VERIFICATION
+          # ========================================
+          echo "🧪 Verifying deployment..."
+          
+          # Wait for processes to start
+          sleep 10
+          
+          # Check PM2 status
+          echo "PM2 Status:"
+          pm2 list
+          
+          # Test API endpoints
+          echo "Testing API health..."
+          HEALTH_RESPONSE=$(curl -s http://localhost:3001/health 2>/dev/null || echo "FAILED")
+          echo "Health response: $HEALTH_RESPONSE"
+          
+          echo "Testing API listings..."
+          LISTINGS_RESPONSE=$(curl -s http://localhost:3001/listings 2>/dev/null | head -c 100 || echo "FAILED")
+          echo "Listings response: $LISTINGS_RESPONSE"
+          
+          echo "Testing API rents..."
+          RENTS_RESPONSE=$(curl -s http://localhost:3001/rents 2>/dev/null | head -c 100 || echo "FAILED")
+          echo "Rents response: $RENTS_RESPONSE"
+          
+          # Check if processes are listening
+          echo "Processes on ports:"
+          netstat -tlnp 2>/dev/null | grep ":3000\|:3001" || echo "No processes found"
+          
+          echo "✅ Deployment completed!"
           echo "🌐 Frontend: http://${{ secrets.EC2_HOST }}:3000"
           echo "🔌 API: http://${{ secrets.EC2_HOST }}:3001"
           
     - name: Health Check
       run: |
-        echo "🔍 Performing health check..."
-        echo "Waiting 30 seconds for services to start..."
+        echo "🔍 Final health check..."
         sleep 30
         
-        echo "Testing frontend connection..."
-        # Check if frontend is responding
+        echo "Testing frontend..."
         if curl -f -s --connect-timeout 10 http://${{ secrets.EC2_HOST }}:3000 > /dev/null; then
-          echo "✅ Frontend is responding"
+          echo "✅ Frontend responding"
         else
-          echo "❌ Frontend is not responding"
-          echo "This might be normal if the app isn't running yet or uses a different port"
+          echo "❌ Frontend not responding"
         fi
         
-        echo "Testing API connection..."
-        # Check if API is responding
-        if curl -f -s --connect-timeout 10 http://${{ secrets.EC2_HOST }}:3001 > /dev/null; then
-          echo "✅ API is responding"
+        echo "Testing API..."
+        if curl -f -s --connect-timeout 10 http://${{ secrets.EC2_HOST }}:3001/health > /dev/null; then
+          echo "✅ API responding"
         else
-          echo "❌ API is not responding"
-          echo "This might be normal if the app isn't running yet or uses a different port"
+          echo "❌ API not responding"
         fi
-        
-        echo "🎉 Health check completed!"
-        echo "Note: Health check failures don't necessarily mean deployment failed"
