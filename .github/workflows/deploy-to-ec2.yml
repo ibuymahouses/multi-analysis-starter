@@ -150,38 +150,51 @@ jobs:
         proxy_timeout: "5m"
         script_stop: false
         script: |
-          echo "⚡ PHASE 4: Process Management Test"
+          echo "⚡ PHASE 4: Safe Process Management"
           echo "=================================="
           echo "Start time: $(date)"
           echo "User: $(whoami)"
           echo "PWD: $(pwd)"
-          echo "Memory: $(free -h | grep Mem)"
           echo ""
           
           cd ~/app/multi-analysis-starter
           echo "Changed to app directory: $(pwd)"
+          echo ""
           
           echo "Checking if directories exist:"
           ls -la packages/
           echo ""
           
-          # Check what's currently running
+          # Check what's currently running (with timeout)
           echo "Current Node.js processes:"
-          ps aux | grep node | grep -v grep || echo "No Node.js processes"
+          timeout 10s ps aux | grep node | grep -v grep || echo "No Node.js processes or timeout"
           echo ""
           
-          # Stop existing processes (quick)
+          # Stop existing processes (safer approach)
           echo "Stopping existing processes..."
-          pkill -f "node.*3000" 2>/dev/null || echo "No web process to stop"
-          pkill -f "node.*3001" 2>/dev/null || echo "No API process to stop"
+          
+          # Method 1: Kill by port (faster)
+          echo "Killing processes on ports 3000 and 3001..."
+          timeout 5s fuser -k 3000/tcp 2>/dev/null || echo "No process on port 3000"
+          timeout 5s fuser -k 3001/tcp 2>/dev/null || echo "No process on port 3001"
+          
+          # Method 2: Kill by PID if we can find them
+          echo "Killing Node.js processes by PID..."
+          timeout 10s ps aux | grep "node.*3000\|node.*3001" | grep -v grep | awk '{print $2}' | xargs -r kill -TERM 2>/dev/null || echo "No processes to kill by PID"
+          
+          # Method 3: Force kill if needed
+          echo "Force killing any remaining Node.js processes..."
+          timeout 5s pkill -TERM -f "node.*3000" 2>/dev/null || echo "No web process to stop"
+          timeout 5s pkill -TERM -f "node.*3001" 2>/dev/null || echo "No API process to stop"
+          
           sleep 2
           
           # Check if processes were actually stopped
           echo "After stopping:"
-          ps aux | grep node | grep -v grep || echo "No Node.js processes"
+          timeout 10s ps aux | grep node | grep -v grep || echo "No Node.js processes"
           echo ""
           
-          echo "✅ Process management test complete"
+          echo "✅ Safe process management complete"
           
     - name: Phase 5 - Verification
       uses: appleboy/ssh-action@v1.0.3
