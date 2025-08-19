@@ -8,7 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # Increase timeout
+    timeout-minutes: 10
     
     steps:
     - name: Checkout code
@@ -21,153 +21,114 @@ jobs:
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
         port: ${{ secrets.EC2_PORT }}
-        command_timeout: "10m"  # Increase command timeout
+        command_timeout: "8m"
         script: |
-          set -e
-          echo "🚀 Simple deployment starting..."
+          echo "🔍 DIAGNOSTIC DEPLOYMENT STARTING"
+          echo "=================================="
+          echo "Timestamp: $(date)"
+          echo "User: $(whoami)"
+          echo "PWD: $(pwd)"
+          echo "Home: $HOME"
+          echo "Memory: $(free -h)"
+          echo "Disk: $(df -h /)"
+          echo ""
           
-          # Setup environment
+          echo "STEP 1: Environment Setup"
+          echo "========================="
           mkdir -p ~/app
           cd ~/app
+          echo "✅ Created app directory"
+          echo "Current directory: $(pwd)"
+          echo ""
           
-          # Setup swap space
-          if ! swapon --show | grep -q "/swapfile"; then
-            sudo fallocate -l 2G /swapfile
-            sudo chmod 600 /swapfile
-            sudo mkswap /swapfile
-            sudo swapon /swapfile
-            echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-          fi
+          echo "STEP 2: Node.js Check"
+          echo "====================="
+          echo "Node.js version: $(node --version 2>/dev/null || echo 'NOT INSTALLED')"
+          echo "npm version: $(npm --version 2>/dev/null || echo 'NOT INSTALLED')"
+          echo ""
           
-          # Ensure Node.js 22
-          if [[ "$(node --version 2>/dev/null)" != "v22"* ]]; then
-            curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo bash -
-            sudo yum install -y nodejs
-          fi
-          
-          # Clean deployment
-          rm -rf multi-analysis-starter
-          git clone https://github.com/${{ github.repository }}.git multi-analysis-starter
-          cd multi-analysis-starter
-          
-          # Set memory limits
-          export NODE_OPTIONS="--max-old-space-size=4096"
-          
-          # Install dependencies
-          echo "Installing dependencies..."
-          npm install --no-optional
-          
-          # Install package dependencies
-          for package in shared api worker web; do
-            cd packages/$package
-            npm install --no-optional
-            cd ../..
-          done
-          
-          # Copy data files
-          echo "Setting up data files..."
-          mkdir -p packages/api/data
-          cp -r data/* packages/api/data/
-          
-          # Build packages
-          echo "Building packages..."
-          cd packages/shared && npm run build && cd ../..
-          cd packages/api && npm run build && cd ../..
-          cd packages/web && npm run build && cd ../..
-          
-          # Kill existing processes (with timeout)
-          echo "Stopping existing processes..."
-          timeout 30s pkill -f "node.*3000" 2>/dev/null || echo "No web process to kill"
-          timeout 30s pkill -f "node.*3001" 2>/dev/null || echo "No API process to kill"
-          sleep 3
-          
-          # Start API (simple nohup)
-          echo "Starting API..."
-          cd packages/api
-          nohup npm start > api.log 2>&1 &
-          API_PID=$!
-          echo "API started with PID: $API_PID"
-          cd ../..
-          
-          # Start web (simple nohup)
-          echo "Starting web..."
-          cd packages/web
-          export NEXT_PUBLIC_API_URL=http://localhost:3001
-          nohup npm start > web.log 2>&1 &
-          WEB_PID=$!
-          echo "Web started with PID: $WEB_PID"
-          cd ../..
-          
-          # Wait for processes to start
-          echo "Waiting for processes to start..."
-          sleep 15
-          
-          # Verify processes are running
-          echo "Checking processes..."
-          if ps -p $API_PID > /dev/null; then
-            echo "✅ API process running (PID: $API_PID)"
+          echo "STEP 3: Git Clone Test"
+          echo "======================"
+          if [ -d "multi-analysis-starter" ]; then
+            echo "✅ Repository already exists"
+            cd multi-analysis-starter
           else
-            echo "❌ API process failed to start"
-            echo "API logs:"
-            tail -20 packages/api/api.log
+            echo "Cloning repository..."
+            git clone https://github.com/${{ github.repository }}.git multi-analysis-starter
+            cd multi-analysis-starter
+            echo "✅ Repository cloned"
           fi
+          echo "Repository contents:"
+          ls -la
+          echo ""
           
-          if ps -p $WEB_PID > /dev/null; then
-            echo "✅ Web process running (PID: $WEB_PID)"
+          echo "STEP 4: Data Files Check"
+          echo "========================"
+          if [ -d "data" ]; then
+            echo "✅ Data directory exists"
+            echo "Data files:"
+            ls -la data/
           else
-            echo "❌ Web process failed to start"
-            echo "Web logs:"
-            tail -20 packages/web/web.log
+            echo "❌ Data directory missing"
           fi
+          echo ""
           
-          # Test API with retries
-          echo "Testing API..."
-          for i in {1..3}; do
-            echo "Attempt $i: Testing API endpoints..."
-            sleep 5
-            
-            if curl -s http://localhost:3001/health > /dev/null; then
-              echo "✅ Health endpoint working"
-              break
-            else
-              echo "❌ Health endpoint failed (attempt $i)"
-            fi
-          done
-          
-          if curl -s http://localhost:3001/listings | head -c 100 > /dev/null; then
-            echo "✅ Listings endpoint working"
+          echo "STEP 5: Package Structure Check"
+          echo "==============================="
+          if [ -d "packages" ]; then
+            echo "✅ Packages directory exists"
+            echo "Packages:"
+            ls -la packages/
           else
-            echo "❌ Listings endpoint failed"
+            echo "❌ Packages directory missing"
           fi
+          echo ""
           
-          if curl -s http://localhost:3001/rents | head -c 100 > /dev/null; then
-            echo "✅ Rents endpoint working"
+          echo "STEP 6: Current Process Check"
+          echo "============================"
+          echo "Node.js processes:"
+          ps aux | grep node | grep -v grep || echo "No Node.js processes running"
+          echo ""
+          echo "Ports in use:"
+          netstat -tlnp 2>/dev/null | grep ":3000\|:3001" || echo "No processes on ports 3000/3001"
+          echo ""
+          
+          echo "STEP 7: Simple API Test"
+          echo "======================="
+          echo "Testing if anything is responding on port 3001..."
+          if curl -s --connect-timeout 5 http://localhost:3001/health > /dev/null 2>&1; then
+            echo "✅ Something is responding on port 3001"
           else
-            echo "❌ Rents endpoint failed"
+            echo "❌ Nothing responding on port 3001"
           fi
           
-          # Check ports
-          echo "Processes on ports:"
-          netstat -tlnp 2>/dev/null | grep ":3000\|:3001" || echo "No processes found"
+          echo "Testing if anything is responding on port 3000..."
+          if curl -s --connect-timeout 5 http://localhost:3000 > /dev/null 2>&1; then
+            echo "✅ Something is responding on port 3000"
+          else
+            echo "❌ Nothing responding on port 3000"
+          fi
+          echo ""
           
-          echo "✅ Deployment completed!"
-          echo "🌐 Frontend: http://${{ secrets.EC2_HOST }}:3000"
-          echo "🔌 API: http://${{ secrets.EC2_HOST }}:3001"
+          echo "DIAGNOSTIC COMPLETE"
+          echo "==================="
+          echo "Timestamp: $(date)"
+          echo "All basic checks completed successfully"
           
-    - name: Health Check
+    - name: Quick Health Check
       run: |
-        echo "🔍 Final health check..."
-        sleep 45  # Give more time for processes to stabilize
+        echo "🔍 Quick external health check..."
+        sleep 10
         
         echo "Testing frontend..."
-        if curl -f -s --connect-timeout 15 http://${{ secrets.EC2_HOST }}:3000 > /dev/null; then
+        if curl -f -s --connect-timeout 10 http://${{ secrets.EC2_HOST }}:3000 > /dev/null; then
           echo "✅ Frontend responding"
         else
           echo "❌ Frontend not responding"
         fi
         
         echo "Testing API..."
-        if curl -f -s --connect-timeout 15 http://${{ secrets.EC2_HOST }}:3001/health > /dev/null; then
+        if curl -f -s --connect-timeout 10 http://${{ secrets.EC2_HOST }}:3001/health > /dev/null; then
           echo "✅ API responding"
         else
           echo "❌ API not responding"
