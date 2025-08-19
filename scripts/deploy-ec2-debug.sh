@@ -96,6 +96,20 @@ echo "Web tsconfig.json exists: $([ -f "packages/web/tsconfig.json" ] && echo "�
 echo "Shared tsconfig.json exists: $([ -f "packages/shared/tsconfig.json" ] && echo "✅" || echo "❌")"
 echo ""
 
+# Check package versions
+echo "📦 Package Versions:"
+echo "================================"
+if [ -d "packages/web" ]; then
+    cd packages/web
+    echo "Next.js: $(npm list next --depth=0 2>/dev/null | grep next || echo "Not installed")"
+    echo "React: $(npm list react --depth=0 2>/dev/null | grep react || echo "Not installed")"
+    echo "TypeScript: $(npm list typescript --depth=0 2>/dev/null | grep typescript || echo "Not installed")"
+    cd ../..
+else
+    echo "❌ Web package not found"
+fi
+echo ""
+
 # Check source files
 echo "📄 Source Files:"
 echo "API src directory: $([ -d "packages/api/src" ] && echo "✅" || echo "❌")"

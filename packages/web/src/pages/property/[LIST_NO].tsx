@@ -626,7 +626,8 @@ export default function PropertyDetails() {
           fontWeight: 'bold',
           fontSize: '18px',
           borderTopLeftRadius: '8px',
-          borderTopRightRadius: '8px'
+          borderTopRightRadius: '8px',
+          textAlign: 'center'
         }}>
           Key Metrics
         </div>
@@ -912,7 +913,8 @@ export default function PropertyDetails() {
               fontWeight: 'bold',
               fontSize: '16px',
               borderTopLeftRadius: '6px',
-              borderTopRightRadius: '6px'
+              borderTopRightRadius: '6px',
+              textAlign: 'center'
             }}>
               Initial Costs
             </div>
@@ -1190,7 +1192,8 @@ export default function PropertyDetails() {
              fontWeight: 'bold',
              fontSize: '16px',
              borderTopLeftRadius: '6px',
-             borderTopRightRadius: '6px'
+             borderTopRightRadius: '6px',
+             textAlign: 'center'
            }}>
              Financing
            </div>
@@ -1276,7 +1279,8 @@ export default function PropertyDetails() {
             fontWeight: 'bold',
             fontSize: '16px',
             borderTopLeftRadius: '6px',
-            borderTopRightRadius: '6px'
+            borderTopRightRadius: '6px',
+            textAlign: 'center'
           }}>
             Operating Budget
           </div>
@@ -1286,434 +1290,420 @@ export default function PropertyDetails() {
             padding: '20px',
             background: '#f8f9fa'
           }}>
-                                                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', lineHeight: '1.2' }}>
-                <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Rental Income</div>
-                <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>
-                  {getDisplayLabel()}
-                  <button
-                    onClick={() => setViewMode(viewMode === 'annual' ? 'monthly' : 'annual')}
-                    style={{
-                      marginLeft: '8px',
-                      padding: '2px 6px',
-                      fontSize: '10px',
-                      background: '#e3f2fd',
-                      border: '1px solid #2196f3',
-                      borderRadius: '3px',
-                      cursor: 'pointer',
-                      color: '#1976d2'
-                    }}
-                  >
-                    {viewMode === 'annual' ? '→ Monthly' : '→ Annual'}
-                  </button>
-                </div>
-                <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>
-                  {viewMode === 'monthly' ? 'Monthly (%)' : 'Annual (%)'}
-                </div>
-              
-                                                                                       {/* Unit-level income detail */}
-                 {currentUnitMix.length > 0 && unitMixTotal === (property.UNITS_FINAL || 0) ? (
-                   currentUnitMix.map((unit, index) => {
-                     const unitRent = unit.rent || getRentForBedrooms(unit.bedrooms, property.ZIP_CODE);
-                     const unitAnnualRent = unitRent * unit.count * 12;
-                     return (
-                       <React.Fragment key={index}>
-                         <div style={{ paddingLeft: '20px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                           <select
-                             value={unit.bedrooms}
-                             onChange={(e) => {
-                               const newBedrooms = parseInt(e.target.value);
-                               const updatedUnitMix = currentUnitMix.map((u, i) => 
-                                 i === index ? { ...u, bedrooms: newBedrooms } : u
-                               );
-                               updateOverrides({ unitMix: updatedUnitMix });
-                             }}
-                             style={{ 
-                               padding: '2px 4px', 
-                               border: '1px solid #ddd', 
-                               borderRadius: '3px',
-                               width: '60px',
-                               fontSize: '11px'
-                             }}
-                           >
-                             <option value={0}>0-BR</option>
-                             <option value={1}>1-BR</option>
-                             <option value={2}>2-BR</option>
-                             <option value={3}>3-BR</option>
-                             <option value={4}>4-BR</option>
-                             <option value={5}>5-BR</option>
-                           </select>
-                           <select
-                             value={unit.count}
-                             onChange={(e) => {
-                               const newCount = parseInt(e.target.value);
-                               const updatedUnitMix = currentUnitMix.map((u, i) => 
-                                 i === index ? { ...u, count: newCount } : u
-                               );
-                               updateOverrides({ unitMix: updatedUnitMix });
-                             }}
-                             style={{ 
-                               padding: '2px 4px', 
-                               border: '1px solid #ddd', 
-                               borderRadius: '3px',
-                               width: '50px',
-                               fontSize: '11px'
-                             }}
-                           >
-                             {Array.from({ length: 20 }, (_, i) => i + 1).map(num => (
-                               <option key={num} value={num}>{num}</option>
-                             ))}
-                           </select>
-                           <span style={{ fontSize: '11px' }}>@</span>
-                           <input
-                             type="text"
-                             value={formatInputValue(unitRent, 'currency')}
-                             onChange={(e) => {
-                               const newRent = parseInputValue(e.target.value, 'currency');
-                               const updatedUnitMix = currentUnitMix.map((u, i) => 
-                                 i === index ? { ...u, rent: newRent } : u
-                               );
-                               updateOverrides({ unitMix: updatedUnitMix });
-                             }}
-                             style={{ 
-                               padding: '2px 4px', 
-                               border: '1px solid #ddd', 
-                               borderRadius: '3px',
-                               width: '70px',
-                               textAlign: 'right',
-                               fontSize: '11px'
-                             }}
-                           />
-                           <span style={{ fontSize: '11px' }}>/mo</span>
-                           <button
-                             onClick={() => {
-                               const updatedUnitMix = currentUnitMix.filter((_, i) => i !== index);
-                               updateOverrides({ unitMix: updatedUnitMix });
-                             }}
-                             style={{
-                               padding: '1px 4px',
-                               fontSize: '10px',
-                               background: '#ffebee',
-                               border: '1px solid #f44336',
-                               borderRadius: '2px',
-                               cursor: 'pointer',
-                               color: '#d32f2f',
-                               marginLeft: '4px'
-                             }}
-                           >
-                             ×
-                           </button>
-                         </div>
-                         <div style={{ textAlign: 'right', fontSize: '13px' }}>
-                           {formatCurrency(toDisplayValue(unitAnnualRent))}
-                         </div>
-                         <div style={{ textAlign: 'right', fontSize: '13px' }}>
-                           {annualGross > 0 ? `${(unitAnnualRent / annualGross * 100).toFixed(1)}%` : '0.0%'}
-                         </div>
-                       </React.Fragment>
-                     );
-                   })
-                   
-                   {/* Add new unit button for existing unit mix */}
-                   <div style={{ paddingLeft: '20px', marginTop: '8px' }}>
-                     <button
-                       onClick={() => {
-                         const newUnit = { bedrooms: 1, count: 1, rent: getRentForBedrooms(1, property.ZIP_CODE) };
-                         const updatedUnitMix = [...currentUnitMix, newUnit];
-                         updateOverrides({ unitMix: updatedUnitMix });
-                       }}
-                       style={{
-                         padding: '2px 6px',
-                         fontSize: '10px',
-                         background: '#e8f5e8',
-                         border: '1px solid #4caf50',
-                         borderRadius: '3px',
-                         cursor: 'pointer',
-                         color: '#2e7d32'
-                       }}
-                     >
-                       + Add Unit
-                     </button>
-                   </div>
-                 ) : (
-                   <React.Fragment>
-                     {/* Dynamic Unit Mix Input */}
-                     <div style={{ paddingLeft: '20px', fontSize: '13px' }}>
-                       {currentUnitMix.length > 0 ? (
-                         // Show existing unit mix with edit capability
-                         currentUnitMix.map((unit, index) => {
-                           const unitRent = unit.rent || getRentForBedrooms(unit.bedrooms, property.ZIP_CODE);
-                           const unitAnnualRent = unitRent * unit.count * 12;
-                           return (
-                             <div key={index} style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                               <select
-                                 value={unit.bedrooms}
-                                 onChange={(e) => {
-                                   const newBedrooms = parseInt(e.target.value);
-                                   const updatedUnitMix = currentUnitMix.map((u, i) => 
-                                     i === index ? { ...u, bedrooms: newBedrooms } : u
-                                   );
-                                   updateOverrides({ unitMix: updatedUnitMix });
-                                 }}
-                                 style={{ 
-                                   padding: '2px 4px', 
-                                   border: '1px solid #ddd', 
-                                   borderRadius: '3px',
-                                   width: '60px',
-                                   fontSize: '11px'
-                                 }}
-                               >
-                                 <option value={0}>0-BR</option>
-                                 <option value={1}>1-BR</option>
-                                 <option value={2}>2-BR</option>
-                                 <option value={3}>3-BR</option>
-                                 <option value={4}>4-BR</option>
-                                 <option value={5}>5-BR</option>
-                               </select>
-                               <select
-                                 value={unit.count}
-                                 onChange={(e) => {
-                                   const newCount = parseInt(e.target.value);
-                                   const updatedUnitMix = currentUnitMix.map((u, i) => 
-                                     i === index ? { ...u, count: newCount } : u
-                                   );
-                                   updateOverrides({ unitMix: updatedUnitMix });
-                                 }}
-                                 style={{ 
-                                   padding: '2px 4px', 
-                                   border: '1px solid #ddd', 
-                                   borderRadius: '3px',
-                                   width: '50px',
-                                   fontSize: '11px'
-                                 }}
-                               >
-                                 {Array.from({ length: 20 }, (_, i) => i + 1).map(num => (
-                                   <option key={num} value={num}>{num}</option>
-                                 ))}
-                               </select>
-                               <span style={{ fontSize: '11px' }}>@</span>
-                               <input
-                                 type="text"
-                                 value={formatInputValue(unitRent, 'currency')}
-                                 onChange={(e) => {
-                                   const newRent = parseInputValue(e.target.value, 'currency');
-                                   const updatedUnitMix = currentUnitMix.map((u, i) => 
-                                     i === index ? { ...u, rent: newRent } : u
-                                   );
-                                   updateOverrides({ unitMix: updatedUnitMix });
-                                 }}
-                                 style={{ 
-                                   padding: '2px 4px', 
-                                   border: '1px solid #ddd', 
-                                   borderRadius: '3px',
-                                   width: '70px',
-                                   textAlign: 'right',
-                                   fontSize: '11px'
-                                 }}
-                               />
-                               <span style={{ fontSize: '11px' }}>/mo</span>
-                               <button
-                                 onClick={() => {
-                                   const updatedUnitMix = currentUnitMix.filter((_, i) => i !== index);
-                                   updateOverrides({ unitMix: updatedUnitMix });
-                                 }}
-                                 style={{
-                                   padding: '1px 4px',
-                                   fontSize: '10px',
-                                   background: '#ffebee',
-                                   border: '1px solid #f44336',
-                                   borderRadius: '2px',
-                                   cursor: 'pointer',
-                                   color: '#d32f2f',
-                                   marginLeft: '4px'
-                                 }}
-                               >
-                                 ×
-                               </button>
-                             </div>
-                           );
-                         })
-                       ) : (
-                         <div style={{ color: '#666', fontStyle: 'italic', marginBottom: '8px' }}>
-                           No units defined
-                         </div>
-                       )}
-                       
-                       {/* Add new unit button */}
-                       <button
-                         onClick={() => {
-                           const newUnit = { bedrooms: 1, count: 1, rent: getRentForBedrooms(1, property.ZIP_CODE) };
-                           const updatedUnitMix = [...currentUnitMix, newUnit];
-                           updateOverrides({ unitMix: updatedUnitMix });
-                         }}
-                         style={{
-                           padding: '2px 6px',
-                           fontSize: '10px',
-                           background: '#e8f5e8',
-                           border: '1px solid #4caf50',
-                           borderRadius: '3px',
-                           cursor: 'pointer',
-                           color: '#2e7d32'
-                         }}
-                       >
-                         + Add Unit
-                       </button>
-                     </div>
-                     
-                     {/* Show totals for dynamic unit mix */}
-                     {currentUnitMix.length > 0 && (
-                       <React.Fragment>
-                         <div style={{ textAlign: 'right', fontSize: '13px' }}>
-                           {formatCurrency(toDisplayValue(annualGross))}
-                         </div>
-                         <div style={{ textAlign: 'right', fontSize: '13px' }}>
-                           100.0%
-                         </div>
-                       </React.Fragment>
-                     )}
-                   </React.Fragment>
-                 )}
-               
-                                            {/* Gross Rental Income Total */}
-                 <div style={{ fontWeight: 'bold', borderTop: '1px solid #ddd', paddingTop: '8px' }}>Gross Rental Income</div>
-                <div style={{ fontWeight: 'bold', textAlign: 'right' }}>
-                  {formatCurrency(toDisplayValue(annualGross))}
-                </div>
-                <div style={{ fontWeight: 'bold', textAlign: 'right' }}>
-                  100.0%
-                </div>
-              
-              {/* Vacancy */}
-              <div>less: Vacancy</div>
-              <div style={{ textAlign: 'right' }}>
-                <input
-                  type="text"
-                  value={formatInputValue(toDisplayValue(vacancyAmount), 'currency')}
-                  onChange={(e) => updateOverrides({ 
-                    vacancy: fromDisplayValue(parseInputValue(e.target.value, 'currency')) / annualGross
+            {/* Unit Mix Section - Separate from financial grid */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ fontWeight: 'bold', color: '#2c3e50', marginBottom: '8px' }}>Rent Details by Unit</div>
+              {currentUnitMix.length > 0 && unitMixTotal === (property.UNITS_FINAL || 0) ? (
+                <React.Fragment>
+                  {currentUnitMix.map((unit, index) => {
+                    const unitRent = unit.rent || getRentForBedrooms(unit.bedrooms, property.ZIP_CODE);
+                    const unitAnnualRent = unitRent * unit.count * 12;
+                    return (
+                      <div key={index} style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                        <select
+                          value={unit.bedrooms}
+                          onChange={(e) => {
+                            const newBedrooms = parseInt(e.target.value);
+                            const updatedUnitMix = currentUnitMix.map((u, i) => 
+                              i === index ? { ...u, bedrooms: newBedrooms } : u
+                            );
+                            updateOverrides({ unitMix: updatedUnitMix });
+                          }}
+                          style={{ 
+                            padding: '2px 4px', 
+                            border: '1px solid #ddd', 
+                            borderRadius: '3px',
+                            width: '60px',
+                            fontSize: '11px'
+                          }}
+                        >
+                          <option value={0}>0-BR</option>
+                          <option value={1}>1-BR</option>
+                          <option value={2}>2-BR</option>
+                          <option value={3}>3-BR</option>
+                          <option value={4}>4-BR</option>
+                          <option value={5}>5-BR</option>
+                        </select>
+                        <select
+                          value={unit.count}
+                          onChange={(e) => {
+                            const newCount = parseInt(e.target.value);
+                            const updatedUnitMix = currentUnitMix.map((u, i) => 
+                              i === index ? { ...u, count: newCount } : u
+                            );
+                            updateOverrides({ unitMix: updatedUnitMix });
+                          }}
+                          style={{ 
+                            padding: '2px 4px', 
+                            border: '1px solid #ddd', 
+                            borderRadius: '3px',
+                            width: '50px',
+                            fontSize: '11px'
+                          }}
+                        >
+                          {Array.from({ length: 20 }, (_, i) => i + 1).map(num => (
+                            <option key={num} value={num}>{num}</option>
+                          ))}
+                        </select>
+                        <span style={{ fontSize: '11px' }}>@</span>
+                        <input
+                          type="text"
+                          value={formatInputValue(unitRent, 'currency')}
+                          onChange={(e) => {
+                            const newRent = parseInputValue(e.target.value, 'currency');
+                            const updatedUnitMix = currentUnitMix.map((u, i) => 
+                              i === index ? { ...u, rent: newRent } : u
+                            );
+                            updateOverrides({ unitMix: updatedUnitMix });
+                          }}
+                          style={{ 
+                            padding: '2px 4px', 
+                            border: '1px solid #ddd', 
+                            borderRadius: '3px',
+                            width: '70px',
+                            textAlign: 'right',
+                            fontSize: '11px'
+                          }}
+                        />
+                        <span style={{ fontSize: '11px' }}>/mo</span>
+                        <button
+                          onClick={() => {
+                            const updatedUnitMix = currentUnitMix.filter((_, i) => i !== index);
+                            updateOverrides({ unitMix: updatedUnitMix });
+                          }}
+                          style={{
+                            padding: '1px 4px',
+                            fontSize: '10px',
+                            background: '#ffebee',
+                            border: '1px solid #f44336',
+                            borderRadius: '2px',
+                            cursor: 'pointer',
+                            color: '#d32f2f',
+                            marginLeft: '4px'
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
                   })}
-                  style={{ 
-                    padding: '4px', 
-                    border: '1px solid #ddd', 
-                    borderRadius: '4px',
-                    width: '100px',
-                    textAlign: 'right'
-                  }}
-                />
-              </div>
-                                                           <div style={{ textAlign: 'right' }}>
-                  <input
-                    type="text"
-                    value={vacancyInput || formatInputValue(vacancy, 'percentage')}
-                    onChange={(e) => {
-                      setVacancyInput(e.target.value);
-                    }}
-                    onFocus={(e) => {
-                      setVacancyInput(e.target.value);
-                    }}
-                    onBlur={(e) => {
-                      const value = e.target.value.replace('%', '');
-                      const numValue = parseFloat(value);
-                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-                        updateOverrides({ vacancy: numValue / 100 });
-                      }
-                      setVacancyInput('');
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.currentTarget.blur();
-                      }
-                    }}
-                    style={{ 
-                      padding: '4px', 
-                      border: '1px solid #ddd', 
-                      borderRadius: '4px',
-                      width: '80px',
-                      textAlign: 'right',
-                      fontSize: '14px'
-                    }}
-                  />
-                </div>
-              
-                             {/* Total Effective Gross Income */}
-               <div style={{ fontWeight: 'bold' }}>Total Effective Gross Income</div>
-               <div style={{ fontWeight: 'bold', textAlign: 'right' }}>{formatCurrency(toDisplayValue(effectiveGrossIncome))}</div>
-               <div style={{ fontWeight: 'bold', textAlign: 'right' }}>{annualGross > 0 ? `${((effectiveGrossIncome / annualGross) * 100).toFixed(1)}%` : '100.0%'}</div>
-             
-                           {/* Operating Expenses */}
-                             <div>less: Taxes</div>
-               <div style={{ textAlign: 'right' }}>
-                 <input
-                   type="text"
-                   value={formatInputValue(toDisplayValue(opex.taxes || 0), 'currency')}
-                   onChange={(e) => updateOverrides({ 
-                     opex: { ...opex, taxes: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
-                   })}
-                   style={{ 
-                     padding: '4px', 
-                     border: '1px solid #ddd', 
-                     borderRadius: '4px',
-                     width: '100px',
-                     textAlign: 'right'
-                   }}
-                 />
-               </div>
-                                                                                                                               <div style={{ textAlign: 'right' }}>
-                    <input
-                      type="text"
-                      value={taxesInput || formatInputValue((opex.taxes || 0) / effectiveGrossIncome, 'percentage')}
-                      onChange={(e) => {
-                        setTaxesInput(e.target.value);
+                  
+                  {/* Add new unit button for existing unit mix */}
+                  <div style={{ marginTop: '8px' }}>
+                    <button
+                      onClick={() => {
+                        const newUnit = { bedrooms: 1, count: 1, rent: getRentForBedrooms(1, property.ZIP_CODE) };
+                        const updatedUnitMix = [...currentUnitMix, newUnit];
+                        updateOverrides({ unitMix: updatedUnitMix });
                       }}
-                      onFocus={(e) => {
-                        setTaxesInput(e.target.value);
+                      style={{
+                        padding: '2px 6px',
+                        fontSize: '10px',
+                        background: '#e8f5e8',
+                        border: '1px solid #4caf50',
+                        borderRadius: '3px',
+                        cursor: 'pointer',
+                        color: '#2e7d32'
                       }}
-                      onBlur={(e) => {
-                        const value = e.target.value.replace('%', '');
-                        const numValue = parseFloat(value);
-                        if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-                          updateOverrides({ 
-                            opex: { ...opex, taxes: (numValue / 100) * effectiveGrossIncome }
-                          });
-                        }
-                        setTaxesInput('');
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.currentTarget.blur();
-                        }
-                      }}
-                      style={{ 
-                        padding: '4px', 
-                        border: '1px solid #ddd', 
-                        borderRadius: '4px',
-                        width: '80px',
-                        textAlign: 'right',
-                        fontSize: '14px'
-                      }}
-                    />
+                    >
+                      + Add Unit
+                    </button>
                   </div>
+                </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  {/* Dynamic Unit Mix Input */}
+                  <div style={{ fontSize: '13px' }}>
+                    {currentUnitMix.length > 0 ? (
+                      // Show existing unit mix with edit capability
+                      currentUnitMix.map((unit, index) => {
+                        const unitRent = unit.rent || getRentForBedrooms(unit.bedrooms, property.ZIP_CODE);
+                        const unitAnnualRent = unitRent * unit.count * 12;
+                        return (
+                          <div key={index} style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <select
+                              value={unit.bedrooms}
+                              onChange={(e) => {
+                                const newBedrooms = parseInt(e.target.value);
+                                const updatedUnitMix = currentUnitMix.map((u, i) => 
+                                  i === index ? { ...u, bedrooms: newBedrooms } : u
+                                );
+                                updateOverrides({ unitMix: updatedUnitMix });
+                              }}
+                              style={{ 
+                                padding: '2px 4px', 
+                                border: '1px solid #ddd', 
+                                borderRadius: '3px',
+                                width: '60px',
+                                fontSize: '11px'
+                              }}
+                            >
+                              <option value={0}>0-BR</option>
+                              <option value={1}>1-BR</option>
+                              <option value={2}>2-BR</option>
+                              <option value={3}>3-BR</option>
+                              <option value={4}>4-BR</option>
+                              <option value={5}>5-BR</option>
+                            </select>
+                            <select
+                              value={unit.count}
+                              onChange={(e) => {
+                                const newCount = parseInt(e.target.value);
+                                const updatedUnitMix = currentUnitMix.map((u, i) => 
+                                  i === index ? { ...u, count: newCount } : u
+                                );
+                                updateOverrides({ unitMix: updatedUnitMix });
+                              }}
+                              style={{ 
+                                padding: '2px 4px', 
+                                border: '1px solid #ddd', 
+                                borderRadius: '3px',
+                                width: '50px',
+                                fontSize: '11px'
+                              }}
+                            >
+                              {Array.from({ length: 20 }, (_, i) => i + 1).map(num => (
+                                <option key={num} value={num}>{num}</option>
+                              ))}
+                            </select>
+                            <span style={{ fontSize: '11px' }}>@</span>
+                            <input
+                              type="text"
+                              value={formatInputValue(unitRent, 'currency')}
+                              onChange={(e) => {
+                                const newRent = parseInputValue(e.target.value, 'currency');
+                                const updatedUnitMix = currentUnitMix.map((u, i) => 
+                                  i === index ? { ...u, rent: newRent } : u
+                                );
+                                updateOverrides({ unitMix: updatedUnitMix });
+                              }}
+                              style={{ 
+                                padding: '2px 4px', 
+                                border: '1px solid #ddd', 
+                                borderRadius: '3px',
+                                width: '70px',
+                                textAlign: 'right',
+                                fontSize: '11px'
+                              }}
+                            />
+                            <span style={{ fontSize: '11px' }}>/mo</span>
+                            <button
+                              onClick={() => {
+                                const updatedUnitMix = currentUnitMix.filter((_, i) => i !== index);
+                                updateOverrides({ unitMix: updatedUnitMix });
+                              }}
+                              style={{
+                                padding: '1px 4px',
+                                fontSize: '10px',
+                                background: '#ffebee',
+                                border: '1px solid #f44336',
+                                borderRadius: '2px',
+                                cursor: 'pointer',
+                                color: '#d32f2f',
+                                marginLeft: '4px'
+                              }}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div style={{ color: '#666', fontStyle: 'italic', marginBottom: '8px' }}>
+                        No units defined
+                      </div>
+                    )}
+                    
+                    {/* Add new unit button */}
+                    <button
+                      onClick={() => {
+                        const newUnit = { bedrooms: 1, count: 1, rent: getRentForBedrooms(1, property.ZIP_CODE) };
+                        const updatedUnitMix = [...currentUnitMix, newUnit];
+                        updateOverrides({ unitMix: updatedUnitMix });
+                      }}
+                      style={{
+                        padding: '2px 6px',
+                        fontSize: '10px',
+                        background: '#e8f5e8',
+                        border: '1px solid #4caf50',
+                        borderRadius: '3px',
+                        cursor: 'pointer',
+                        color: '#2e7d32'
+                      }}
+                    >
+                      + Add Unit
+                    </button>
+                  </div>
+                </React.Fragment>
+              )}
+            </div>
+
+            {/* Financial Data Grid - Properly aligned three columns */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', lineHeight: '1.2' }}>
+              <div style={{ fontWeight: 'bold', color: '#2c3e50' }}>Description</div>
+              <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>
+                {getDisplayLabel()}
+                <button
+                  onClick={() => setViewMode(viewMode === 'annual' ? 'monthly' : 'annual')}
+                  style={{
+                    marginLeft: '8px',
+                    padding: '2px 6px',
+                    fontSize: '10px',
+                    background: '#e3f2fd',
+                    border: '1px solid #2196f3',
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                    color: '#1976d2'
+                  }}
+                >
+                  {viewMode === 'annual' ? '→ Monthly' : '→ Annual'}
+                </button>
+              </div>
+              <div style={{ fontWeight: 'bold', color: '#2c3e50', textAlign: 'right' }}>
+                {viewMode === 'monthly' ? 'Monthly (%)' : 'Annual (%)'}
+              </div>
               
-                                                                                                                       <div>less: Insurance</div>
-                <div style={{ textAlign: 'right' }}>
-                  <input
-                    type="text"
-                    value={formatInputValue(toDisplayValue(opex.pm || 0), 'currency')}
-                    onChange={(e) => updateOverrides({ 
-                      opex: { ...opex, pm: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
-                    })}
-                    style={{ 
-                      padding: '4px', 
-                      border: '1px solid #ddd', 
-                      borderRadius: '4px',
-                      width: '100px',
-                      textAlign: 'right'
-                    }}
-                  />
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <input
-                    type="text"
-                    value={insuranceInput || formatInputValue((opex.pm || 0) / effectiveGrossIncome, 'percentage')}
+              {/* Gross Rental Income Total */}
+              <div style={{ fontWeight: 'bold', borderTop: '1px solid #ddd', paddingTop: '8px' }}>Gross Rental Income</div>
+              <div style={{ fontWeight: 'bold', textAlign: 'right', borderTop: '1px solid #ddd', paddingTop: '8px' }}>
+                {formatCurrency(toDisplayValue(annualGross))}
+              </div>
+              <div style={{ fontWeight: 'bold', textAlign: 'right', borderTop: '1px solid #ddd', paddingTop: '8px' }}>
+                100.0%
+              </div>
+               
+                 {/* Vacancy */}
+                 <div>less: Vacancy</div>
+                 <div style={{ textAlign: 'right' }}>
+                   <input
+                     type="text"
+                     value={formatInputValue(toDisplayValue(vacancyAmount), 'currency')}
+                     onChange={(e) => updateOverrides({ 
+                       vacancy: fromDisplayValue(parseInputValue(e.target.value, 'currency')) / annualGross
+                     })}
+                     style={{ 
+                       padding: '4px', 
+                       border: '1px solid #ddd', 
+                       borderRadius: '4px',
+                       width: '100px',
+                       textAlign: 'right'
+                     }}
+                   />
+                 </div>
+                 <div style={{ textAlign: 'right' }}>
+                   <input
+                     type="text"
+                     value={vacancyInput || formatInputValue(vacancy, 'percentage')}
+                     onChange={(e) => {
+                       setVacancyInput(e.target.value);
+                     }}
+                     onFocus={(e) => {
+                       setVacancyInput(e.target.value);
+                     }}
+                     onBlur={(e) => {
+                       const value = e.target.value.replace('%', '');
+                       const numValue = parseFloat(value);
+                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                         updateOverrides({ vacancy: numValue / 100 });
+                       }
+                       setVacancyInput('');
+                     }}
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter') {
+                         e.currentTarget.blur();
+                       }
+                     }}
+                     style={{ 
+                       padding: '4px', 
+                       border: '1px solid #ddd', 
+                       borderRadius: '4px',
+                       width: '80px',
+                       textAlign: 'right',
+                       fontSize: '14px'
+                     }}
+                   />
+                 </div>
+              
+                 {/* Total Effective Gross Income */}
+                 <div style={{ fontWeight: 'bold' }}>Total Effective Gross Income</div>
+                 <div style={{ fontWeight: 'bold', textAlign: 'right' }}>{formatCurrency(toDisplayValue(effectiveGrossIncome))}</div>
+                 <div style={{ fontWeight: 'bold', textAlign: 'right' }}>{annualGross > 0 ? `${((effectiveGrossIncome / annualGross) * 100).toFixed(1)}%` : '100.0%'}</div>
+               
+                 {/* Operating Expenses */}
+                 <div>less: Taxes</div>
+                 <div style={{ textAlign: 'right' }}>
+                   <input
+                     type="text"
+                     value={formatInputValue(toDisplayValue(opex.taxes || 0), 'currency')}
+                     onChange={(e) => updateOverrides({ 
+                       opex: { ...opex, taxes: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
+                     })}
+                     style={{ 
+                       padding: '4px', 
+                       border: '1px solid #ddd', 
+                       borderRadius: '4px',
+                       width: '100px',
+                       textAlign: 'right'
+                     }}
+                   />
+                 </div>
+                 <div style={{ textAlign: 'right' }}>
+                   <input
+                     type="text"
+                     value={taxesInput || formatInputValue((opex.taxes || 0) / effectiveGrossIncome, 'percentage')}
+                     onChange={(e) => {
+                       setTaxesInput(e.target.value);
+                     }}
+                     onFocus={(e) => {
+                       setTaxesInput(e.target.value);
+                     }}
+                     onBlur={(e) => {
+                       const value = e.target.value.replace('%', '');
+                       const numValue = parseFloat(value);
+                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
+                         updateOverrides({ 
+                           opex: { ...opex, taxes: (numValue / 100) * effectiveGrossIncome }
+                         });
+                       }
+                       setTaxesInput('');
+                     }}
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter') {
+                         e.currentTarget.blur();
+                       }
+                     }}
+                     style={{ 
+                       padding: '4px', 
+                       border: '1px solid #ddd', 
+                       borderRadius: '4px',
+                       width: '80px',
+                       textAlign: 'right',
+                       fontSize: '14px'
+                     }}
+                   />
+                 </div>
+              
+                 <div>less: Insurance</div>
+                 <div style={{ textAlign: 'right' }}>
+                   <input
+                     type="text"
+                     value={formatInputValue(toDisplayValue(opex.pm || 0), 'currency')}
+                     onChange={(e) => updateOverrides({ 
+                       opex: { ...opex, pm: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
+                     })}
+                     style={{ 
+                       padding: '4px', 
+                       border: '1px solid #ddd', 
+                       borderRadius: '4px',
+                       width: '100px',
+                       textAlign: 'right'
+                     }}
+                   />
+                 </div>
+                 <div style={{ textAlign: 'right' }}>
+                   <input
+                     type="text"
+                     value={insuranceInput || formatInputValue((opex.pm || 0) / effectiveGrossIncome, 'percentage')}
                     onChange={(e) => {
                       setInsuranceInput(e.target.value);
                     }}
@@ -2117,24 +2107,24 @@ export default function PropertyDetails() {
                    />
                  </div>
                 
-                                <div>less: Capital Reserve</div>
-                <div style={{ textAlign: 'right' }}>
-                  <input
-                    type="text"
-                    value={formatInputValue(toDisplayValue(opex.capex || 0), 'currency')}
-                    onChange={(e) => updateOverrides({ 
-                      opex: { ...opex, capex: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
-                    })}
-                    style={{ 
-                      padding: '4px', 
-                      border: '1px solid #ddd', 
-                      borderRadius: '4px',
-                      width: '100px',
-                      textAlign: 'right'
-                    }}
-                  />
-                </div>
-                                <div style={{ textAlign: 'right' }}>
+                 <div>less: Capital Reserve</div>
+                 <div style={{ textAlign: 'right' }}>
+                   <input
+                     type="text"
+                     value={formatInputValue(toDisplayValue(opex.capex || 0), 'currency')}
+                     onChange={(e) => updateOverrides({ 
+                       opex: { ...opex, capex: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
+                     })}
+                     style={{ 
+                       padding: '4px', 
+                       border: '1px solid #ddd', 
+                       borderRadius: '4px',
+                       width: '100px',
+                       textAlign: 'right'
+                     }}
+                   />
+                 </div>
+                 <div style={{ textAlign: 'right' }}>
                    <input
                      type="text"
                      value={capexInput || formatInputValue((opex.capex || 0) / effectiveGrossIncome, 'percentage')}
@@ -2170,29 +2160,29 @@ export default function PropertyDetails() {
                    />
                  </div>
               
-                                                           {/* Total Expenses */}
-                <div style={{ fontWeight: 'bold' }}>Total Expenses</div>
-                <div style={{ fontWeight: 'bold', textAlign: 'right' }}>({formatCurrency(Math.round(toDisplayValue(totalOpex)))})</div>
-                <div style={{ fontWeight: 'bold', textAlign: 'right' }}>{effectiveGrossIncome > 0 ? `-${(totalOpex / effectiveGrossIncome * 100).toFixed(1)}%` : '0.0%'}</div>
-                
-                {/* Net Operating Income */}
-                <div style={{ fontWeight: 'bold' }}>Net Operating Income</div>
-                <div style={{ fontWeight: 'bold', textAlign: 'right' }}>{formatCurrency(Math.round(toDisplayValue(noi)))}</div>
-                <div style={{ fontWeight: 'bold', textAlign: 'right' }}>{effectiveGrossIncome > 0 ? `${(noi / effectiveGrossIncome * 100).toFixed(1)}%` : '0.0%'}</div>
-                
-                {/* Bank Debt Service */}
-                <div>Bank Debt Service</div>
-                <div style={{ textAlign: 'right' }}>({formatCurrency(Math.round(toDisplayValue(annualDebtService)))})</div>
-                <div style={{ textAlign: 'right' }}>{effectiveGrossIncome > 0 ? `-${(annualDebtService / effectiveGrossIncome * 100).toFixed(1)}%` : '0.0%'}</div>
-                
-                {/* Net Cash Flow */}
-                <div style={{ fontWeight: 'bold' }}>Net Cash Flow</div>
-                <div style={{ fontWeight: 'bold', textAlign: 'right', color: monthlyCashFlow >= 0 ? '#28a745' : '#dc3545' }}>
-                  {monthlyCashFlow >= 0 ? formatCurrency(Math.round(toDisplayValue(monthlyCashFlow * 12))) : `(${formatCurrency(Math.round(Math.abs(toDisplayValue(monthlyCashFlow * 12))))})`}
-                </div>
-                <div style={{ fontWeight: 'bold', textAlign: 'right', color: monthlyCashFlow >= 0 ? '#28a745' : '#dc3545' }}>
-                  {effectiveGrossIncome > 0 ? `${((monthlyCashFlow * 12) / effectiveGrossIncome * 100).toFixed(1)}%` : '0.0%'}
-                </div>
+                 {/* Total Expenses */}
+                 <div style={{ fontWeight: 'bold' }}>Total Expenses</div>
+                 <div style={{ fontWeight: 'bold', textAlign: 'right' }}>({formatCurrency(Math.round(toDisplayValue(totalOpex)))})</div>
+                 <div style={{ fontWeight: 'bold', textAlign: 'right' }}>{effectiveGrossIncome > 0 ? `-${(totalOpex / effectiveGrossIncome * 100).toFixed(1)}%` : '0.0%'}</div>
+                 
+                 {/* Net Operating Income */}
+                 <div style={{ fontWeight: 'bold' }}>Net Operating Income</div>
+                 <div style={{ fontWeight: 'bold', textAlign: 'right' }}>{formatCurrency(Math.round(toDisplayValue(noi)))}</div>
+                 <div style={{ fontWeight: 'bold', textAlign: 'right' }}>{effectiveGrossIncome > 0 ? `${(noi / effectiveGrossIncome * 100).toFixed(1)}%` : '0.0%'}</div>
+                 
+                 {/* Bank Debt Service */}
+                 <div>Bank Debt Service</div>
+                 <div style={{ textAlign: 'right' }}>({formatCurrency(Math.round(toDisplayValue(annualDebtService)))})</div>
+                 <div style={{ textAlign: 'right' }}>{effectiveGrossIncome > 0 ? `-${(annualDebtService / effectiveGrossIncome * 100).toFixed(1)}%` : '0.0%'}</div>
+                 
+                 {/* Net Cash Flow */}
+                 <div style={{ fontWeight: 'bold' }}>Net Cash Flow</div>
+                 <div style={{ fontWeight: 'bold', textAlign: 'right', color: monthlyCashFlow >= 0 ? '#28a745' : '#dc3545' }}>
+                   {monthlyCashFlow >= 0 ? formatCurrency(Math.round(toDisplayValue(monthlyCashFlow * 12))) : `(${formatCurrency(Math.round(Math.abs(toDisplayValue(monthlyCashFlow * 12))))})`}
+                 </div>
+                 <div style={{ fontWeight: 'bold', textAlign: 'right', color: monthlyCashFlow >= 0 ? '#28a745' : '#dc3545' }}>
+                   {effectiveGrossIncome > 0 ? `${((monthlyCashFlow * 12) / effectiveGrossIncome * 100).toFixed(1)}%` : '0.0%'}
+                 </div>
            </div>
          </div>
        </section>
