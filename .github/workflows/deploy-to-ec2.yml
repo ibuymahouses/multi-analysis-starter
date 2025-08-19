@@ -150,8 +150,8 @@ jobs:
         proxy_timeout: "5m"
         script_stop: false
         script: |
-          echo "⚡ PHASE 4: Simple Test"
-          echo "======================"
+          echo "⚡ PHASE 4: Process Management Test"
+          echo "=================================="
           echo "Start time: $(date)"
           echo "User: $(whoami)"
           echo "PWD: $(pwd)"
@@ -165,7 +165,23 @@ jobs:
           ls -la packages/
           echo ""
           
-          echo "✅ Simple test complete"
+          # Check what's currently running
+          echo "Current Node.js processes:"
+          ps aux | grep node | grep -v grep || echo "No Node.js processes"
+          echo ""
+          
+          # Stop existing processes (quick)
+          echo "Stopping existing processes..."
+          pkill -f "node.*3000" 2>/dev/null || echo "No web process to stop"
+          pkill -f "node.*3001" 2>/dev/null || echo "No API process to stop"
+          sleep 2
+          
+          # Check if processes were actually stopped
+          echo "After stopping:"
+          ps aux | grep node | grep -v grep || echo "No Node.js processes"
+          echo ""
+          
+          echo "✅ Process management test complete"
           
     - name: Phase 5 - Verification
       uses: appleboy/ssh-action@v1.0.3
