@@ -143,12 +143,22 @@ jobs:
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
         port: ${{ secrets.EC2_PORT }}
-        command_timeout: "8m"
+        command_timeout: "5m"
         script: |
-          echo "⚡ PHASE 4: Process Management"
-          echo "============================="
+          echo "⚡ PHASE 4: Process Management (Diagnostic)"
+          echo "=========================================="
+          echo "Start time: $(date)"
+          echo "User: $(whoami)"
+          echo "PWD: $(pwd)"
+          echo "Memory: $(free -h | grep Mem)"
+          echo ""
           
           cd ~/app/multi-analysis-starter
+          
+          # Check what's currently running
+          echo "Current processes:"
+          ps aux | grep node | grep -v grep || echo "No Node.js processes"
+          echo ""
           
           # Stop existing processes (quick)
           echo "Stopping existing processes..."
@@ -156,42 +166,68 @@ jobs:
           pkill -f "node.*3001" 2>/dev/null || echo "No API process to stop"
           sleep 2
           
-          # Start API (with immediate feedback)
+          # Check if processes were actually stopped
+          echo "After stopping:"
+          ps aux | grep node | grep -v grep || echo "No Node.js processes"
+          echo ""
+          
+          # Start API with detailed logging
           echo "Starting API..."
           cd packages/api
+          echo "API directory: $(pwd)"
+          echo "API package.json exists: $([ -f package.json ] && echo 'YES' || echo 'NO')"
+          
+          # Start API and capture PID immediately
           nohup npm start > api.log 2>&1 &
           API_PID=$!
-          echo "API started with PID: $API_PID"
+          echo "API started with PID: $API_PID at $(date)"
+          
+          # Verify API process started
+          sleep 2
+          if ps -p $API_PID > /dev/null; then
+            echo "✅ API process confirmed running (PID: $API_PID)"
+          else
+            echo "❌ API process failed to start"
+            echo "API log contents:"
+            tail -10 api.log
+          fi
           cd ../..
           
-          # Quick check if API started
-          sleep 3
-          if ps -p $API_PID > /dev/null; then
-            echo "✅ API process confirmed running"
-          else
-            echo "⚠️ API process may have failed to start"
-          fi
-          
-          # Start web (with immediate feedback)
+          # Start web with detailed logging
           echo "Starting web..."
           cd packages/web
+          echo "Web directory: $(pwd)"
+          echo "Web package.json exists: $([ -f package.json ] && echo 'YES' || echo 'NO')"
+          
+          # Set environment variable
           export NEXT_PUBLIC_API_URL=http://localhost:3001
+          echo "Set NEXT_PUBLIC_API_URL: $NEXT_PUBLIC_API_URL"
+          
+          # Start web and capture PID immediately
           nohup npm start > web.log 2>&1 &
           WEB_PID=$!
-          echo "Web started with PID: $WEB_PID"
+          echo "Web started with PID: $WEB_PID at $(date)"
+          
+          # Verify web process started
+          sleep 2
+          if ps -p $WEB_PID > /dev/null; then
+            echo "✅ Web process confirmed running (PID: $WEB_PID)"
+          else
+            echo "❌ Web process failed to start"
+            echo "Web log contents:"
+            tail -10 web.log
+          fi
           cd ../..
           
-          # Quick check if web started
-          sleep 3
-          if ps -p $WEB_PID > /dev/null; then
-            echo "✅ Web process confirmed running"
-          else
-            echo "⚠️ Web process may have failed to start"
-          fi
-          
-          echo "✅ Process management complete"
+          # Final status check
+          echo ""
+          echo "Final status at $(date):"
           echo "API PID: $API_PID"
           echo "Web PID: $WEB_PID"
+          echo "All Node.js processes:"
+          ps aux | grep node | grep -v grep || echo "No Node.js processes"
+          echo ""
+          echo "✅ Process management complete"
           
     - name: Phase 5 - Verification
       uses: appleboy/ssh-action@v1.0.3
