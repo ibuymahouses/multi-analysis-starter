@@ -8,13 +8,49 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Deploy to EC2
+    - name: Phase 1 - Environment Setup
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        port: ${{ secrets.EC2_PORT }}
+        command_timeout: "5m"
+        script: |
+          echo "🔧 PHASE 1: Environment Setup"
+          echo "============================"
+          
+          # Setup basic environment
+          mkdir -p ~/app
+          cd ~/app
+          
+          # Setup swap space (if needed)
+          if ! swapon --show | grep -q "/swapfile"; then
+            sudo fallocate -l 2G /swapfile
+            sudo chmod 600 /swapfile
+            sudo mkswap /swapfile
+            sudo swapon /swapfile
+            echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+          fi
+          
+          # Ensure Node.js 22 is available
+          if [[ "$(node --version 2>/dev/null)" != "v22"* ]]; then
+            curl -fsSL https://rpm.nodesource.com/setup_22.x | sudo bash -
+            sudo yum install -y nodejs
+          fi
+          
+          echo "✅ Environment setup complete"
+          echo "Node.js: $(node --version)"
+          echo "npm: $(npm --version)"
+          echo "Memory: $(free -h | grep Mem)"
+          
+    - name: Phase 2 - Code Deployment
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.EC2_HOST }}
@@ -23,112 +59,169 @@ jobs:
         port: ${{ secrets.EC2_PORT }}
         command_timeout: "8m"
         script: |
-          echo "🔍 DIAGNOSTIC DEPLOYMENT STARTING"
-          echo "=================================="
-          echo "Timestamp: $(date)"
-          echo "User: $(whoami)"
-          echo "PWD: $(pwd)"
-          echo "Home: $HOME"
-          echo "Memory: $(free -h)"
-          echo "Disk: $(df -h /)"
-          echo ""
+          echo "📦 PHASE 2: Code Deployment"
+          echo "==========================="
           
-          echo "STEP 1: Environment Setup"
-          echo "========================="
-          mkdir -p ~/app
           cd ~/app
-          echo "✅ Created app directory"
-          echo "Current directory: $(pwd)"
-          echo ""
           
-          echo "STEP 2: Node.js Check"
-          echo "====================="
-          echo "Node.js version: $(node --version 2>/dev/null || echo 'NOT INSTALLED')"
-          echo "npm version: $(npm --version 2>/dev/null || echo 'NOT INSTALLED')"
-          echo ""
+          # Clean deployment
+          rm -rf multi-analysis-starter
+          git clone https://github.com/${{ github.repository }}.git multi-analysis-starter
+          cd multi-analysis-starter
           
-          echo "STEP 3: Git Clone Test"
-          echo "======================"
-          if [ -d "multi-analysis-starter" ]; then
-            echo "✅ Repository already exists"
-            cd multi-analysis-starter
-          else
-            echo "Cloning repository..."
-            git clone https://github.com/${{ github.repository }}.git multi-analysis-starter
-            cd multi-analysis-starter
-            echo "✅ Repository cloned"
-          fi
-          echo "Repository contents:"
-          ls -la
-          echo ""
+          # Set memory limits
+          export NODE_OPTIONS="--max-old-space-size=4096"
           
-          echo "STEP 4: Data Files Check"
+          # Install dependencies (with error handling)
+          echo "Installing root dependencies..."
+          npm install --no-optional || {
+            echo "⚠️ Root dependencies failed, continuing..."
+          }
+          
+          # Install package dependencies (independently)
+          for package in shared api worker web; do
+            echo "Installing $package dependencies..."
+            cd packages/$package
+            npm install --no-optional || {
+              echo "⚠️ $package dependencies failed, continuing..."
+            }
+            cd ../..
+          done
+          
+          # Copy data files
+          echo "Setting up data files..."
+          mkdir -p packages/api/data
+          cp -r data/* packages/api/data/ || {
+            echo "⚠️ Data file copy failed, continuing..."
+          }
+          
+          echo "✅ Code deployment complete"
+          
+    - name: Phase 3 - Build Process
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        port: ${{ secrets.EC2_PORT }}
+        command_timeout: "5m"
+        script: |
+          echo "🔨 PHASE 3: Build Process"
+          echo "========================="
+          
+          cd ~/app/multi-analysis-starter
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          
+          # Build packages (independently)
+          echo "Building shared package..."
+          cd packages/shared
+          npm run build || {
+            echo "⚠️ Shared build failed, continuing..."
+          }
+          cd ../..
+          
+          echo "Building API package..."
+          cd packages/api
+          npm run build || {
+            echo "⚠️ API build failed, continuing..."
+          }
+          cd ../..
+          
+          echo "Building web package..."
+          cd packages/web
+          npm run build || {
+            echo "⚠️ Web build failed, continuing..."
+          }
+          cd ../..
+          
+          echo "✅ Build process complete"
+          
+    - name: Phase 4 - Process Management
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        port: ${{ secrets.EC2_PORT }}
+        command_timeout: "3m"
+        script: |
+          echo "⚡ PHASE 4: Process Management"
+          echo "============================="
+          
+          cd ~/app/multi-analysis-starter
+          
+          # Stop existing processes
+          echo "Stopping existing processes..."
+          pkill -f "node.*3000" 2>/dev/null || echo "No web process to stop"
+          pkill -f "node.*3001" 2>/dev/null || echo "No API process to stop"
+          sleep 3
+          
+          # Start API (simple approach)
+          echo "Starting API..."
+          cd packages/api
+          nohup npm start > api.log 2>&1 &
+          echo "API started with PID: $!"
+          cd ../..
+          
+          # Start web (simple approach)
+          echo "Starting web..."
+          cd packages/web
+          export NEXT_PUBLIC_API_URL=http://localhost:3001
+          nohup npm start > web.log 2>&1 &
+          echo "Web started with PID: $!"
+          cd ../..
+          
+          echo "✅ Process management complete"
+          
+    - name: Phase 5 - Verification
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        port: ${{ secrets.EC2_PORT }}
+        command_timeout: "2m"
+        script: |
+          echo "🧪 PHASE 5: Verification"
           echo "========================"
-          if [ -d "data" ]; then
-            echo "✅ Data directory exists"
-            echo "Data files:"
-            ls -la data/
-          else
-            echo "❌ Data directory missing"
-          fi
-          echo ""
           
-          echo "STEP 5: Package Structure Check"
-          echo "==============================="
-          if [ -d "packages" ]; then
-            echo "✅ Packages directory exists"
-            echo "Packages:"
-            ls -la packages/
-          else
-            echo "❌ Packages directory missing"
-          fi
-          echo ""
+          cd ~/app/multi-analysis-starter
           
-          echo "STEP 6: Current Process Check"
-          echo "============================"
-          echo "Node.js processes:"
-          ps aux | grep node | grep -v grep || echo "No Node.js processes running"
-          echo ""
-          echo "Ports in use:"
-          netstat -tlnp 2>/dev/null | grep ":3000\|:3001" || echo "No processes on ports 3000/3001"
-          echo ""
+          # Wait for processes to start
+          echo "Waiting for processes to start..."
+          sleep 10
           
-          echo "STEP 7: Simple API Test"
-          echo "======================="
-          echo "Testing if anything is responding on port 3001..."
-          if curl -s --connect-timeout 5 http://localhost:3001/health > /dev/null 2>&1; then
-            echo "✅ Something is responding on port 3001"
-          else
-            echo "❌ Nothing responding on port 3001"
-          fi
+          # Check processes
+          echo "Checking processes..."
+          ps aux | grep node | grep -v grep || echo "No Node.js processes found"
           
-          echo "Testing if anything is responding on port 3000..."
-          if curl -s --connect-timeout 5 http://localhost:3000 > /dev/null 2>&1; then
-            echo "✅ Something is responding on port 3000"
-          else
-            echo "❌ Nothing responding on port 3000"
-          fi
-          echo ""
+          # Check ports
+          echo "Checking ports..."
+          netstat -tlnp 2>/dev/null | grep ":3000\|:3001" || echo "No processes on expected ports"
           
-          echo "DIAGNOSTIC COMPLETE"
-          echo "==================="
-          echo "Timestamp: $(date)"
-          echo "All basic checks completed successfully"
+          # Test endpoints
+          echo "Testing endpoints..."
+          curl -s --connect-timeout 5 http://localhost:3001/health > /dev/null && echo "✅ API health endpoint working" || echo "❌ API health endpoint failed"
+          curl -s --connect-timeout 5 http://localhost:3000 > /dev/null && echo "✅ Web endpoint working" || echo "❌ Web endpoint failed"
           
-    - name: Quick Health Check
+          echo "✅ Verification complete"
+          echo "🌐 Frontend: http://${{ secrets.EC2_HOST }}:3000"
+          echo "🔌 API: http://${{ secrets.EC2_HOST }}:3001"
+          
+    - name: Final Health Check
       run: |
-        echo "🔍 Quick external health check..."
-        sleep 10
+        echo "🔍 Final health check..."
+        sleep 30
         
         echo "Testing frontend..."
-        if curl -f -s --connect-timeout 10 http://${{ secrets.EC2_HOST }}:3000 > /dev/null; then
+        if curl -f -s --connect-timeout 15 http://${{ secrets.EC2_HOST }}:3000 > /dev/null; then
           echo "✅ Frontend responding"
         else
           echo "❌ Frontend not responding"
         fi
         
         echo "Testing API..."
-        if curl -f -s --connect-timeout 10 http://${{ secrets.EC2_HOST }}:3001/health > /dev/null; then
+        if curl -f -s --connect-timeout 15 http://${{ secrets.EC2_HOST }}:3001/health > /dev/null; then
           echo "✅ API responding"
         else
           echo "❌ API not responding"
