@@ -320,6 +320,11 @@ jobs:
               # Stop any existing PM2 processes
               pm2 delete all 2>/dev/null || echo "No existing PM2 processes to delete"
               
+              # Kill any existing Node.js processes on port 3001
+              echo "Stopping any existing Node.js processes on port 3001..."
+              pkill -f "node.*3001" 2>/dev/null || echo "No existing Node.js processes to kill"
+              sleep 2
+              
               # Start API
               cd packages/api
               pm2 start npm --name "api" -- start --cwd . || echo "Failed to start API with PM2"
@@ -332,17 +337,43 @@ jobs:
               
               echo "PM2 processes started:"
               pm2 list
+              
+              # Wait a moment for processes to start
+              echo "Waiting for processes to start..."
+              sleep 5
+              
+              # Test the new health endpoint
+              echo "Testing new health endpoint..."
+              curl -s http://localhost:3001/health || echo "Health endpoint not responding"
             else
-              echo "📋 Manual restart required. You may need to:"
-              echo "   1. Install Docker Compose: sudo yum install -y docker-compose"
-              echo "   2. Install PM2: npm install -g pm2"
-              echo "   3. Or start the application manually"
-              echo ""
-              echo "🔍 Current system status:"
-              echo "Memory: $(free -h | grep Mem)"
-              echo "Disk: $(df -h / | tail -1)"
-              echo "Node.js: $(node --version)"
-              echo "npm: $(npm --version)"
+              echo "📋 PM2 not available, attempting manual restart..."
+              
+              # Kill any existing Node.js processes
+              echo "Stopping any existing Node.js processes..."
+              pkill -f "node.*3001" 2>/dev/null || echo "No existing Node.js processes to kill"
+              pkill -f "node.*3000" 2>/dev/null || echo "No existing Node.js processes to kill"
+              sleep 2
+              
+              # Start API manually
+              echo "Starting API manually..."
+              cd packages/api
+              nohup npm start > api.log 2>&1 &
+              cd ../..
+              
+              # Start web manually
+              echo "Starting web manually..."
+              cd packages/web
+              nohup npm start > web.log 2>&1 &
+              cd ../..
+              
+              echo "Processes started manually. Check logs with:"
+              echo "tail -f packages/api/api.log"
+              echo "tail -f packages/web/web.log"
+              
+              # Wait and test
+              sleep 5
+              echo "Testing API..."
+              curl -s http://localhost:3001/health || echo "API not responding"
             fi
           fi
           
