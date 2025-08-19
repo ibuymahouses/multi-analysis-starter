@@ -217,6 +217,22 @@ jobs:
           }
           cd ../..
           
+          # Copy data files to API package for local data serving
+          echo "📁 Copying data files for API..."
+          if [ -d "data" ]; then
+            # Copy to API package
+            mkdir -p packages/api/data
+            cp -r data/* packages/api/data/ || echo "Failed to copy data files to API package"
+            
+            # Copy to root for fallback
+            mkdir -p data
+            cp -r data/* data/ || echo "Failed to copy data files to root"
+            
+            echo "✅ Data files copied to packages/api/data/ and root data/"
+          else
+            echo "⚠️  No data directory found in repository"
+          fi
+          
           echo "🔨 Building application..."
           echo "Building shared package..."
           cd packages/shared
