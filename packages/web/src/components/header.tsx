@@ -18,6 +18,9 @@ export default function Header() {
               <Link href="/listings" className="text-gray-600 hover:text-gray-900">
                 Listings
               </Link>
+              <Link href="/comps" className="text-gray-600 hover:text-gray-900">
+                Comps
+              </Link>
               <Link href="/rental-rates" className="text-gray-600 hover:text-gray-900">
                 Rental Rates
               </Link>

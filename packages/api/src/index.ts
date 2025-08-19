@@ -92,6 +92,26 @@ function loadOverrides() {
   return {};
 }
 
+function loadComps() {
+  const dataPaths = [
+    join(__dirname, '../../../data/comps.json'),
+    join(__dirname, '../../data/comps.json'),
+    join(process.cwd(), 'data/comps.json')
+  ];
+
+  for (const path of dataPaths) {
+    try {
+      const data = readFileSync(path, 'utf8');
+      return JSON.parse(data);
+    } catch (e) {
+      // Continue to next path
+    }
+  }
+  
+  console.error('Could not find comps.json in any expected location');
+  return { listings: [] };
+}
+
 // Analysis computation function
 function computeAnalysis(listing: any, rentLookupByZip: Map<string, any>, rentMode: string = 'avg', overrides: any = null) {
   // rentMode: 'below'|'avg'|'agg' -> 0.90 / 1.00 / 1.10
@@ -266,7 +286,6 @@ app.post('/property/:listNo/overrides', (req, res) => {
     
     // In a real implementation, you'd save this to a database
     // For now, we'll just return success
-    console.log(`Saving overrides for ${listNo}:`, overrides);
     
     res.json({ success: true, message: 'Overrides saved' });
   } catch (e) {
@@ -322,6 +341,41 @@ app.get('/rents/metadata', (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Failed to load rent metadata' });
+  }
+});
+
+// Comps endpoint
+app.get('/comps', (req, res) => {
+  try {
+    const { listings } = loadComps();
+    res.json({ listings });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to load comps' });
+  }
+});
+
+// Analyze all comps endpoint
+app.get('/analyze-comps', (req, res) => {
+  try {
+    const { mode = 'avg' } = req.query;
+    const { listings } = loadComps();
+    const { map: rentMap } = loadRentsComprehensive();
+    const overrides = loadOverrides();
+    
+    const rows = listings.map((listing: any) => {
+      const listingOverrides = overrides[listing.LIST_NO] || {};
+      const analysis = computeAnalysis(listing, rentMap, mode as string, listingOverrides);
+      return {
+        ...listing,
+        analysis
+      };
+    });
+    
+    res.json({ rows });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Comps analysis failed' });
   }
 });
 
@@ -442,4 +496,6 @@ app.post('/analyze/unlisted', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`API listening on :${PORT}`));
+app.listen(PORT, () => {
+  // Server started successfully
+});

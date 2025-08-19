@@ -1,0 +1,122 @@
+{
+  "generatedAt": "2025-08-19T15:30:00.000Z",
+  "count": 5,
+  "listings": [
+    {
+      "LIST_NO": "COMP001",
+      "ADDRESS": "123 Main St",
+      "TOWN": "Boston, MA",
+      "STATE": "MA",
+      "ZIP_CODE": "02108",
+      "STATUS": "SOLD",
+      "LIST_PRICE": 850000,
+      "SALE_PRICE": 825000,
+      "SALE_DATE": "2025-07-15",
+      "TAXES": 8500,
+      "NO_UNITS_MF": 2,
+      "UNITS_FINAL": 2,
+      "UNIT_MIX": [
+        {
+          "bedrooms": 2,
+          "count": 1
+        },
+        {
+          "bedrooms": 3,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "LIST_NO": "COMP002",
+      "ADDRESS": "456 Oak Ave",
+      "TOWN": "Cambridge, MA",
+      "STATE": "MA",
+      "ZIP_CODE": "02139",
+      "STATUS": "SOLD",
+      "LIST_PRICE": 1200000,
+      "SALE_PRICE": 1185000,
+      "SALE_DATE": "2025-06-20",
+      "TAXES": 12000,
+      "NO_UNITS_MF": 3,
+      "UNITS_FINAL": 3,
+      "UNIT_MIX": [
+        {
+          "bedrooms": 2,
+          "count": 2
+        },
+        {
+          "bedrooms": 3,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "LIST_NO": "COMP003",
+      "ADDRESS": "789 Pine St",
+      "TOWN": "Somerville, MA",
+      "STATE": "MA",
+      "ZIP_CODE": "02144",
+      "STATUS": "SOLD",
+      "LIST_PRICE": 650000,
+      "SALE_PRICE": 635000,
+      "SALE_DATE": "2025-08-01",
+      "TAXES": 6500,
+      "NO_UNITS_MF": 2,
+      "UNITS_FINAL": 2,
+      "UNIT_MIX": [
+        {
+          "bedrooms": 2,
+          "count": 2
+        }
+      ]
+    },
+    {
+      "LIST_NO": "COMP004",
+      "ADDRESS": "321 Elm St",
+      "TOWN": "Brookline, MA",
+      "STATE": "MA",
+      "ZIP_CODE": "02445",
+      "STATUS": "SOLD",
+      "LIST_PRICE": 950000,
+      "SALE_PRICE": 925000,
+      "SALE_DATE": "2025-07-30",
+      "TAXES": 9500,
+      "NO_UNITS_MF": 2,
+      "UNITS_FINAL": 2,
+      "UNIT_MIX": [
+        {
+          "bedrooms": 2,
+          "count": 1
+        },
+        {
+          "bedrooms": 3,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "LIST_NO": "COMP005",
+      "ADDRESS": "654 Maple Dr",
+      "TOWN": "Newton, MA",
+      "STATE": "MA",
+      "ZIP_CODE": "02458",
+      "STATUS": "SOLD",
+      "LIST_PRICE": 1100000,
+      "SALE_PRICE": 1075000,
+      "SALE_DATE": "2025-06-10",
+      "TAXES": 11000,
+      "NO_UNITS_MF": 3,
+      "UNITS_FINAL": 3,
+      "UNIT_MIX": [
+        {
+          "bedrooms": 2,
+          "count": 2
+        },
+        {
+          "bedrooms": 3,
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

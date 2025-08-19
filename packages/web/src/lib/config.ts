@@ -3,12 +3,7 @@ import { config } from '@multi-analysis/shared';
 // Use shared configuration for API base URL
 export const API_BASE_URL = config.apiBaseUrl;
 
-// Debug logging (only in development)
-if (config.isDevelopment) {
-  console.log('API_BASE_URL:', API_BASE_URL);
-  console.log('NEXT_PUBLIC_API_URL env var:', process.env.NEXT_PUBLIC_API_URL);
-  console.log('NODE_ENV:', config.nodeEnv);
-}
+// Configuration loaded from shared package
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -18,6 +13,8 @@ export const API_ENDPOINTS = {
   analyze: (listNo: string) => `${API_BASE_URL}/analyze/${listNo}`,
   analyzeUnlisted: `${API_BASE_URL}/analyze/unlisted`,
   listings: `${API_BASE_URL}/listings`,
+  comps: `${API_BASE_URL}/comps`,
+  analyzeComps: (mode: string) => `${API_BASE_URL}/analyze-comps?mode=${mode}`,
   rentsMetadata: `${API_BASE_URL}/rents/metadata`,
   rents: `${API_BASE_URL}/rents`,
   export: (mode: string) => `${API_BASE_URL}/export/analyzed.csv?mode=${mode}`,
