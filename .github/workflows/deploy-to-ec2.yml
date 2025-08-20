@@ -150,8 +150,8 @@ jobs:
         proxy_timeout: "5m"
         script_stop: false
         script: |
-          echo "⚡ PHASE 4: Smart Process Management"
-          echo "==================================="
+          echo "⚡ PHASE 4: PID-Based Process Management"
+          echo "======================================"
           echo "Start time: $(date)"
           echo "User: $(whoami)"
           echo "PWD: $(pwd)"
@@ -170,30 +170,31 @@ jobs:
           ps aux | grep node | grep -v grep || echo "No Node.js processes"
           echo ""
           
-          # Kill only old processes (not the ones we'll start)
-          echo "Killing old processes (preserving new ones)..."
+          # Kill processes by PID (much faster than pattern matching)
+          echo "Killing processes by PID..."
           
-          # Method 1: Kill processes by specific patterns (old deployment paths)
-          echo "Killing old deployment processes..."
-          timeout 5s pkill -TERM -f "deploy-simple" 2>/dev/null || echo "No old deploy-simple processes"
-          timeout 5s pkill -TERM -f "api-src/index.js" 2>/dev/null || echo "No old api-src processes"
+          # Get PIDs of processes using our target ports
+          API_PID_TO_KILL=$(netstat -tlnp 2>/dev/null | grep ":3001 " | awk '{print $7}' | cut -d'/' -f1 | head -1)
+          WEB_PID_TO_KILL=$(netstat -tlnp 2>/dev/null | grep ":3000 " | awk '{print $7}' | cut -d'/' -f1 | head -1)
           
-          # Method 2: Kill processes by port (if they're using our target ports)
-          echo "Killing processes on target ports..."
-          if netstat -tlnp 2>/dev/null | grep -q ":3001 "; then
-            echo "Port 3001 in use, killing process..."
-            timeout 5s fuser -k 3001/tcp 2>/dev/null || echo "No process on port 3001"
+          if [ ! -z "$API_PID_TO_KILL" ]; then
+            echo "Killing process $API_PID_TO_KILL on port 3001..."
+            kill -TERM $API_PID_TO_KILL 2>/dev/null || echo "Process $API_PID_TO_KILL already gone"
+          else
+            echo "No process on port 3001"
           fi
           
-          if netstat -tlnp 2>/dev/null | grep -q ":3000 "; then
-            echo "Port 3000 in use, killing process..."
-            timeout 5s fuser -k 3000/tcp 2>/dev/null || echo "No process on port 3000"
+          if [ ! -z "$WEB_PID_TO_KILL" ]; then
+            echo "Killing process $WEB_PID_TO_KILL on port 3000..."
+            kill -TERM $WEB_PID_TO_KILL 2>/dev/null || echo "Process $WEB_PID_TO_KILL already gone"
+          else
+            echo "No process on port 3000"
           fi
           
           sleep 2
           
           # Check what's left after killing
-          echo "Processes after killing old ones:"
+          echo "Processes after killing:"
           ps aux | grep node | grep -v grep || echo "No Node.js processes"
           echo ""
           
@@ -256,7 +257,7 @@ jobs:
           echo "Port usage:"
           netstat -tlnp 2>/dev/null | grep ":300[0-9]" || echo "No processes on ports 3000-3009"
           echo ""
-          echo "✅ Smart process management complete"
+          echo "✅ PID-based process management complete"
           
     - name: Phase 5 - Verification
       uses: appleboy/ssh-action@v1.0.3
