@@ -1,23 +1,31 @@
 # Multi Analysis App — Starter
 
-## Run in Codespaces (recommended - no setup needed)
+## 🚀 Quick Start
+
+### Run in Codespaces (recommended - no setup needed)
 1. Open this repo in **Cursor** → Command Palette → **GitHub Codespaces: Create New Codespace**.
 2. When the Codespace opens, Command Palette → **Tasks: Run Task** → **Dev**.
 3. In the Ports panel, make **3000** public → Open in Browser.
 
-## Run locally with Docker
+### Run locally with Docker
 - Install **Docker Desktop** (for Postgres/Redis later) and **pnpm** (via `corepack enable`).
 - `npm run install:all`
 - `npm run dev`
 
-## Run locally without Docker (simplified)
+### Run locally without Docker (simplified)
 - Install **Node.js** (v18+)
 - Fix PowerShell execution policy (see troubleshooting below)
 - `npm run install:all`
 - `npm run dev`
 - Note: Database features will be limited until Docker is set up
 
-## Troubleshooting
+## 📚 Documentation
+
+- **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Complete deployment instructions
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Documentation Archive](docs/archive/)** - Previous documentation versions
+
+## 🔧 Troubleshooting
 
 ### PowerShell Execution Policy Error
 If you see "running scripts is disabled on this system":
@@ -40,7 +48,7 @@ If PowerShell continues to have issues:
 3. Run: `npm run install:all`
 4. Run: `npm run dev`
 
-## Seeding data
+## 📊 Seeding data
 Place your MLS CSV at `seed/data/mls.csv`, then:
 - **Tasks: Run Task** → **Seed MLS**
 - **Tasks: Run Task** → **Seed Rents** (HUD/BHA placeholders for now) 

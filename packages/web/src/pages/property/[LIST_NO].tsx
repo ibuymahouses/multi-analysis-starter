@@ -43,6 +43,7 @@ interface Property {
        waterSewer?: number;
        commonElec?: number;
        rubbish?: number;
+       insurance?: number;
        pm?: number;
        repairs?: number;
        legal?: number;
@@ -102,15 +103,8 @@ export default function PropertyDetails() {
     }
   }, [undoState, property, LIST_NO]);
 
-  // Function to get rent for specific bedroom count - check overrides first, then BHA data
-  const getRentForBedrooms = (bedrooms: number, zipCode: string) => {
-    // Check if there's a custom rent override for this bedroom type
-    const unitOverride = currentUnitMix.find(unit => unit.bedrooms === bedrooms);
-    if (unitOverride && unitOverride.rent) {
-      return unitOverride.rent;
-    }
-    
-    // Fall back to BHA data
+  // Function to get rent for specific bedroom count from BHA data only (no overrides)
+  const getBhaRentForBedrooms = (bedrooms: number, zipCode: string): number => {
     if (!bhaRentalData) return 0;
     
     const zipData = bhaRentalData.rents?.find((item: any) => item.zip === zipCode);
@@ -267,37 +261,117 @@ export default function PropertyDetails() {
     );
   }
 
+  // Function to initialize unit mix if none exists
+  const initializeUnitMix = (): UnitMix[] => {
+    if (property.overrides?.unitMix) {
+      return property.overrides.unitMix;
+    }
+    
+    if (property.UNIT_MIX && property.UNIT_MIX.length > 0) {
+      return property.UNIT_MIX;
+    }
+    
+    // If no unit mix exists, create a default based on UNITS_FINAL
+    // Default to 1-bedroom units if we don't have specific unit type data
+    if (property.UNITS_FINAL && property.UNITS_FINAL > 0) {
+      const defaultUnitMix: UnitMix[] = [{ 
+        bedrooms: 1, 
+        count: property.UNITS_FINAL,
+        rent: getBhaRentForBedrooms(1, property.ZIP_CODE)
+      }];
+      
+      // Save this default to overrides so it persists
+      updateOverrides({ unitMix: defaultUnitMix });
+      return defaultUnitMix;
+    }
+    
+    return [];
+  };
+
   // Use overrides or fall back to original data
-  const currentUnitMix = property.overrides?.unitMix || property.UNIT_MIX || [];
+  const currentUnitMix: UnitMix[] = initializeUnitMix();
+  
+  // Function to get rent for specific bedroom count - check overrides first, then BHA data
+  const getRentForBedrooms = (bedrooms: number, zipCode: string): number => {
+    // Check if there's a custom rent override for this bedroom type
+    const unitOverride = currentUnitMix.find((unit: UnitMix) => unit.bedrooms === bedrooms);
+    if (unitOverride && unitOverride.rent) {
+      return unitOverride.rent;
+    }
+    
+    // Fall back to BHA data
+    return getBhaRentForBedrooms(bedrooms, zipCode);
+  };
   const monthlyRent = property.overrides?.monthlyRent || property.analysis.monthlyGross;
   const downPayment = property.overrides?.downPayment ?? 0.20;
   const interestRate = property.overrides?.interestRate ?? 0.07;
   const loanTerm = property.overrides?.loanTerm || 30;
-  const vacancy = property.overrides?.vacancy ?? 0.03; // Default to 3%
+  const vacancy = property.overrides?.vacancy ?? 0.08; // Default to 8%
   
   // Offer price - use override or default to list price
   const offerPrice = property.overrides?.offerPrice ?? property.LIST_PRICE;
   const offerPricePercent = (offerPrice / property.LIST_PRICE) * 100;
 
-     // OPEX breakdown - use overrides or defaults
-   const opexDefaults = {
-     waterSewer: property.analysis.opex * 0.15, // 15% of total OPEX
-     commonElec: property.analysis.opex * 0.10, // 10% of total OPEX
-     rubbish: property.analysis.opex * 0.05,    // 5% of total OPEX
-     pm: property.analysis.opex * 0.10,         // 10% of total OPEX
-     repairs: property.analysis.opex * 0.20,    // 20% of total OPEX
-     legal: property.analysis.opex * 0.05,      // 5% of total OPEX
-     capex: property.analysis.opex * 0.15,      // 15% of total OPEX
-     taxes: property.TAXES || 0,                // Property taxes
-     licensing: 0                               // Licensing & Permits
-   };
-
-  const opex = property.overrides?.opex || opexDefaults;
-  const totalOpex = Object.values(opex).reduce((sum, val) => sum + (val || 0), 0);
-
+     // Dynamic OPEX defaults calculation function
+     const calculateOpexDefaults = () => {
+       // 1. Vacancy defaults to 8%
+       const defaultVacancy = 0.08;
+       
+       // 2. Taxes: use TAXES value unless it's exactly $9,999, then use Purchase Price * 0.0015
+       let defaultTaxes;
+       if (property.TAXES === 9999) {
+         defaultTaxes = offerPrice * 0.0015;
+       } else {
+         defaultTaxes = property.TAXES || 0;
+       }
+       
+       // 3. Insurance defaults to $2,000
+       const defaultInsurance = 2000;
+       
+       // 4. Water/Sewer: $400 * number of units
+       const defaultWaterSewer = (property.UNITS_FINAL || 0) * 400;
+       
+       // 5. Rubbish Removal defaults to $1,000
+       const defaultRubbish = 1000;
+       
+       // 6. Maint/Repairs: 3% of effective gross income
+       const effectiveGrossForDefaults = annualGross * (1 - defaultVacancy);
+       const defaultRepairs = effectiveGrossForDefaults * 0.03;
+       
+       // 7. Property Management: 8% of effective gross income
+       const defaultPM = effectiveGrossForDefaults * 0.08;
+       
+       // 8. Licensing & Permits defaults to $0
+       const defaultLicensing = 0;
+       
+       // 9. Legal & Professional Fees defaults to $1,000
+       const defaultLegal = 1000;
+       
+       // 10. Capital Reserve: 2% of effective gross income
+       const defaultCapex = effectiveGrossForDefaults * 0.02;
+       
+       // Common Electric: keep as percentage of total OPEX for now
+       const defaultCommonElec = property.analysis.opex * 0.10;
+       
+       return {
+         waterSewer: defaultWaterSewer,
+         commonElec: defaultCommonElec,
+         rubbish: defaultRubbish,
+         insurance: defaultInsurance,
+         pm: defaultPM,
+         repairs: defaultRepairs,
+         legal: defaultLegal,
+         capex: defaultCapex,
+         taxes: defaultTaxes,
+         licensing: defaultLicensing
+       };
+     };
+     
+     // Get OPEX values - use overrides if they exist, otherwise use calculated defaults
+     // Note: opexDefaults will be calculated after annualGross is defined
   // Calculate derived values
   const unitMixTotal = currentUnitMix.length > 0 
-    ? currentUnitMix.reduce((sum, u) => sum + u.count, 0)
+    ? currentUnitMix.reduce((sum: number, u: UnitMix) => sum + u.count, 0)
     : 0;
   
   // Use UNITS_FINAL if unit mix is empty or doesn't account for all units
@@ -306,7 +380,7 @@ export default function PropertyDetails() {
     : (property.UNITS_FINAL || 0);
     
   const totalBedrooms = currentUnitMix.length > 0 && unitMixTotal === (property.UNITS_FINAL || 0)
-    ? currentUnitMix.reduce((sum, u) => sum + (u.bedrooms * u.count), 0)
+    ? currentUnitMix.reduce((sum: number, u: UnitMix) => sum + (u.bedrooms * u.count), 0)
     : (property.UNITS_FINAL || 0) * 2; // Default to 2 bedrooms per unit if no unit mix or incomplete unit mix
   const averageBedrooms = totalUnits > 0 ? totalBedrooms / totalUnits : 0;
   
@@ -344,6 +418,12 @@ export default function PropertyDetails() {
         return total + (unitRent * unit.count * 12);
       }, 0)
     : (property.analysis?.monthlyGross || 0) * 12; // Fall back to property's monthly gross if no unit mix or incomplete unit mix
+  
+  // Now calculate OPEX defaults since annualGross is available
+  const opexDefaults = calculateOpexDefaults();
+  const opex = property.overrides?.opex || opexDefaults;
+  const totalOpex = Object.values(opex).reduce((sum, val) => sum + (val || 0), 0);
+  
   const vacancyAmount = annualGross * vacancy;
   const effectiveGrossIncome = annualGross - vacancyAmount;
   const noi = effectiveGrossIncome - totalOpex;
@@ -471,131 +551,26 @@ export default function PropertyDetails() {
 
   return (
     <div style={{ 
-      display: 'flex',
-      gap: '24px',
       maxWidth: '1400px', 
       margin: '0 auto', 
       padding: '20px',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
-      {/* Fixed Left Sidebar */}
+      {/* Header Box - Full Width */}
       <div style={{
-        position: 'sticky',
-        top: '20px',
-        height: 'fit-content',
-        width: '320px',
-        flexShrink: 0
-      }}>
-        {/* Header Section */}
-        <div style={{ marginBottom: '16px' }}>
-          <button 
-            onClick={() => {
-              // Build back URL with current filter parameters
-              const currentQuery = { ...router.query };
-              delete currentQuery.LIST_NO; // Remove the property-specific parameter
-              
-              router.push({
-                pathname: '/listings',
-                query: currentQuery
-              });
-            }}
-            style={{ 
-              padding: '8px 16px', 
               background: '#f8f9fa', 
               border: '1px solid #ddd', 
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              color: '#666',
-              marginBottom: '12px',
-              width: '100%'
-            }}
-          >
-            ← Back to Listings
-          </button>
-          
-                     <h1 style={{ 
-             fontSize: '20px', 
-             fontWeight: 'bold', 
-             margin: '0 0 4px 0',
-             color: '#2c3e50',
-             lineHeight: '1.2'
-           }}>
-             {property.ADDRESS}
-           </h1>
-          
-                                 <p style={{ 
-              fontSize: '13px', 
-              color: '#666', 
-              margin: '0 0 8px 0',
-              lineHeight: '1.3'
-            }}>
-              {property.TOWN} {property.ZIP_CODE}
-            </p>
-            <p style={{ 
-              fontSize: '13px', 
-              color: '#666', 
-              margin: '0 0 8px 0',
-              lineHeight: '1.3'
-            }}>
-              MLS #{property.LIST_NO}
-            </p>
-            <p style={{ 
-              fontSize: '13px', 
-              color: '#666', 
-              margin: '0 0 16px 0',
-              lineHeight: '1.3'
-            }}>
-              {property.UNITS_FINAL}-unit property
-            </p>
-        </div>
-
-        {/* Editable Fields Note */}
+        borderRadius: '8px',
+        padding: '20px',
+        marginBottom: '24px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '16px'
+      }}>
+        {/* Left Side - Undo/Redo Buttons */}
         <div style={{ 
-          marginBottom: '16px', 
-          padding: '8px 12px', 
-          background: '#e3f2fd', 
-          border: '1px solid #2196f3', 
-          borderRadius: '4px',
-          fontSize: '12px',
-          color: '#1976d2'
-        }}>
-          💡 <strong>Tip:</strong> Changes made to editable fields update all calculations throughout the page.
-        </div>
-
-        {/* Unit Mix Sync Warning */}
-        {currentUnitMix.length > 0 && unitMixTotal !== (property.UNITS_FINAL || 0) && (
-          <div style={{ 
-            marginBottom: '16px', 
-            padding: '8px 12px', 
-            background: '#fff3cd', 
-            border: '1px solid #ffc107', 
-            borderRadius: '4px',
-            fontSize: '12px',
-            color: '#856404'
-          }}>
-            ⚠️ <strong>Unit Mix Mismatch:</strong> Unit mix shows {unitMixTotal} units but property has {property.UNITS_FINAL} units.
-            <button
-              onClick={syncUnitMixToTotal}
-              style={{
-                marginLeft: '8px',
-                padding: '2px 6px',
-                fontSize: '10px',
-                background: '#28a745',
-                border: '1px solid #28a745',
-                borderRadius: '3px',
-                cursor: 'pointer',
-                color: 'white'
-              }}
-            >
-              Sync to {property.UNITS_FINAL} units
-            </button>
-          </div>
-        )}
-
-        {/* Undo/Redo Buttons */}
-        <div style={{ 
-          marginBottom: '16px',
           display: 'flex', 
           gap: '8px' 
         }}>
@@ -603,14 +578,13 @@ export default function PropertyDetails() {
             onClick={undo}
             disabled={!canUndo}
             style={{
-              padding: '6px 12px',
-              fontSize: '12px',
+              padding: '8px 16px',
+              fontSize: '14px',
               background: canUndo ? '#f8f9fa' : '#e9ecef',
               border: '1px solid #ddd',
               borderRadius: '4px',
               cursor: canUndo ? 'pointer' : 'not-allowed',
-              color: canUndo ? '#495057' : '#6c757d',
-              flex: '1'
+              color: canUndo ? '#495057' : '#6c757d'
             }}
             title="Undo (Ctrl+Z)"
           >
@@ -620,14 +594,13 @@ export default function PropertyDetails() {
             onClick={redo}
             disabled={!canRedo}
             style={{
-              padding: '6px 12px',
-              fontSize: '12px',
+              padding: '8px 16px',
+              fontSize: '14px',
               background: canRedo ? '#f8f9fa' : '#e9ecef',
               border: '1px solid #ddd',
               borderRadius: '4px',
               cursor: canRedo ? 'pointer' : 'not-allowed',
-              color: canRedo ? '#495057' : '#6c757d',
-              flex: '1'
+              color: canRedo ? '#495057' : '#6c757d'
             }}
             title="Redo (Ctrl+Y)"
           >
@@ -635,326 +608,50 @@ export default function PropertyDetails() {
           </button>
         </div>
 
-        {/* Key Metrics */}
+        {/* Center - Property Address and MLS */}
         <div style={{ 
-          background: '#2c3e50', 
-          color: 'white', 
-          padding: '16px 20px', 
-          fontWeight: 'bold',
-          fontSize: '18px',
-          borderTopLeftRadius: '8px',
-          borderTopRightRadius: '8px',
-          textAlign: 'center'
+          textAlign: 'center',
+          flex: '1',
+          minWidth: '300px'
         }}>
-          Key Metrics
-        </div>
-        <div style={{ 
-          border: '1px solid #ddd', 
-          borderTop: 'none',
-          padding: '24px',
-          background: '#f8f9fa'
-        }}>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: '1fr', 
-            gap: '16px' 
+          <h1 style={{ 
+            fontSize: '20px', 
+                  fontWeight: 'bold', 
+            margin: '0 0 4px 0',
+            color: '#2c3e50',
+            lineHeight: '1.2'
           }}>
+            {property.ADDRESS}
+          </h1>
+          <p style={{ 
+            fontSize: '16px', 
+            color: '#666', 
+            margin: '0',
+            lineHeight: '1.3'
+          }}>
+            {property.TOWN} {property.STATE} {property.ZIP_CODE} MLS #{property.LIST_NO}
+          </p>
+            </div>
+            
+        {/* Right Side - Tip Box */}
             <div style={{ 
-              background: 'white',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              padding: '16px',
-              textAlign: 'left'
-            }}>
-              <div style={{ 
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '4px'
-              }}>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: 'bold', 
-                  color: '#dc3545'
-                }}>
-                  DSCR:
-                </div>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: 'bold', 
-                  color: '#dc3545'
-                }}>
-                  {dscr.toFixed(2)}
-                </div>
-              </div>
-              <div style={{ 
-                fontSize: '14px', 
-                color: '#666'
-              }}>
-                {formatLTV(1 - downPayment)} LTV
+          padding: '8px 12px', 
+          background: '#e3f2fd', 
+          border: '1px solid #2196f3', 
+          borderRadius: '4px',
+          fontSize: '12px',
+          color: '#1976d2',
+          maxWidth: '300px'
+        }}>
+          💡 <strong>Tip:</strong> Changes made to editable fields update all calculations throughout the page.
               </div>
             </div>
             
-            <div style={{ 
-              background: 'white',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              padding: '16px',
-              textAlign: 'left'
-            }}>
-              <div style={{ 
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '4px'
-              }}>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: 'bold', 
-                  color: '#2c3e50'
-                }}>
-                  Cap Rate:
-                </div>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: 'bold', 
-                  color: '#2c3e50'
-                }}>
-                  {formatCapRate(capRate)}
-                </div>
-              </div>
-              <div style={{ 
-                fontSize: '14px', 
-                color: '#666'
-              }}>
-                at offer price
-              </div>
-            </div>
-            
-            <div style={{ 
-              background: 'white',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              padding: '16px',
-              textAlign: 'left'
-            }}>
-              <div style={{ 
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '4px'
-              }}>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: 'bold', 
-                  color: '#ffc107'
-                }}>
-                  Return:
-                </div>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: 'bold', 
-                  color: '#ffc107'
-                }}>
-                  {formatReturnOnCapital(returnOnCapital)}
-                </div>
-              </div>
-              <div style={{ 
-                fontSize: '14px', 
-                color: '#666'
-              }}>
-                on capital
-              </div>
-            </div>
-            
-            <div style={{ 
-              background: 'white',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              padding: '16px',
-              textAlign: 'left'
-            }}>
-              <div style={{ 
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '4px'
-              }}>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: 'bold', 
-                  color: '#dc3545'
-                }}>
-                  Cash Flow:
-                </div>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: 'bold', 
-                  color: '#dc3545'
-                }}>
-                  {formatCurrency(monthlyCashFlow)}
-                </div>
-              </div>
-              <div style={{ 
-                fontSize: '14px', 
-                color: '#666'
-              }}>
-                monthly
-              </div>
-            </div>
-            
-            <div style={{ 
-              background: 'white',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              padding: '16px',
-              textAlign: 'left'
-            }}>
-              <div style={{ 
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '4px'
-              }}>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: 'bold', 
-                  color: '#2c3e50'
-                }}>
-                  Equity:
-                </div>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: 'bold', 
-                  color: '#2c3e50'
-                }}>
-                  {formatCurrency(equityRequired)}
-                </div>
-              </div>
-              <div style={{ 
-                fontSize: '14px', 
-                color: '#666'
-              }}>
-                required
-              </div>
-            </div>
-            
-            <div style={{ 
-              background: 'white',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              padding: '16px',
-              textAlign: 'left'
-            }}>
-              <div style={{ 
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '4px'
-              }}>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: 'bold', 
-                  color: '#28a745'
-                }}>
-                  $/Unit:
-                </div>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: 'bold', 
-                  color: '#28a745'
-                }}>
-                  {formatCurrency(pricePerUnit)}
-                </div>
-              </div>
-              <div style={{ 
-                fontSize: '14px', 
-                color: '#666'
-              }}>
-                {totalUnits} units
-              </div>
-              {compComparisons.pricePerUnit.compCount > 0 && (
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: '#666',
-                  fontStyle: 'italic',
-                  marginTop: '4px'
-                }}
-                title={getCompTooltipText(compComparisons.pricePerUnit.compCount, unitRangeLabel)}
-                >
-                  {formatCompComparison(
-                    compComparisons.pricePerUnit.difference,
-                    compComparisons.pricePerUnit.percentage,
-                    compComparisons.pricePerUnit.compCount
-                  )}
-                </div>
-              )}
-              {/* Debug: Always show comp count */}
-              <div style={{ fontSize: '10px', color: 'red' }}>
-                Debug: {compComparisons.pricePerUnit.compCount} comps found
-              </div>
-            </div>
-            
-            <div style={{ 
-              background: 'white',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              padding: '16px',
-              textAlign: 'left'
-            }}>
-              <div style={{ 
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '4px'
-              }}>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: 'bold', 
-                  color: '#17a2b8'
-                }}>
-                  $/Bed:
-                </div>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: 'bold', 
-                  color: '#17a2b8'
-                }}>
-                  {formatCurrency(pricePerBedroom)}
-                </div>
-              </div>
-              <div style={{ 
-                fontSize: '14px', 
-                color: '#666'
-              }}>
-                {totalBedrooms} total beds
-              </div>
-              {compComparisons.pricePerBed.compCount > 0 && (
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: '#666',
-                  fontStyle: 'italic',
-                  marginTop: '4px'
-                }}
-                title={getCompTooltipText(compComparisons.pricePerBed.compCount, unitRangeLabel)}
-                >
-                  {formatCompComparison(
-                    compComparisons.pricePerBed.difference,
-                    compComparisons.pricePerBed.percentage,
-                    compComparisons.pricePerBed.compCount
-                  )}
-                </div>
-              )}
-              {/* Debug: Always show comp count */}
-              <div style={{ fontSize: '10px', color: 'red' }}>
-                Debug: {compComparisons.pricePerBed.compCount} comps found
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content Area */}
+              <div style={{ 
+                display: 'flex',
+        gap: '24px'
+      }}>
       <main style={{ flex: '1' }}>
 
       
@@ -1583,9 +1280,9 @@ export default function PropertyDetails() {
                  <div style={{ textAlign: 'right' }}>
                    <input
                      type="text"
-                     value={formatInputValue(toDisplayValue(opex.pm || 0), 'currency')}
+                     value={formatInputValue(toDisplayValue(opex.insurance || 0), 'currency')}
                      onChange={(e) => updateOverrides({ 
-                       opex: { ...opex, pm: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
+                       opex: { ...opex, insurance: fromDisplayValue(parseInputValue(e.target.value, 'currency')) }
                      })}
                      style={{ 
                        padding: '4px', 
@@ -1598,9 +1295,9 @@ export default function PropertyDetails() {
                  </div>
                                  <div style={{ textAlign: 'right' }}>
                   <PercentageInput
-                    value={(opex.pm || 0) / effectiveGrossIncome}
+                    value={(opex.insurance || 0) / effectiveGrossIncome}
                     onChange={(value) => updateOverrides({ 
-                      opex: { ...opex, pm: value * effectiveGrossIncome }
+                      opex: { ...opex, insurance: value * effectiveGrossIncome }
                     })}
                     maxValue={100}
                     minValue={0}
@@ -1867,12 +1564,354 @@ export default function PropertyDetails() {
          </div>
        </section>
 
-      
+                   </main>
 
-      
+      {/* Fixed Right Sidebar */}
+      <div style={{
+        position: 'sticky',
+        top: '20px',
+        height: 'fit-content',
+        width: '320px',
+        flexShrink: 0
+      }}>
+        {/* Back to Listings Button */}
+        <div style={{ marginBottom: '16px' }}>
+          <button 
+            onClick={() => {
+              // Build back URL with current filter parameters
+              const currentQuery = { ...router.query };
+              delete currentQuery.LIST_NO; // Remove the property-specific parameter
+              
+              router.push({
+                pathname: '/listings',
+                query: currentQuery
+              });
+            }}
+            style={{ 
+              padding: '8px 16px', 
+              background: '#f8f9fa', 
+              border: '1px solid #ddd', 
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              color: '#666',
+              marginBottom: '12px',
+              width: '100%'
+            }}
+          >
+            ← Back to Listings
+          </button>
+        </div>
 
-      
-      </main>
+        {/* Unit Mix Sync Warning */}
+        {currentUnitMix.length > 0 && unitMixTotal !== (property.UNITS_FINAL || 0) && (
+          <div style={{ 
+            marginBottom: '16px', 
+            padding: '8px 12px', 
+            background: '#fff3cd', 
+            border: '1px solid #ffc107', 
+            borderRadius: '4px',
+            fontSize: '12px',
+            color: '#856404'
+          }}>
+            ⚠️ <strong>Unit Mix Mismatch:</strong> Unit mix shows {unitMixTotal} units but property has {property.UNITS_FINAL} units.
+            <button
+              onClick={syncUnitMixToTotal}
+              style={{
+                marginLeft: '8px',
+                padding: '2px 6px',
+                fontSize: '10px',
+                background: '#28a745',
+                border: '1px solid #28a745',
+                borderRadius: '3px',
+                cursor: 'pointer',
+                color: 'white'
+              }}
+            >
+              Sync to {property.UNITS_FINAL} units
+            </button>
+          </div>
+        )}
+
+        {/* Key Metrics */}
+        <div style={{ 
+          background: '#2c3e50', 
+          color: 'white', 
+          padding: '16px 20px', 
+          fontWeight: 'bold',
+          fontSize: '18px',
+          borderTopLeftRadius: '8px',
+          borderTopRightRadius: '8px',
+          textAlign: 'center'
+        }}>
+          Key Metrics
+        </div>
+        <div style={{ 
+          border: '1px solid #ddd', 
+          borderTop: 'none',
+          padding: '24px',
+          background: '#f8f9fa'
+        }}>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: '1fr', 
+            gap: '16px' 
+          }}>
+            <div style={{ 
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              padding: '16px',
+              textAlign: 'left'
+            }}>
+              <div style={{ 
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px'
+              }}>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#dc3545'
+                }}>
+                  DSCR:
+                </div>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#dc3545'
+                }}>
+                  {dscr.toFixed(2)}
+                </div>
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#666'
+              }}>
+                {formatLTV(1 - downPayment)} LTV
+              </div>
+            </div>
+            
+            <div style={{ 
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              padding: '16px',
+              textAlign: 'left'
+            }}>
+              <div style={{ 
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px'
+              }}>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#2c3e50'
+                }}>
+                  Cap Rate:
+                </div>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#2c3e50'
+                }}>
+                  {formatCapRate(capRate)}
+                </div>
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#666'
+              }}>
+                at offer price
+              </div>
+            </div>
+            
+            <div style={{ 
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              padding: '16px',
+              textAlign: 'left'
+            }}>
+              <div style={{ 
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px'
+              }}>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#ffc107'
+                }}>
+                  Return:
+                </div>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#ffc107'
+                }}>
+                  {formatReturnOnCapital(returnOnCapital)}
+                </div>
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#666'
+              }}>
+                on capital
+              </div>
+            </div>
+            
+            <div style={{ 
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              padding: '16px',
+              textAlign: 'left'
+            }}>
+              <div style={{ 
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px'
+              }}>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#dc3545'
+                }}>
+                  Cash Flow:
+                </div>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#dc3545'
+                }}>
+                  {formatCurrency(monthlyCashFlow)}
+                </div>
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#666'
+              }}>
+                monthly
+              </div>
+            </div>
+            
+            <div style={{ 
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              padding: '16px',
+              textAlign: 'left'
+            }}>
+              <div style={{ 
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px'
+              }}>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#2c3e50'
+                }}>
+                  Equity:
+                </div>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#2c3e50'
+                }}>
+                  {formatCurrency(equityRequired)}
+                </div>
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#666'
+              }}>
+                required
+              </div>
+            </div>
+            
+            <div style={{ 
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              padding: '16px',
+              textAlign: 'left'
+            }}>
+              <div style={{ 
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px'
+              }}>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#28a745'
+                }}>
+                  $/Unit:
+                </div>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#28a745'
+                }}>
+                  {formatCurrency(pricePerUnit)}
+                </div>
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#666'
+              }}>
+                {totalUnits} units
+              </div>
+            </div>
+            
+            <div style={{ 
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              padding: '16px',
+              textAlign: 'left'
+            }}>
+              <div style={{ 
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px'
+              }}>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#17a2b8'
+                }}>
+                  $/Bed:
+                </div>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#17a2b8'
+                }}>
+                  {formatCurrency(pricePerBedroom)}
+                </div>
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#666'
+              }}>
+                {totalBedrooms} total beds
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
   );
 }
