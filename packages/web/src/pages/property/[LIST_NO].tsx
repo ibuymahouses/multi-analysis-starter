@@ -3,6 +3,8 @@ import { useRouter } from 'next/router';
 import { useUndoRedo } from '../../lib/undo-redo-context';
 import { useKeyboardShortcuts } from '../../lib/use-keyboard-shortcuts';
 import { API_ENDPOINTS } from '../../lib/config';
+import { calculateCompComparisons, formatCompComparison, getCompTooltipText, getUnitRange } from '../../lib/comp-analysis';
+import { PercentageInput } from '../../components/ui/percentage-input';
 
 interface UnitMix {
   bedrooms: number;
@@ -63,22 +65,9 @@ export default function PropertyDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bhaRentalData, setBhaRentalData] = useState<any>(null);
+  const [compsData, setCompsData] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<'annual' | 'monthly'>('annual');
-  const [closingCostsInput, setClosingCostsInput] = useState<string>('');
-  const [dueDiligenceInput, setDueDiligenceInput] = useState<string>('');
-  const [downPaymentInput, setDownPaymentInput] = useState<string>('');
-  const [interestRateInput, setInterestRateInput] = useState<string>('');
-  const [vacancyInput, setVacancyInput] = useState<string>('');
-  const [taxesInput, setTaxesInput] = useState<string>('');
-  const [insuranceInput, setInsuranceInput] = useState<string>('');
-  const [waterSewerInput, setWaterSewerInput] = useState<string>('');
-  const [commonElecInput, setCommonElecInput] = useState<string>('');
-  const [rubbishInput, setRubbishInput] = useState<string>('');
-  const [repairsInput, setRepairsInput] = useState<string>('');
-  const [pmInput, setPmInput] = useState<string>('');
-  const [licensingInput, setLicensingInput] = useState<string>('');
-  const [legalInput, setLegalInput] = useState<string>('');
-  const [capexInput, setCapexInput] = useState<string>('');
+
   
   // Undo/Redo integration
   const { setState: setUndoState, state: undoState, canUndo, canRedo, undo, redo } = useUndoRedo();
@@ -142,6 +131,11 @@ export default function PropertyDetails() {
         const bhaResponse = await fetch(API_ENDPOINTS.rents);
         const bhaData = await bhaResponse.json();
         setBhaRentalData(bhaData);
+        
+        // Fetch comps data
+        const compsResponse = await fetch('/api/comps');
+        const compsData = await compsResponse.json();
+        setCompsData(compsData.listings || []);
         
         // Fetch analysis data
         const analysisResponse = await fetch(API_ENDPOINTS.analyze(LIST_NO as string));
@@ -276,13 +270,13 @@ export default function PropertyDetails() {
   // Use overrides or fall back to original data
   const currentUnitMix = property.overrides?.unitMix || property.UNIT_MIX || [];
   const monthlyRent = property.overrides?.monthlyRent || property.analysis.monthlyGross;
-  const downPayment = property.overrides?.downPayment || 0.20;
-  const interestRate = property.overrides?.interestRate || 0.07;
+  const downPayment = property.overrides?.downPayment ?? 0.20;
+  const interestRate = property.overrides?.interestRate ?? 0.07;
   const loanTerm = property.overrides?.loanTerm || 30;
-  const vacancy = property.overrides?.vacancy || 0.03; // Default to 3%
+  const vacancy = property.overrides?.vacancy ?? 0.03; // Default to 3%
   
   // Offer price - use override or default to list price
-  const offerPrice = property.overrides?.offerPrice || property.LIST_PRICE;
+  const offerPrice = property.overrides?.offerPrice ?? property.LIST_PRICE;
   const offerPricePercent = (offerPrice / property.LIST_PRICE) * 100;
 
      // OPEX breakdown - use overrides or defaults
@@ -319,6 +313,29 @@ export default function PropertyDetails() {
   // Calculate price per unit and price per bedroom
   const pricePerUnit = totalUnits > 0 ? offerPrice / totalUnits : 0;
   const pricePerBedroom = totalBedrooms > 0 ? offerPrice / totalBedrooms : 0;
+  
+  // Calculate comp comparisons
+  const compComparisons = calculateCompComparisons(
+    offerPrice,
+    totalUnits,
+    totalBedrooms,
+    property.ZIP_CODE,
+    compsData
+  );
+  
+  const unitRange = getUnitRange(totalUnits);
+  const unitRangeLabel = unitRange ? unitRange.label : '';
+  
+  // Debug logging
+  console.log('Comp comparison debug:', {
+    offerPrice,
+    totalUnits,
+    totalBedrooms,
+    zipCode: property.ZIP_CODE,
+    compsDataLength: compsData.length,
+    compComparisons,
+    unitRangeLabel
+  });
   
   // Calculate annual gross based on unit mix and individual unit rents
   const annualGross = currentUnitMix.length > 0 && unitMixTotal === (property.UNITS_FINAL || 0)
@@ -856,6 +873,26 @@ export default function PropertyDetails() {
               }}>
                 {totalUnits} units
               </div>
+              {compComparisons.pricePerUnit.compCount > 0 && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#666',
+                  fontStyle: 'italic',
+                  marginTop: '4px'
+                }}
+                title={getCompTooltipText(compComparisons.pricePerUnit.compCount, unitRangeLabel)}
+                >
+                  {formatCompComparison(
+                    compComparisons.pricePerUnit.difference,
+                    compComparisons.pricePerUnit.percentage,
+                    compComparisons.pricePerUnit.compCount
+                  )}
+                </div>
+              )}
+              {/* Debug: Always show comp count */}
+              <div style={{ fontSize: '10px', color: 'red' }}>
+                Debug: {compComparisons.pricePerUnit.compCount} comps found
+              </div>
             </div>
             
             <div style={{ 
@@ -891,6 +928,26 @@ export default function PropertyDetails() {
                 color: '#666'
               }}>
                 {totalBedrooms} total beds
+              </div>
+              {compComparisons.pricePerBed.compCount > 0 && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#666',
+                  fontStyle: 'italic',
+                  marginTop: '4px'
+                }}
+                title={getCompTooltipText(compComparisons.pricePerBed.compCount, unitRangeLabel)}
+                >
+                  {formatCompComparison(
+                    compComparisons.pricePerBed.difference,
+                    compComparisons.pricePerBed.percentage,
+                    compComparisons.pricePerBed.compCount
+                  )}
+                </div>
+              )}
+              {/* Debug: Always show comp count */}
+              <div style={{ fontSize: '10px', color: 'red' }}>
+                Debug: {compComparisons.pricePerBed.compCount} comps found
               </div>
             </div>
           </div>
@@ -951,26 +1008,12 @@ export default function PropertyDetails() {
                    />
                  </div>
                  <div style={{ textAlign: 'center' }}>
-                   <input
-                     type="text"
-                     value={`${offerPricePercent.toFixed(1)}%`}
-                     onChange={(e) => {
-                       const cleanValue = e.target.value.replace(/%/g, '');
-                       const numValue = parseFloat(cleanValue) || 0;
-                       if (numValue >= 0 && numValue <= 200) {
-                         const newPrice = (numValue / 100) * property.LIST_PRICE;
-                         updateOverrides({ offerPrice: newPrice });
-                       }
-                     }}
-                     style={{ 
-                       padding: '4px', 
-                       border: '1px solid #ddd', 
-                       borderRadius: '4px',
-                       width: '80px',
-                       textAlign: 'right',
-                       fontSize: '14px',
-                       backgroundColor: '#f8f9fa'
-                     }}
+                   <PercentageInput
+                     value={offerPrice / property.LIST_PRICE}
+                     onChange={(value) => updateOverrides({ offerPrice: value * property.LIST_PRICE })}
+                     maxValue={1000}
+                     minValue={0}
+                     precision={1}
                    />
                  </div>
                  <div style={{ fontSize: '14px', color: '#666' }}>
@@ -1001,37 +1044,12 @@ export default function PropertyDetails() {
                    />
                  </div>
                  <div style={{ textAlign: 'center' }}>
-                   <input
-                     type="text"
-                     value={downPaymentInput || `${(downPayment * 100).toFixed(1)}%`}
-                     onChange={(e) => {
-                       setDownPaymentInput(e.target.value);
-                     }}
-                     onFocus={(e) => {
-                       setDownPaymentInput(e.target.value);
-                     }}
-                     onBlur={(e) => {
-                       const value = e.target.value.replace('%', '');
-                       const numValue = parseFloat(value);
-                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-                         updateOverrides({ downPayment: numValue / 100 });
-                       }
-                       setDownPaymentInput('');
-                     }}
-                     onKeyDown={(e) => {
-                       if (e.key === 'Enter') {
-                         e.currentTarget.blur();
-                       }
-                     }}
-                     style={{ 
-                       padding: '4px', 
-                       border: '1px solid #ddd', 
-                       borderRadius: '4px',
-                       width: '80px',
-                       textAlign: 'right',
-                       fontSize: '14px',
-                       backgroundColor: '#f8f9fa'
-                     }}
+                   <PercentageInput
+                     value={downPayment}
+                     onChange={(value) => updateOverrides({ downPayment: value })}
+                     maxValue={100}
+                     minValue={0}
+                     precision={1}
                    />
                  </div>
                  <div style={{ fontSize: '14px', color: '#666' }}>
@@ -1046,7 +1064,7 @@ export default function PropertyDetails() {
                      onChange={(e) => {
                        const newAmount = parseInputValue(e.target.value, 'currency');
                        const newPercentage = newAmount / offerPrice;
-                       if (newPercentage >= 0 && newPercentage <= 0.1) {
+                       if (newPercentage >= 0 && newPercentage <= 1) {
                          updateOverrides({ closingCostsPercentage: newPercentage });
                        }
                      }}
@@ -1062,37 +1080,12 @@ export default function PropertyDetails() {
                    />
                  </div>
                  <div style={{ textAlign: 'center' }}>
-                   <input
-                     type="text"
-                     value={closingCostsInput || `${(closingCostsPercentage * 100).toFixed(1)}%`}
-                     onChange={(e) => {
-                       setClosingCostsInput(e.target.value);
-                     }}
-                     onFocus={(e) => {
-                       setClosingCostsInput(e.target.value);
-                     }}
-                     onBlur={(e) => {
-                       const value = e.target.value.replace('%', '');
-                       const numValue = parseFloat(value);
-                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 10) {
-                         updateOverrides({ closingCostsPercentage: numValue / 100 });
-                       }
-                       setClosingCostsInput('');
-                     }}
-                     onKeyDown={(e) => {
-                       if (e.key === 'Enter') {
-                         e.currentTarget.blur();
-                       }
-                     }}
-                     style={{ 
-                       padding: '4px', 
-                       border: '1px solid #ddd', 
-                       borderRadius: '4px',
-                       width: '80px',
-                       textAlign: 'right',
-                       fontSize: '14px',
-                       backgroundColor: '#f8f9fa'
-                     }}
+                   <PercentageInput
+                     value={closingCostsPercentage}
+                     onChange={(value) => updateOverrides({ closingCostsPercentage: value })}
+                     maxValue={100}
+                     minValue={0}
+                     precision={1}
                    />
                  </div>
                  <div style={{ fontSize: '14px', color: '#666' }}>
@@ -1107,7 +1100,7 @@ export default function PropertyDetails() {
                      onChange={(e) => {
                        const newAmount = parseInputValue(e.target.value, 'currency');
                        const newPercentage = newAmount / offerPrice;
-                       if (newPercentage >= 0 && newPercentage <= 0.05) {
+                       if (newPercentage >= 0 && newPercentage <= 1) {
                          updateOverrides({ dueDiligencePercentage: newPercentage });
                        }
                      }}
@@ -1123,37 +1116,12 @@ export default function PropertyDetails() {
                    />
                  </div>
                  <div style={{ textAlign: 'center' }}>
-                   <input
-                     type="text"
-                     value={dueDiligenceInput || `${(dueDiligencePercentage * 100).toFixed(1)}%`}
-                     onChange={(e) => {
-                       setDueDiligenceInput(e.target.value);
-                     }}
-                     onFocus={(e) => {
-                       setDueDiligenceInput(e.target.value);
-                     }}
-                     onBlur={(e) => {
-                       const value = e.target.value.replace('%', '');
-                       const numValue = parseFloat(value);
-                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 5) {
-                         updateOverrides({ dueDiligencePercentage: numValue / 100 });
-                       }
-                       setDueDiligenceInput('');
-                     }}
-                     onKeyDown={(e) => {
-                       if (e.key === 'Enter') {
-                         e.currentTarget.blur();
-                       }
-                     }}
-                     style={{ 
-                       padding: '4px', 
-                       border: '1px solid #ddd', 
-                       borderRadius: '4px',
-                       width: '80px',
-                       textAlign: 'right',
-                       fontSize: '14px',
-                       backgroundColor: '#f8f9fa'
-                     }}
+                   <PercentageInput
+                     value={dueDiligencePercentage}
+                     onChange={(value) => updateOverrides({ dueDiligencePercentage: value })}
+                     maxValue={100}
+                     minValue={0}
+                     precision={1}
                    />
                  </div>
                  <div style={{ fontSize: '14px', color: '#666' }}>
@@ -1214,36 +1182,12 @@ export default function PropertyDetails() {
                
                             <div>Interest Rate</div>
                 <div style={{ textAlign: 'right' }}>
-                  <input
-                    type="text"
-                    value={interestRateInput || formatInputValue(interestRate, 'percentage')}
-                    onChange={(e) => {
-                      setInterestRateInput(e.target.value);
-                    }}
-                    onFocus={(e) => {
-                      setInterestRateInput(e.target.value);
-                    }}
-                    onBlur={(e) => {
-                      const value = e.target.value.replace('%', '');
-                      const numValue = parseFloat(value);
-                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 20) {
-                        updateOverrides({ interestRate: numValue / 100 });
-                      }
-                      setInterestRateInput('');
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.currentTarget.blur();
-                      }
-                    }}
-                    style={{ 
-                      padding: '4px', 
-                      border: '1px solid #ddd', 
-                      borderRadius: '4px',
-                      width: '80px',
-                      textAlign: 'right',
-                      fontSize: '14px'
-                    }}
+                  <PercentageInput
+                    value={interestRate}
+                    onChange={(value) => updateOverrides({ interestRate: value })}
+                    maxValue={20}
+                    minValue={0}
+                    precision={2}
                   />
                 </div>
                 <div>Annual Rate</div>
@@ -1591,36 +1535,12 @@ export default function PropertyDetails() {
                    />
                  </div>
                  <div style={{ textAlign: 'right' }}>
-                   <input
-                     type="text"
-                     value={vacancyInput || formatInputValue(vacancy, 'percentage')}
-                     onChange={(e) => {
-                       setVacancyInput(e.target.value);
-                     }}
-                     onFocus={(e) => {
-                       setVacancyInput(e.target.value);
-                     }}
-                     onBlur={(e) => {
-                       const value = e.target.value.replace('%', '');
-                       const numValue = parseFloat(value);
-                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-                         updateOverrides({ vacancy: numValue / 100 });
-                       }
-                       setVacancyInput('');
-                     }}
-                     onKeyDown={(e) => {
-                       if (e.key === 'Enter') {
-                         e.currentTarget.blur();
-                       }
-                     }}
-                     style={{ 
-                       padding: '4px', 
-                       border: '1px solid #ddd', 
-                       borderRadius: '4px',
-                       width: '80px',
-                       textAlign: 'right',
-                       fontSize: '14px'
-                     }}
+                   <PercentageInput
+                     value={vacancy}
+                     onChange={(value) => updateOverrides({ vacancy: value })}
+                     maxValue={100}
+                     minValue={0}
+                     precision={1}
                    />
                  </div>
               
@@ -1648,38 +1568,14 @@ export default function PropertyDetails() {
                    />
                  </div>
                  <div style={{ textAlign: 'right' }}>
-                   <input
-                     type="text"
-                     value={taxesInput || formatInputValue((opex.taxes || 0) / effectiveGrossIncome, 'percentage')}
-                     onChange={(e) => {
-                       setTaxesInput(e.target.value);
-                     }}
-                     onFocus={(e) => {
-                       setTaxesInput(e.target.value);
-                     }}
-                     onBlur={(e) => {
-                       const value = e.target.value.replace('%', '');
-                       const numValue = parseFloat(value);
-                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-                         updateOverrides({ 
-                           opex: { ...opex, taxes: (numValue / 100) * effectiveGrossIncome }
-                         });
-                       }
-                       setTaxesInput('');
-                     }}
-                     onKeyDown={(e) => {
-                       if (e.key === 'Enter') {
-                         e.currentTarget.blur();
-                       }
-                     }}
-                     style={{ 
-                       padding: '4px', 
-                       border: '1px solid #ddd', 
-                       borderRadius: '4px',
-                       width: '80px',
-                       textAlign: 'right',
-                       fontSize: '14px'
-                     }}
+                   <PercentageInput
+                     value={(opex.taxes || 0) / effectiveGrossIncome}
+                     onChange={(value) => updateOverrides({ 
+                       opex: { ...opex, taxes: value * effectiveGrossIncome }
+                     })}
+                     maxValue={100}
+                     minValue={0}
+                     precision={1}
                    />
                  </div>
               
@@ -1700,39 +1596,15 @@ export default function PropertyDetails() {
                      }}
                    />
                  </div>
-                 <div style={{ textAlign: 'right' }}>
-                   <input
-                     type="text"
-                     value={insuranceInput || formatInputValue((opex.pm || 0) / effectiveGrossIncome, 'percentage')}
-                    onChange={(e) => {
-                      setInsuranceInput(e.target.value);
-                    }}
-                    onFocus={(e) => {
-                      setInsuranceInput(e.target.value);
-                    }}
-                    onBlur={(e) => {
-                      const value = e.target.value.replace('%', '');
-                      const numValue = parseFloat(value);
-                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-                        updateOverrides({ 
-                          opex: { ...opex, pm: (numValue / 100) * effectiveGrossIncome }
-                        });
-                      }
-                      setInsuranceInput('');
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.currentTarget.blur();
-                      }
-                    }}
-                    style={{ 
-                      padding: '4px', 
-                      border: '1px solid #ddd', 
-                      borderRadius: '4px',
-                      width: '80px',
-                      textAlign: 'right',
-                      fontSize: '14px'
-                    }}
+                                 <div style={{ textAlign: 'right' }}>
+                  <PercentageInput
+                    value={(opex.pm || 0) / effectiveGrossIncome}
+                    onChange={(value) => updateOverrides({ 
+                      opex: { ...opex, pm: value * effectiveGrossIncome }
+                    })}
+                    maxValue={100}
+                    minValue={0}
+                    precision={1}
                   />
                 </div>
                
@@ -1754,38 +1626,14 @@ export default function PropertyDetails() {
                   />
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <input
-                    type="text"
-                    value={waterSewerInput || formatInputValue((opex.waterSewer || 0) / effectiveGrossIncome, 'percentage')}
-                    onChange={(e) => {
-                      setWaterSewerInput(e.target.value);
-                    }}
-                    onFocus={(e) => {
-                      setWaterSewerInput(e.target.value);
-                    }}
-                    onBlur={(e) => {
-                      const value = e.target.value.replace('%', '');
-                      const numValue = parseFloat(value);
-                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-                        updateOverrides({ 
-                          opex: { ...opex, waterSewer: (numValue / 100) * effectiveGrossIncome }
-                        });
-                      }
-                      setWaterSewerInput('');
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.currentTarget.blur();
-                      }
-                    }}
-                    style={{ 
-                      padding: '4px', 
-                      border: '1px solid #ddd', 
-                      borderRadius: '4px',
-                      width: '80px',
-                      textAlign: 'right',
-                      fontSize: '14px'
-                    }}
+                  <PercentageInput
+                    value={(opex.waterSewer || 0) / effectiveGrossIncome}
+                    onChange={(value) => updateOverrides({ 
+                      opex: { ...opex, waterSewer: value * effectiveGrossIncome }
+                    })}
+                    maxValue={100}
+                    minValue={0}
+                    precision={1}
                   />
                 </div>
               
@@ -1807,38 +1655,14 @@ export default function PropertyDetails() {
                   />
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <input
-                    type="text"
-                    value={commonElecInput || formatInputValue((opex.commonElec || 0) / effectiveGrossIncome, 'percentage')}
-                    onChange={(e) => {
-                      setCommonElecInput(e.target.value);
-                    }}
-                    onFocus={(e) => {
-                      setCommonElecInput(e.target.value);
-                    }}
-                    onBlur={(e) => {
-                      const value = e.target.value.replace('%', '');
-                      const numValue = parseFloat(value);
-                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-                        updateOverrides({ 
-                          opex: { ...opex, commonElec: (numValue / 100) * effectiveGrossIncome }
-                        });
-                      }
-                      setCommonElecInput('');
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.currentTarget.blur();
-                      }
-                    }}
-                    style={{ 
-                      padding: '4px', 
-                      border: '1px solid #ddd', 
-                      borderRadius: '4px',
-                      width: '80px',
-                      textAlign: 'right',
-                      fontSize: '14px'
-                    }}
+                  <PercentageInput
+                    value={(opex.commonElec || 0) / effectiveGrossIncome}
+                    onChange={(value) => updateOverrides({ 
+                      opex: { ...opex, commonElec: value * effectiveGrossIncome }
+                    })}
+                    maxValue={100}
+                    minValue={0}
+                    precision={1}
                   />
                 </div>
                 
@@ -1860,38 +1684,14 @@ export default function PropertyDetails() {
                   />
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <input
-                    type="text"
-                    value={rubbishInput || formatInputValue((opex.rubbish || 0) / effectiveGrossIncome, 'percentage')}
-                    onChange={(e) => {
-                      setRubbishInput(e.target.value);
-                    }}
-                    onFocus={(e) => {
-                      setRubbishInput(e.target.value);
-                    }}
-                    onBlur={(e) => {
-                      const value = e.target.value.replace('%', '');
-                      const numValue = parseFloat(value);
-                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-                        updateOverrides({ 
-                          opex: { ...opex, rubbish: (numValue / 100) * effectiveGrossIncome }
-                        });
-                      }
-                      setRubbishInput('');
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.currentTarget.blur();
-                      }
-                    }}
-                    style={{ 
-                      padding: '4px', 
-                      border: '1px solid #ddd', 
-                      borderRadius: '4px',
-                      width: '80px',
-                      textAlign: 'right',
-                      fontSize: '14px'
-                    }}
+                  <PercentageInput
+                    value={(opex.rubbish || 0) / effectiveGrossIncome}
+                    onChange={(value) => updateOverrides({ 
+                      opex: { ...opex, rubbish: value * effectiveGrossIncome }
+                    })}
+                    maxValue={100}
+                    minValue={0}
+                    precision={1}
                   />
                 </div>
                
@@ -1913,38 +1713,14 @@ export default function PropertyDetails() {
                   />
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <input
-                    type="text"
-                    value={repairsInput || formatInputValue((opex.repairs || 0) / effectiveGrossIncome, 'percentage')}
-                    onChange={(e) => {
-                      setRepairsInput(e.target.value);
-                    }}
-                    onFocus={(e) => {
-                      setRepairsInput(e.target.value);
-                    }}
-                    onBlur={(e) => {
-                      const value = e.target.value.replace('%', '');
-                      const numValue = parseFloat(value);
-                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-                        updateOverrides({ 
-                          opex: { ...opex, repairs: (numValue / 100) * effectiveGrossIncome }
-                        });
-                      }
-                      setRepairsInput('');
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.currentTarget.blur();
-                      }
-                    }}
-                    style={{ 
-                      padding: '4px', 
-                      border: '1px solid #ddd', 
-                      borderRadius: '4px',
-                      width: '80px',
-                      textAlign: 'right',
-                      fontSize: '14px'
-                    }}
+                  <PercentageInput
+                    value={(opex.repairs || 0) / effectiveGrossIncome}
+                    onChange={(value) => updateOverrides({ 
+                      opex: { ...opex, repairs: value * effectiveGrossIncome }
+                    })}
+                    maxValue={100}
+                    minValue={0}
+                    precision={1}
                   />
                 </div>
                
@@ -1966,38 +1742,14 @@ export default function PropertyDetails() {
                   />
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <input
-                    type="text"
-                    value={pmInput || formatInputValue((opex.pm || 0) / effectiveGrossIncome, 'percentage')}
-                    onChange={(e) => {
-                      setPmInput(e.target.value);
-                    }}
-                    onFocus={(e) => {
-                      setPmInput(e.target.value);
-                    }}
-                    onBlur={(e) => {
-                      const value = e.target.value.replace('%', '');
-                      const numValue = parseFloat(value);
-                      if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-                        updateOverrides({ 
-                          opex: { ...opex, pm: (numValue / 100) * effectiveGrossIncome }
-                        });
-                      }
-                      setPmInput('');
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.currentTarget.blur();
-                      }
-                    }}
-                    style={{ 
-                      padding: '4px', 
-                      border: '1px solid #ddd', 
-                      borderRadius: '4px',
-                      width: '80px',
-                      textAlign: 'right',
-                      fontSize: '14px'
-                    }}
+                  <PercentageInput
+                    value={(opex.pm || 0) / effectiveGrossIncome}
+                    onChange={(value) => updateOverrides({ 
+                      opex: { ...opex, pm: value * effectiveGrossIncome }
+                    })}
+                    maxValue={100}
+                    minValue={0}
+                    precision={1}
                   />
                 </div>
                 
@@ -2019,39 +1771,15 @@ export default function PropertyDetails() {
                     />
                   </div>
                                     <div style={{ textAlign: 'right' }}>
-                     <input
-                       type="text"
-                       value={licensingInput || formatInputValue((opex.licensing || 0) / effectiveGrossIncome, 'percentage')}
-                       onChange={(e) => {
-                         setLicensingInput(e.target.value);
-                       }}
-                       onFocus={(e) => {
-                         setLicensingInput(e.target.value);
-                       }}
-                       onBlur={(e) => {
-                         const value = e.target.value.replace('%', '');
-                         const numValue = parseFloat(value);
-                         if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-                           updateOverrides({ 
-                             opex: { ...opex, licensing: (numValue / 100) * effectiveGrossIncome }
-                           });
-                         }
-                         setLicensingInput('');
-                       }}
-                       onKeyDown={(e) => {
-                         if (e.key === 'Enter') {
-                           e.currentTarget.blur();
-                         }
-                       }}
-                      style={{ 
-                        padding: '4px', 
-                        border: '1px solid #ddd', 
-                        borderRadius: '4px',
-                        width: '80px',
-                        textAlign: 'right',
-                        fontSize: '14px'
-                      }}
-                    />
+                     <PercentageInput
+                       value={(opex.licensing || 0) / effectiveGrossIncome}
+                       onChange={(value) => updateOverrides({ 
+                         opex: { ...opex, licensing: value * effectiveGrossIncome }
+                       })}
+                       maxValue={100}
+                       minValue={0}
+                       precision={1}
+                     />
                   </div>
                 
                                 <div>less: Legal & Professional Fees</div>
@@ -2072,38 +1800,14 @@ export default function PropertyDetails() {
                   />
                 </div>
                                 <div style={{ textAlign: 'right' }}>
-                   <input
-                     type="text"
-                     value={legalInput || formatInputValue((opex.legal || 0) / effectiveGrossIncome, 'percentage')}
-                     onChange={(e) => {
-                       setLegalInput(e.target.value);
-                     }}
-                     onFocus={(e) => {
-                       setLegalInput(e.target.value);
-                     }}
-                     onBlur={(e) => {
-                       const value = e.target.value.replace('%', '');
-                       const numValue = parseFloat(value);
-                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-                         updateOverrides({ 
-                           opex: { ...opex, legal: (numValue / 100) * effectiveGrossIncome }
-                         });
-                       }
-                       setLegalInput('');
-                     }}
-                     onKeyDown={(e) => {
-                       if (e.key === 'Enter') {
-                         e.currentTarget.blur();
-                       }
-                     }}
-                     style={{ 
-                       padding: '4px', 
-                       border: '1px solid #ddd', 
-                       borderRadius: '4px',
-                       width: '80px',
-                       textAlign: 'right',
-                       fontSize: '14px'
-                     }}
+                   <PercentageInput
+                     value={(opex.legal || 0) / effectiveGrossIncome}
+                     onChange={(value) => updateOverrides({ 
+                       opex: { ...opex, legal: value * effectiveGrossIncome }
+                     })}
+                     maxValue={100}
+                     minValue={0}
+                     precision={1}
                    />
                  </div>
                 
@@ -2125,38 +1829,14 @@ export default function PropertyDetails() {
                    />
                  </div>
                  <div style={{ textAlign: 'right' }}>
-                   <input
-                     type="text"
-                     value={capexInput || formatInputValue((opex.capex || 0) / effectiveGrossIncome, 'percentage')}
-                     onChange={(e) => {
-                       setCapexInput(e.target.value);
-                     }}
-                     onFocus={(e) => {
-                       setCapexInput(e.target.value);
-                     }}
-                     onBlur={(e) => {
-                       const value = e.target.value.replace('%', '');
-                       const numValue = parseFloat(value);
-                       if (!isNaN(numValue) && numValue >= 0 && numValue <= 100) {
-                         updateOverrides({ 
-                           opex: { ...opex, capex: (numValue / 100) * effectiveGrossIncome }
-                         });
-                       }
-                       setCapexInput('');
-                     }}
-                     onKeyDown={(e) => {
-                       if (e.key === 'Enter') {
-                         e.currentTarget.blur();
-                       }
-                     }}
-                     style={{ 
-                       padding: '4px', 
-                       border: '1px solid #ddd', 
-                       borderRadius: '4px',
-                       width: '80px',
-                       textAlign: 'right',
-                       fontSize: '14px'
-                     }}
+                   <PercentageInput
+                     value={(opex.capex || 0) / effectiveGrossIncome}
+                     onChange={(value) => updateOverrides({ 
+                       opex: { ...opex, capex: value * effectiveGrossIncome }
+                     })}
+                     maxValue={100}
+                     minValue={0}
+                     precision={1}
                    />
                  </div>
               
