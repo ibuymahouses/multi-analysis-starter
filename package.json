@@ -6,7 +6,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n API,WEB \"npm run dev --prefix packages/api\" \"npm run dev --prefix packages/web\"",
+    "dev": "powershell -ExecutionPolicy Bypass -File scripts/dev-start.ps1",
+    "dev:api": "npm run dev --prefix packages/api",
+    "dev:web": "npm run dev --prefix packages/web",
+    "dev:clean": "powershell -ExecutionPolicy Bypass -File scripts/dev-clean.ps1",
     "build": "npm run build --prefix packages/shared && npm run build --prefix packages/api && npm run build --prefix packages/web",
     "start": "npm run start --prefix packages/api",
     "test": "npm run test --prefix packages/api && npm run test --prefix packages/web",
