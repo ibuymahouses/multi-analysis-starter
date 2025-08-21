@@ -184,18 +184,27 @@ export class DataService {
   }
 
   private getRentsFromFile(): { rents: RentData[]; map: Map<string, any>; metadata: any } {
+    console.log('🔍 DataService: Loading rents from file...');
     const dataPaths = [
       join(process.cwd(), 'data/bha-rents-comprehensive.json'),
       join(process.cwd(), '../../data/bha-rents-comprehensive.json'),
       join(process.cwd(), '../../../data/bha-rents-comprehensive.json')
     ];
 
+    console.log('🔍 DataService: Checking rent data paths:');
+    dataPaths.forEach((path, index) => {
+      console.log(`   Path ${index + 1}: ${path}`);
+    });
+
     for (const path of dataPaths) {
       try {
+        console.log(`🔍 DataService: Attempting to load rents from: ${path}`);
         const data = readFileSync(path, 'utf8');
+        console.log(`🔍 DataService: File read successfully, size: ${data.length} bytes`);
         const json = JSON.parse(data);
+        console.log(`🔍 DataService: JSON parsed successfully, rents count: ${json.rents ? json.rents.length : 'N/A'}`);
         
-        // Process the data into a Map for efficient lookup
+        // Create the map for efficient lookup
         const map = new Map();
         for (const row of json.rents || []) {
           map.set(String(row.zip).trim(), {
@@ -206,17 +215,20 @@ export class DataService {
           });
         }
         
+        console.log(`🔍 DataService: Rent map created with ${map.size} entries`);
         return { 
           rents: json.rents || [], 
           map: map,
           metadata: json.metadata || null
         };
       } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.log(`🔍 DataService: Failed to load rents from ${path}: ${errorMessage}`);
         // Continue to next path
       }
     }
     
-    console.error('Could not find bha-rents-comprehensive.json in any expected location');
+    console.error('❌ DataService: Could not find bha-rents-comprehensive.json in any expected location');
     return { rents: [], map: new Map(), metadata: null };
   }
 
@@ -268,22 +280,34 @@ export class DataService {
   }
 
   private getListingsFromFile(): { listings: ListingData[] } {
+    console.log('🔍 DataService: Loading listings from file...');
     const dataPaths = [
       join(process.cwd(), 'data/listings.json'),
       join(process.cwd(), '../../data/listings.json'),
       join(process.cwd(), '../../../data/listings.json')
     ];
 
+    console.log('🔍 DataService: Checking listing data paths:');
+    dataPaths.forEach((path, index) => {
+      console.log(`   Path ${index + 1}: ${path}`);
+    });
+
     for (const path of dataPaths) {
       try {
+        console.log(`🔍 DataService: Attempting to load listings from: ${path}`);
         const data = readFileSync(path, 'utf8');
-        return JSON.parse(data);
+        console.log(`🔍 DataService: File read successfully, size: ${data.length} bytes`);
+        const json = JSON.parse(data);
+        console.log(`🔍 DataService: JSON parsed successfully, listings count: ${json.listings ? json.listings.length : 'N/A'}`);
+        return json;
       } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.log(`🔍 DataService: Failed to load listings from ${path}: ${errorMessage}`);
         // Continue to next path
       }
     }
     
-    console.error('Could not find listings.json in any expected location');
+    console.error('❌ DataService: Could not find listings.json in any expected location');
     return { listings: [] };
   }
 
