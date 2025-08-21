@@ -1646,6 +1646,20 @@ export default function PropertyDetails() {
         }}>
           Key Metrics
         </div>
+        {/* Comp Range Info */}
+        {unitRangeLabel && (
+          <div style={{ 
+            background: '#e3f2fd', 
+            border: '1px solid #2196f3', 
+            borderTop: 'none',
+            padding: '8px 12px',
+            fontSize: '12px',
+            color: '#1976d2',
+            textAlign: 'center'
+          }}>
+            📊 Comp comparisons based on {unitRangeLabel} in {property.ZIP_CODE}
+          </div>
+        )}
         <div style={{ 
           border: '1px solid #ddd', 
           borderTop: 'none',
@@ -1837,41 +1851,7 @@ export default function PropertyDetails() {
               </div>
             </div>
             
-            <div style={{ 
-              background: 'white',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              padding: '16px',
-              textAlign: 'left'
-            }}>
-              <div style={{ 
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '4px'
-              }}>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: 'bold', 
-                  color: '#28a745'
-                }}>
-                  $/Unit:
-                </div>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: 'bold', 
-                  color: '#28a745'
-                }}>
-                  {formatCurrency(pricePerUnit)}
-                </div>
-              </div>
-              <div style={{ 
-                fontSize: '14px', 
-                color: '#666'
-              }}>
-                {totalUnits} units
-              </div>
-            </div>
+
             
             <div style={{ 
               background: 'white',
@@ -1907,6 +1887,71 @@ export default function PropertyDetails() {
               }}>
                 {totalBedrooms} total beds
               </div>
+              {compComparisons.pricePerBed.compCount > 0 && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: compComparisons.pricePerBed.difference >= 0 ? '#dc3545' : '#28a745',
+                  marginTop: '4px',
+                  fontWeight: 'bold'
+                }}>
+                  {formatCompComparison(
+                    compComparisons.pricePerBed.difference,
+                    compComparisons.pricePerBed.percentage,
+                    compComparisons.pricePerBed.compCount
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {/* Comp Comparison for $/Unit */}
+            <div style={{ 
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              padding: '16px',
+              textAlign: 'left'
+            }}>
+              <div style={{ 
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px'
+              }}>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#28a745'
+                }}>
+                  $/Unit:
+                </div>
+                <div style={{ 
+                  fontSize: '18px', 
+                  fontWeight: 'bold', 
+                  color: '#28a745'
+                }}>
+                  {formatCurrency(pricePerUnit)}
+                </div>
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#666'
+              }}>
+                {totalUnits} units
+              </div>
+              {compComparisons.pricePerUnit.compCount > 0 && (
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: compComparisons.pricePerUnit.difference >= 0 ? '#dc3545' : '#28a745',
+                  marginTop: '4px',
+                  fontWeight: 'bold'
+                }}>
+                  {formatCompComparison(
+                    compComparisons.pricePerUnit.difference,
+                    compComparisons.pricePerUnit.percentage,
+                    compComparisons.pricePerUnit.compCount
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
