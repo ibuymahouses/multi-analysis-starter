@@ -76,8 +76,7 @@ async function initializeServices() {
   }
 }
 
-// Start initialization
-initializeServices();
+
 
 // Analysis computation function
 function computeAnalysis(listing: any, rentLookupByZip: Map<string, any>, rentMode: string = 'avg', overrides: any = null) {
@@ -502,28 +501,44 @@ app.post('/analyze/unlisted', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, async () => {
-  console.log(`🚀 API server running on port ${PORT}`);
-  
-  // Log data source status
-  const dataSourceStatus = dataService.getDataSourceStatus();
-  console.log(`📊 Data source: ${dataSourceStatus.useDatabase ? 'Database' : 'Local files'}`);
-  
-  if (dataSourceStatus.useDatabase) {
-    console.log(`🔗 Database: ${dataSourceStatus.databaseConnected ? 'Connected' : 'Failed to connect'}`);
-  }
-  
-  // Log initial data stats
+
+// Start the server after services are initialized
+async function startServer() {
   try {
-    const stats = await dataService.getDataStats();
-    console.log(`📊 Data loaded: ${stats.listings} listings, ${stats.rents} rent records, ${stats.comps} comps, ${stats.overrides} overrides`);
+    // Wait for services to initialize
+    await initializeServices();
+    
+    // Start the server
+    app.listen(PORT, async () => {
+      console.log(`🚀 API server running on port ${PORT}`);
+      
+      // Log data source status
+      const dataSourceStatus = dataService.getDataSourceStatus();
+      console.log(`📊 Data source: ${dataSourceStatus.useDatabase ? 'Database' : 'Local files'}`);
+      
+      if (dataSourceStatus.useDatabase) {
+        console.log(`🔗 Database: ${dataSourceStatus.databaseConnected ? 'Connected' : 'Failed to connect'}`);
+      }
+      
+      // Log initial data stats
+      try {
+        const stats = await dataService.getDataStats();
+        console.log(`📊 Data loaded: ${stats.listings} listings, ${stats.rents} rent records, ${stats.comps} comps, ${stats.overrides} overrides`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.warn('⚠️ Could not load initial data stats:', errorMessage);
+      }
+      
+      console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+      if (migrationService) {
+        console.log(`🔄 Data migration: POST http://localhost:${PORT}/admin/migrate-data`);
+      }
+    });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.warn('⚠️ Could not load initial data stats:', errorMessage);
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
   }
-  
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-  if (migrationService) {
-    console.log(`🔄 Data migration: POST http://localhost:${PORT}/admin/migrate-data`);
-  }
-});
+}
+
+// Start the server
+startServer();
