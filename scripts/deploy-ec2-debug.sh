@@ -156,21 +156,16 @@ fi
 
 echo "4. Installing web package dependencies (with memory optimization)..."
 cd packages/web
-npm install --no-optional --production=false || {
+if ! npm install --no-optional --production=false; then
     echo "❌ Failed to install web package dependencies"
     echo "Trying with reduced memory usage..."
-    npm install --no-optional --production=false --maxsockets=1 || {
+    if ! npm install --no-optional --production=false --maxsockets=1; then
         echo "❌ Web package installation failed even with reduced memory"
         exit 1
-    }
-}
-cd ../..
-if [ $? -eq 0 ]; then
-    echo "✅ Web package dependencies installed successfully"
-else
-    echo "❌ Web package dependencies failed"
-    exit 1
+    fi
 fi
+cd ../..
+echo "✅ Web package dependencies installed successfully"
 
 echo "5. Installing worker package dependencies..."
 npm install --prefix packages/worker

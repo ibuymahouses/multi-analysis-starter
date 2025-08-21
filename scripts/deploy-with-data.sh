@@ -138,7 +138,10 @@ sleep 3
 
 # Test the API health endpoint
 echo "Testing API health endpoint..."
-curl -s http://localhost:3001/health || echo "API health check failed"
+if ! curl -s http://localhost:3001/health; then
+    echo "❌ API health check failed"
+    echo "This may indicate the API didn't start properly"
+fi
 
 # Start the web server
 echo "Starting web server..."

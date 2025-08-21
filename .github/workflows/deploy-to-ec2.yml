@@ -76,26 +76,29 @@ jobs:
           
           # Install dependencies (with error handling)
           echo "Installing root dependencies..."
-          npm install --no-optional || {
-            echo "⚠️ Root dependencies failed, continuing..."
-          }
+          if ! npm install --no-optional; then
+            echo "❌ Root dependencies failed - deployment cannot continue"
+            exit 1
+          fi
           
           # Install package dependencies (independently)
           for package in shared api worker web; do
             echo "Installing $package dependencies..."
             cd packages/$package
-            npm install --no-optional || {
-              echo "⚠️ $package dependencies failed, continuing..."
-            }
+            if ! npm install --no-optional; then
+              echo "❌ $package dependencies failed - deployment cannot continue"
+              exit 1
+            fi
             cd ../..
           done
           
           # Copy data files
           echo "Setting up data files..."
           mkdir -p packages/api/data
-          cp -r data/* packages/api/data/ || {
-            echo "⚠️ Data file copy failed, continuing..."
-          }
+          if ! cp -r data/* packages/api/data/; then
+            echo "❌ Data file copy failed - deployment cannot continue"
+            exit 1
+          fi
           
           echo "✅ Code deployment complete"
           
