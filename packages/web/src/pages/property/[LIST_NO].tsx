@@ -271,14 +271,47 @@ export default function PropertyDetails() {
       return property.UNIT_MIX;
     }
     
-    // If no unit mix exists, create a default based on UNITS_FINAL
-    // Default to 1-bedroom units if we don't have specific unit type data
+    // If no unit mix exists, create a default based on UNITS_FINAL and NO_UNITS_MF
+    // Use the same logic as the API to distribute bedrooms evenly without fractional units
     if (property.UNITS_FINAL && property.UNITS_FINAL > 0) {
-      const defaultUnitMix: UnitMix[] = [{ 
-        bedrooms: 1, 
-        count: property.UNITS_FINAL,
-        rent: getBhaRentForBedrooms(1, property.ZIP_CODE)
-      }];
+      const totalUnits = property.UNITS_FINAL;
+      const totalBedrooms = property.NO_UNITS_MF || totalUnits * 2; // Default to 2 bedrooms per unit if NO_UNITS_MF is not available
+      
+      // Calculate average bedrooms per unit
+      const avgBedrooms = totalBedrooms / totalUnits;
+      
+      // Distribute bedrooms evenly without fractional units
+      const floorAvg = Math.floor(avgBedrooms);
+      const remainder = totalBedrooms - (floorAvg * totalUnits);
+      
+      const defaultUnitMix: UnitMix[] = [];
+      
+      // Add units with floor average bedrooms
+      if (floorAvg > 0) {
+        defaultUnitMix.push({ 
+          bedrooms: floorAvg, 
+          count: totalUnits - remainder,
+          rent: getBhaRentForBedrooms(floorAvg, property.ZIP_CODE)
+        });
+      }
+      
+      // Add units with one extra bedroom to handle remainder
+      if (remainder > 0) {
+        defaultUnitMix.push({ 
+          bedrooms: floorAvg + 1, 
+          count: remainder,
+          rent: getBhaRentForBedrooms(floorAvg + 1, property.ZIP_CODE)
+        });
+      }
+      
+      // If we have no units yet (edge case), default to 2-bedroom units
+      if (defaultUnitMix.length === 0) {
+        defaultUnitMix.push({ 
+          bedrooms: 2, 
+          count: totalUnits,
+          rent: getBhaRentForBedrooms(2, property.ZIP_CODE)
+        });
+      }
       
       // Save this default to overrides so it persists
       updateOverrides({ unitMix: defaultUnitMix });
@@ -1883,24 +1916,32 @@ export default function PropertyDetails() {
               </div>
               <div style={{ 
                 fontSize: '14px', 
-                color: '#666'
+                color: '#666',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start'
               }}>
-                {totalBedrooms} total beds
+                <span>{totalBedrooms} total beds</span>
+                {compComparisons.pricePerBed.compCount > 0 && (
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: compComparisons.pricePerBed.difference >= 0 ? '#dc3545' : '#28a745',
+                    fontStyle: 'italic',
+                    textAlign: 'right',
+                    maxWidth: '60%',
+                    lineHeight: '1.2'
+                  }}>
+                    <div>{formatCompComparison(
+                      compComparisons.pricePerBed.difference,
+                      compComparisons.pricePerBed.percentage,
+                      compComparisons.pricePerBed.compCount
+                    ).replace(' over comps', '').replace(' under comps', '')}</div>
+                    <div style={{ fontSize: '11px', marginTop: '2px' }}>
+                      {compComparisons.pricePerBed.difference >= 0 ? 'over comps' : 'under comps'}
+                    </div>
+                  </div>
+                )}
               </div>
-              {compComparisons.pricePerBed.compCount > 0 && (
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: compComparisons.pricePerBed.difference >= 0 ? '#dc3545' : '#28a745',
-                  marginTop: '4px',
-                  fontWeight: 'bold'
-                }}>
-                  {formatCompComparison(
-                    compComparisons.pricePerBed.difference,
-                    compComparisons.pricePerBed.percentage,
-                    compComparisons.pricePerBed.compCount
-                  )}
-                </div>
-              )}
             </div>
             
             {/* Comp Comparison for $/Unit */}
@@ -1934,24 +1975,32 @@ export default function PropertyDetails() {
               </div>
               <div style={{ 
                 fontSize: '14px', 
-                color: '#666'
+                color: '#666',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start'
               }}>
-                {totalUnits} units
+                <span>{totalUnits} units</span>
+                {compComparisons.pricePerUnit.compCount > 0 && (
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: compComparisons.pricePerUnit.difference >= 0 ? '#dc3545' : '#28a745',
+                    fontStyle: 'italic',
+                    textAlign: 'right',
+                    maxWidth: '60%',
+                    lineHeight: '1.2'
+                  }}>
+                    <div>{formatCompComparison(
+                      compComparisons.pricePerUnit.difference,
+                      compComparisons.pricePerUnit.percentage,
+                      compComparisons.pricePerUnit.compCount
+                    ).replace(' over comps', '').replace(' under comps', '')}</div>
+                    <div style={{ fontSize: '11px', marginTop: '2px' }}>
+                      {compComparisons.pricePerUnit.difference >= 0 ? 'over comps' : 'under comps'}
+                    </div>
+                  </div>
+                )}
               </div>
-              {compComparisons.pricePerUnit.compCount > 0 && (
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: compComparisons.pricePerUnit.difference >= 0 ? '#dc3545' : '#28a745',
-                  marginTop: '4px',
-                  fontWeight: 'bold'
-                }}>
-                  {formatCompComparison(
-                    compComparisons.pricePerUnit.difference,
-                    compComparisons.pricePerUnit.percentage,
-                    compComparisons.pricePerUnit.compCount
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>

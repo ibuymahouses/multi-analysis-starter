@@ -162,6 +162,69 @@ export default function AnalyzeUnlisted() {
     return zipData.rents[bedroomKey] || 0;
   };
 
+  // Function to initialize unit mix if none exists
+  const initializeUnitMix = () => {
+    if (property.overrides?.unitMix) {
+      return property.overrides.unitMix;
+    }
+    
+    if (property.UNIT_MIX && property.UNIT_MIX.length > 0) {
+      return property.UNIT_MIX;
+    }
+    
+    // If no unit mix exists, create a default based on UNITS_FINAL and NO_UNITS_MF
+    // Use the same logic as the API to distribute bedrooms evenly without fractional units
+    if (property.UNITS_FINAL && property.UNITS_FINAL > 0) {
+      const totalUnits = property.UNITS_FINAL;
+      const totalBedrooms = property.NO_UNITS_MF || totalUnits * 2; // Default to 2 bedrooms per unit if NO_UNITS_MF is not available
+      
+      // Calculate average bedrooms per unit
+      const avgBedrooms = totalBedrooms / totalUnits;
+      
+      // Distribute bedrooms evenly without fractional units
+      const floorAvg = Math.floor(avgBedrooms);
+      const remainder = totalBedrooms - (floorAvg * totalUnits);
+      
+      const defaultUnitMix: any[] = [];
+      
+      // Add units with floor average bedrooms
+      if (floorAvg > 0) {
+        defaultUnitMix.push({ 
+          bedrooms: floorAvg, 
+          count: totalUnits - remainder,
+          rent: getRentForBedrooms(floorAvg, property.ZIP_CODE)
+        });
+      }
+      
+      // Add units with one extra bedroom to handle remainder
+      if (remainder > 0) {
+        defaultUnitMix.push({ 
+          bedrooms: floorAvg + 1, 
+          count: remainder,
+          rent: getRentForBedrooms(floorAvg + 1, property.ZIP_CODE)
+        });
+      }
+      
+      // If we have no units yet (edge case), default to 2-bedroom units
+      if (defaultUnitMix.length === 0) {
+        defaultUnitMix.push({ 
+          bedrooms: 2, 
+          count: totalUnits,
+          rent: getRentForBedrooms(2, property.ZIP_CODE)
+        });
+      }
+      
+      // Save this default to overrides so it persists
+      updateOverrides({ unitMix: defaultUnitMix });
+      return defaultUnitMix;
+    }
+    
+    return [];
+  };
+
+  // Get current unit mix from overrides or default
+  const currentUnitMix = initializeUnitMix();
+
   const updateOverrides = async (updates: any, skipServerUpdate = false) => {
     const newProperty = { ...property, overrides: { ...(property.overrides || {}), ...updates } };
     
@@ -245,9 +308,6 @@ export default function AnalyzeUnlisted() {
   const formatInterestRate = (value: number) => {
     return `${(value * 100).toFixed(2)}%`;
   };
-
-  // Get current unit mix from overrides or default
-  const currentUnitMix = property.overrides?.unitMix || [];
 
   // Calculate derived values
   const totalUnits = currentUnitMix.reduce((sum, u) => sum + u.count, 0);

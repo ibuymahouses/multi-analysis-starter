@@ -98,14 +98,69 @@ export function usePropertyAnalysis(options: UsePropertyAnalysisOptions = {}) {
     return zipData.rents[bedroomKey] || 0;
   }, [property.overrides.unitMix, bhaRentalData]);
 
+  // Function to initialize unit mix if none exists
+  const initializeUnitMix = useCallback(() => {
+    if (property.overrides?.unitMix) {
+      return property.overrides.unitMix;
+    }
+    
+    if (property.UNIT_MIX && property.UNIT_MIX.length > 0) {
+      return property.UNIT_MIX;
+    }
+    
+    // If no unit mix exists, create a default based on UNITS_FINAL and NO_UNITS_MF
+    // Use the same logic as the API to distribute bedrooms evenly without fractional units
+    if (property.UNITS_FINAL && property.UNITS_FINAL > 0) {
+      const totalUnits = property.UNITS_FINAL;
+      const totalBedrooms = property.NO_UNITS_MF || totalUnits * 2; // Default to 2 bedrooms per unit if NO_UNITS_MF is not available
+      
+      // Calculate average bedrooms per unit
+      const avgBedrooms = totalBedrooms / totalUnits;
+      
+      // Distribute bedrooms evenly without fractional units
+      const floorAvg = Math.floor(avgBedrooms);
+      const remainder = totalBedrooms - (floorAvg * totalUnits);
+      
+      const defaultUnitMix: any[] = [];
+      
+      // Add units with floor average bedrooms
+      if (floorAvg > 0) {
+        defaultUnitMix.push({ 
+          bedrooms: floorAvg, 
+          count: totalUnits - remainder
+        });
+      }
+      
+      // Add units with one extra bedroom to handle remainder
+      if (remainder > 0) {
+        defaultUnitMix.push({ 
+          bedrooms: floorAvg + 1, 
+          count: remainder
+        });
+      }
+      
+      // If we have no units yet (edge case), default to 2-bedroom units
+      if (defaultUnitMix.length === 0) {
+        defaultUnitMix.push({ 
+          bedrooms: 2, 
+          count: totalUnits
+        });
+      }
+      
+      return defaultUnitMix;
+    }
+    
+    return [];
+  }, [property.overrides?.unitMix, property.UNIT_MIX, property.UNITS_FINAL, property.NO_UNITS_MF]);
+
   // Calculate monthly gross income
   const calculateMonthlyGross = useCallback(() => {
-    const unitMix = property.overrides.unitMix || property.UNIT_MIX;
+    const unitMix = initializeUnitMix();
     return unitMix.reduce((total, unit) => {
       const rent = unit.rent || getRentForBedrooms(unit.bedrooms, property.ZIP_CODE);
       return total + (rent * unit.count);
     }, 0);
-  }, [property.overrides.unitMix, property.UNIT_MIX, property.ZIP_CODE, getRentForBedrooms]);
+  }, [initializeUnitMix, property.ZIP_CODE, getRentForBedrooms]);
 
   // Calculate annual gross income
   const calculateAnnualGross = useCallback((monthlyGross: number) => {
