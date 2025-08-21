@@ -308,12 +308,9 @@ jobs:
           fi
           echo "✅ Web .next directory found"
           
-          # Set environment variable - use EC2 public IP for external access
-          export NEXT_PUBLIC_API_URL=http://${{ secrets.EC2_HOST }}:3001
-          echo "Set NEXT_PUBLIC_API_URL: $NEXT_PUBLIC_API_URL"
-          
-          # Start web
-          nohup npm start > web.log 2>&1 &
+          # Start web with environment variable for EC2 deployment only
+          NEXT_PUBLIC_API_URL=http://${{ secrets.EC2_HOST }}:3001 nohup npm start > web.log 2>&1 &
+          echo "Started web with NEXT_PUBLIC_API_URL=http://${{ secrets.EC2_HOST }}:3001"
           WEB_PID=$!
           echo "Web started with PID: $WEB_PID at $(date)"
           
