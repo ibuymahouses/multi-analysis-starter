@@ -117,26 +117,89 @@ jobs:
           # Build packages (independently)
           echo "Building shared package..."
           cd packages/shared
-          npm run build || {
-            echo "⚠️ Shared build failed, continuing..."
-          }
+          echo "Current directory: $(pwd)"
+          echo "Contents before build:"
+          ls -la
+          echo ""
+          echo "Running npm run build..."
+          if ! npm run build; then
+            echo "❌ Shared build failed - deployment cannot continue"
+            echo "Build error details:"
+            echo "Contents after failed build:"
+            ls -la
+            exit 1
+          fi
+          echo "✅ Shared build successful"
+          echo "Contents after build:"
+          ls -la
           cd ../..
           
           echo "Building API package..."
           cd packages/api
-          npm run build || {
-            echo "⚠️ API build failed, continuing..."
-          }
+          echo "Current directory: $(pwd)"
+          echo "Contents before build:"
+          ls -la
+          echo ""
+          echo "Running npm run build..."
+          if ! npm run build; then
+            echo "❌ API build failed - deployment cannot continue"
+            echo "Build error details:"
+            echo "Contents after failed build:"
+            ls -la
+            echo ""
+            if [ -d "dist" ]; then
+              echo "dist directory exists but may be incomplete:"
+              ls -la dist/
+            else
+              echo "dist directory does not exist"
+            fi
+            exit 1
+          fi
+          echo "✅ API build successful"
+          echo "Contents after build:"
+          ls -la
+          if [ -d "dist" ]; then
+            echo "dist directory contents:"
+            ls -la dist/
+          fi
           cd ../..
           
           echo "Building web package..."
           cd packages/web
-          npm run build || {
-            echo "⚠️ Web build failed, continuing..."
-          }
+          echo "Current directory: $(pwd)"
+          echo "Contents before build:"
+          ls -la
+          echo ""
+          echo "Running npm run build..."
+          if ! npm run build; then
+            echo "❌ Web build failed - deployment cannot continue"
+            echo "Build error details:"
+            echo "Contents after failed build:"
+            ls -la
+            exit 1
+          fi
+          echo "✅ Web build successful"
+          echo "Contents after build:"
+          ls -la
+          if [ -d ".next" ]; then
+            echo ".next directory contents:"
+            ls -la .next/
+          fi
           cd ../..
           
           echo "✅ Build process complete"
+          
+          # Verify build outputs exist
+          echo "Verifying build outputs..."
+          if [ ! -d "packages/api/dist" ]; then
+            echo "❌ API dist directory not found - build verification failed"
+            exit 1
+          fi
+          if [ ! -d "packages/web/.next" ]; then
+            echo "❌ Web .next directory not found - build verification failed"
+            exit 1
+          fi
+          echo "✅ Build verification complete"
           
     - name: Phase 4 - Process Management
       uses: appleboy/ssh-action@v1.0.3
@@ -204,6 +267,14 @@ jobs:
           echo "API directory: $(pwd)"
           echo "API package.json exists: $([ -f package.json ] && echo 'YES' || echo 'NO')"
           
+          # Check if dist directory exists
+          if [ ! -d "dist" ]; then
+            echo "❌ API dist directory not found - cannot start API"
+            echo "Build verification failed. Check Phase 3 logs for build errors."
+            exit 1
+          fi
+          echo "✅ API dist directory found"
+          
           # Start API
           nohup npm start > api.log 2>&1 &
           API_PID=$!
@@ -225,6 +296,14 @@ jobs:
           cd packages/web
           echo "Web directory: $(pwd)"
           echo "Web package.json exists: $([ -f package.json ] && echo 'YES' || echo 'NO')"
+          
+          # Check if .next directory exists (Next.js build output)
+          if [ ! -d ".next" ]; then
+            echo "❌ Web .next directory not found - cannot start web server"
+            echo "Build verification failed. Check Phase 3 logs for build errors."
+            exit 1
+          fi
+          echo "✅ Web .next directory found"
           
           # Set environment variable
           export NEXT_PUBLIC_API_URL=http://localhost:3001
