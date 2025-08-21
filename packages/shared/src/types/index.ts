@@ -19,6 +19,7 @@ export type {
   OperatingExpenses,
   PropertyFilters,
   PropertySort,
+  CompPropertySort,
 } from './property';
 
 export type {

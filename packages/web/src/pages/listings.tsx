@@ -11,6 +11,8 @@ import { AssumptionsDialog } from "@/components/ui/assumptions-dialog";
 import Header from '@/components/header';
 import { ValidationModal } from '@/components/ui/validation-modal';
 import { validateDataCompleteness, validateDataQuality, quickValidation } from '@/lib/data-validation';
+import { useListings } from '@/hooks';
+import { Property, PropertyFilters } from '@multi-analysis/shared';
 import { API_ENDPOINTS } from '@/lib/config';
 
 type Row = {
@@ -57,22 +59,56 @@ type SortDirection = 'asc' | 'desc';
 export default function ListingsPage() {
   const router = useRouter();
   const [mode, setMode] = useState<'below' | 'avg' | 'agg'>('avg');
-  const [priceMin, setPriceMin] = useState<string>('');
-  const [priceMax, setPriceMax] = useState<string>('');
-  const [unitsMin, setUnitsMin] = useState<string>('');
-  const [unitsMax, setUnitsMax] = useState<string>('');
-  const [onePercentRule, setOnePercentRule] = useState<boolean>(false);
-  const [rows, setRows] = useState<Row[]>([]);
-  const [meta, setMeta] = useState<Meta | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [sortField, setSortField] = useState<SortField>('LIST_NO');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const [searchInfo, setSearchInfo] = useState<string>('');
-  const [searchFilters, setSearchFilters] = useState<{
-    mls?: string;
-    town?: string;
-    radius?: string;
-  }>({});
+  // Use the new useListings hook for data management
+  const {
+    listings,
+    meta,
+    loading,
+    error,
+    filters,
+    updateFilters,
+    sort,
+    updateSort,
+    searchInfo,
+    setSearchInfo,
+    searchFilters,
+    updateSearchFilters,
+    fetchListings,
+    clearFilters: clearAllFilters
+  } = useListings({
+    autoLoad: true,
+    initialFilters: {
+      priceMin: undefined,
+      priceMax: undefined,
+      unitsMin: undefined,
+      unitsMax: undefined,
+      onePercentRule: false
+    },
+    initialSort: { field: 'LIST_NO', direction: 'asc' }
+  });
+  
+  // Convert listings to the expected Row format
+  const rows = React.useMemo(() => {
+    return listings.map(listing => ({
+      LIST_NO: listing.LIST_NO,
+      ADDRESS: listing.ADDRESS,
+      TOWN: listing.TOWN,
+      STATE: listing.STATE,
+      ZIP_CODE: listing.ZIP_CODE,
+      LIST_PRICE: listing.LIST_PRICE,
+      UNITS_FINAL: listing.UNITS_FINAL,
+      NO_UNITS_MF: listing.NO_UNITS_MF,
+      UNIT_MIX: listing.UNIT_MIX,
+      analysis: {
+        ...listing.analysis,
+        // Add missing properties with default values for backward compatibility
+        rentMode: 'avg',
+        marketTier: 'unknown',
+        county: '',
+        town: listing.TOWN
+      }
+    }));
+  }, [listings]);
   
      // New table filters state
    const [tableFilters, setTableFilters] = useState<Record<string, any>>({});
@@ -222,23 +258,16 @@ export default function ListingsPage() {
      }, undefined, { shallow: true });
    };
 
+  // Use the new hook-based data loading
   const load = async (m: 'below' | 'avg' | 'agg') => {
-    setLoading(true);
-    try {
-      const r = await fetch(API_ENDPOINTS.analyzeAll(m));
-      const d = await r.json();
-      setRows(d.rows || []);
-      
-      // Run data completeness check in background
-      setTimeout(() => {
-        const result = checkDataCompleteness(d.rows || []);
-        setValidationResult(result);
-      }, 100);
-    } catch (error) {
-      console.error('Failed to load listings:', error);
-    } finally {
-      setLoading(false);
-    }
+    // Update mode and trigger data refresh
+    setMode(m);
+    
+    // Run data completeness check in background
+    setTimeout(() => {
+      const result = checkDataCompleteness(rows);
+      setValidationResult(result);
+    }, 100);
   };
 
   // Navigate to specific property in table
@@ -342,12 +371,8 @@ export default function ListingsPage() {
      updateURL({ mode });
    }, [mode]);
 
-  useEffect(() => { 
-          fetch(API_ENDPOINTS.rentsMetadata)
-      .then(r => r.json())
-      .then(setMeta)
-      .catch(() => {});
-  }, []);
+  // Metadata is now loaded by the useListings hook
+  // No need for separate fetch call
 
      // Parse search parameters from URL and apply them
    useEffect(() => {
@@ -359,15 +384,15 @@ export default function ListingsPage() {
      }
      
      // Set price filters from URL if present
-     if (urlPriceMin) setPriceMin(urlPriceMin as string);
-     if (urlPriceMax) setPriceMax(urlPriceMax as string);
+     if (urlPriceMin) updateFilters({ priceMin: parseInt(urlPriceMin as string) });
+     if (urlPriceMax) updateFilters({ priceMax: parseInt(urlPriceMax as string) });
      
      // Set units filters from URL if present
-     if (urlUnitsMin) setUnitsMin(urlUnitsMin as string);
-     if (urlUnitsMax) setUnitsMax(urlUnitsMax as string);
+     if (urlUnitsMin) updateFilters({ unitsMin: parseInt(urlUnitsMin as string) });
+     if (urlUnitsMax) updateFilters({ unitsMax: parseInt(urlUnitsMax as string) });
      
      // Set one percent rule from URL if present
-     if (urlOnePercentRule) setOnePercentRule(urlOnePercentRule === 'true');
+     if (urlOnePercentRule) updateFilters({ onePercentRule: urlOnePercentRule === 'true' });
      
      // Set table filters from URL if present
      if (urlTableFilters) {
@@ -395,7 +420,7 @@ export default function ListingsPage() {
      }
      
      setSearchInfo(searchText);
-     setSearchFilters(filters);
+     updateSearchFilters(filters);
    }, [router.query]);
 
   // Apply all filters including search filters and table filters
@@ -414,14 +439,14 @@ export default function ListingsPage() {
          // Regular filters
     
     const price = r.LIST_PRICE || 0;
-    if (priceMin && price < parseInt(priceMin)) return false;
-    if (priceMax && price > parseInt(priceMax)) return false;
+    if (filters.priceMin && price < filters.priceMin) return false;
+    if (filters.priceMax && price > filters.priceMax) return false;
     
     const units = r.UNITS_FINAL || 0;
-    if (unitsMin && units < parseInt(unitsMin)) return false;
-    if (unitsMax && units > parseInt(unitsMax)) return false;
+    if (filters.unitsMin && units < filters.unitsMin) return false;
+    if (filters.unitsMax && units > filters.unitsMax) return false;
     
-    if (onePercentRule) {
+    if (filters.onePercentRule) {
       const monthlyRent = r.analysis?.monthlyGross || 0;
       const listPrice = r.LIST_PRICE || 0;
       if (monthlyRent < listPrice * 0.01) return false;
@@ -520,7 +545,7 @@ export default function ListingsPage() {
   const sortedRows = [...filtered].sort((a, b) => {
     let aValue: any, bValue: any;
     
-    switch (sortField) {
+    switch (sort.field) {
       case 'LIST_NO':
         aValue = a.LIST_NO;
         bValue = b.LIST_NO;
@@ -574,33 +599,28 @@ export default function ListingsPage() {
     // Handle string comparison
     if (typeof aValue === 'string' && typeof bValue === 'string') {
       const comparison = aValue.localeCompare(bValue);
-      return sortDirection === 'asc' ? comparison : -comparison;
+      return sort.direction === 'asc' ? comparison : -comparison;
     }
 
     // Handle number comparison
     if (typeof aValue === 'number' && typeof bValue === 'number') {
-      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      return sort.direction === 'asc' ? aValue - bValue : bValue - aValue;
     }
 
     return 0;
   });
 
   const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    if (sort.field === field) {
+      updateSort({ direction: sort.direction === 'asc' ? 'desc' : 'asc' });
     } else {
-      setSortField(field as SortField);
-      setSortDirection('asc');
+      updateSort({ field: field as SortField, direction: 'asc' });
     }
   };
 
      // Clear all filters
    const clearFilters = () => {
-     setPriceMin('');
-     setPriceMax('');
-     setUnitsMin('');
-     setUnitsMax('');
-     setOnePercentRule(false);
+     clearAllFilters();
      setTableFilters({});
      // Don't clear search filters - those come from URL
      
@@ -616,7 +636,7 @@ export default function ListingsPage() {
    };
 
      // Check if any filters are active
-   const hasActiveFilters = priceMin || priceMax || unitsMin || unitsMax || onePercentRule || Object.values(tableFilters).some(f => {
+   const hasActiveFilters = filters.priceMin || filters.priceMax || filters.unitsMin || filters.unitsMax || filters.onePercentRule || Object.values(tableFilters).some(f => {
     if (Array.isArray(f)) {
       return f.length > 0;
     } else if (typeof f === 'string') {
@@ -864,10 +884,10 @@ export default function ListingsPage() {
             {!loading && (
               <div className="text-xs text-muted-foreground mt-1">
                 Showing {sortedRows.length} of {rows.length} listings • {selectedRows.length} of {rows.length} selected
-                {(sortField !== 'LIST_NO' || hasActiveFilters) && (
+                {(sort.field !== 'LIST_NO' || hasActiveFilters) && (
                   <>
-                    {sortField !== 'LIST_NO' && (
-                      <span> • Sorted by {sortField} ({sortDirection})</span>
+                    {sort.field !== 'LIST_NO' && (
+                      <span> • Sorted by {sort.field} ({sort.direction})</span>
                     )}
                     {hasActiveFilters && (
                       <span> • Filters applied</span>
@@ -918,20 +938,22 @@ export default function ListingsPage() {
                                  <Input
                  type="number"
                  placeholder="Min"
-                 value={priceMin}
-                 onChange={(e) => {
-                   setPriceMin(e.target.value);
-                   updateURL({ priceMin: e.target.value });
-                 }}
+                                   value={filters.priceMin?.toString() || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    updateFilters({ priceMin: value ? parseInt(value) : undefined });
+                    updateURL({ priceMin: value });
+                  }}
                />
                  <Input
                  type="number"
                  placeholder="Max"
-                 value={priceMax}
-                 onChange={(e) => {
-                   setPriceMax(e.target.value);
-                   updateURL({ priceMax: e.target.value });
-                 }}
+                                   value={filters.priceMax?.toString() || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    updateFilters({ priceMax: value ? parseInt(value) : undefined });
+                    updateURL({ priceMax: value });
+                  }}
                />
             </div>
           </div>
@@ -942,20 +964,22 @@ export default function ListingsPage() {
                                  <Input
                  type="number"
                  placeholder="Min"
-                 value={unitsMin}
-                 onChange={(e) => {
-                   setUnitsMin(e.target.value);
-                   updateURL({ unitsMin: e.target.value });
-                 }}
+                                   value={filters.unitsMin?.toString() || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    updateFilters({ unitsMin: value ? parseInt(value) : undefined });
+                    updateURL({ unitsMin: value });
+                  }}
                />
                  <Input
                  type="number"
                  placeholder="Max"
-                 value={unitsMax}
-                 onChange={(e) => {
-                   setUnitsMax(e.target.value);
-                   updateURL({ unitsMax: e.target.value });
-                 }}
+                                   value={filters.unitsMax?.toString() || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    updateFilters({ unitsMax: value ? parseInt(value) : undefined });
+                    updateURL({ unitsMax: value });
+                  }}
                />
             </div>
           </div>
@@ -964,11 +988,11 @@ export default function ListingsPage() {
               <label className="flex items-center gap-2 text-sm font-medium">
                              <input
                  type="checkbox"
-                 checked={onePercentRule}
-                 onChange={(e) => {
-                   setOnePercentRule(e.target.checked);
-                   updateURL({ onePercentRule: e.target.checked });
-                 }}
+                                 checked={filters.onePercentRule || false}
+                onChange={(e) => {
+                  updateFilters({ onePercentRule: e.target.checked });
+                  updateURL({ onePercentRule: e.target.checked });
+                }}
                    className="rounded"
                />
               1% Rule Only
@@ -1002,8 +1026,8 @@ export default function ListingsPage() {
             <ExcelStyleTable
               columns={columns}
               data={tableData}
-              sortField={sortField}
-              sortDirection={sortDirection}
+              sortField={sort.field}
+              sortDirection={sort.direction}
               onSort={handleSort}
                            filters={tableFilters}
                onFilterChange={(field, value) => {

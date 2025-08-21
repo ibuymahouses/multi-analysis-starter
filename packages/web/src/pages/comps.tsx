@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ExcelStyleTable } from "@/components/ui/excel-style-table";
 import Header from '@/components/header';
+import { useComps } from '@/hooks';
+import { CompProperty, PropertyFilters } from '@multi-analysis/shared';
 import { API_ENDPOINTS } from '@/lib/config';
 
 type Row = {
@@ -55,22 +57,66 @@ type SortDirection = 'asc' | 'desc';
 
 export default function CompsPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<'below' | 'avg' | 'agg'>('avg');
-  const [priceMin, setPriceMin] = useState<string>('');
-  const [priceMax, setPriceMax] = useState<string>('');
-  const [unitsMin, setUnitsMin] = useState<string>('');
-  const [unitsMax, setUnitsMax] = useState<string>('');
-  const [rows, setRows] = useState<Row[]>([]);
-  const [meta, setMeta] = useState<Meta | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [sortField, setSortField] = useState<SortField>('SALE_DATE');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [searchInfo, setSearchInfo] = useState<string>('');
-  const [searchFilters, setSearchFilters] = useState<{
-    mls?: string;
-    town?: string;
-    radius?: string;
-  }>({});
+  
+  // Use the new useComps hook for data management
+  const {
+    comps,
+    meta,
+    loading,
+    error,
+    filters,
+    updateFilters,
+    sort,
+    updateSort,
+    searchInfo,
+    setSearchInfo,
+    searchFilters,
+    updateSearchFilters,
+    mode,
+    updateMode,
+    clearFilters: clearAllFilters
+  } = useComps({
+    autoLoad: true,
+    initialFilters: {
+      priceMin: undefined,
+      priceMax: undefined,
+      unitsMin: undefined,
+      unitsMax: undefined
+    },
+    initialSort: { field: 'SALE_DATE', direction: 'desc' },
+    mode: 'avg'
+  });
+  
+  // Convert comps to the expected Row format for backward compatibility
+  const rows = React.useMemo(() => {
+    return comps.map(comp => ({
+      LIST_NO: comp.LIST_NO,
+      ADDRESS: comp.ADDRESS,
+      TOWN: comp.TOWN,
+      STATE: comp.STATE,
+      ZIP_CODE: comp.ZIP_CODE,
+      LIST_PRICE: comp.LIST_PRICE,
+      SALE_PRICE: comp.SALE_PRICE || 0,
+      SALE_DATE: comp.SALE_DATE || '',
+      UNITS_FINAL: comp.UNITS_FINAL,
+      NO_UNITS_MF: comp.NO_UNITS_MF,
+      UNIT_MIX: comp.UNIT_MIX,
+      analysis: {
+        rentMode: 'avg',
+        monthlyGross: comp.RENTAL_DATA?.avg_rent || 0,
+        annualGross: (comp.RENTAL_DATA?.avg_rent || 0) * 12,
+        opex: 0,
+        noi: comp.RENTAL_DATA?.total_rent || 0,
+        loanSized: 0,
+        annualDebtService: 0,
+        dscr: 0,
+        capAtAsk: comp.RENTAL_DATA?.total_rent && comp.LIST_PRICE ? (comp.RENTAL_DATA.total_rent * 12) / comp.LIST_PRICE : 0,
+        marketTier: 'unknown',
+        county: '',
+        town: comp.TOWN
+      }
+    }));
+  }, [comps]);
   
   // Table filters state
   const [tableFilters, setTableFilters] = useState<Record<string, any>>({});
@@ -81,120 +127,18 @@ export default function CompsPage() {
   // Selected rows state
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
 
-  // Load data
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(API_ENDPOINTS.analyzeComps(mode));
-        const result = await response.json();
-        
-        if (result.rows) {
-          setRows(result.rows);
-          setMeta({
-            lastUpdated: new Date().toISOString(),
-            source: 'Sold Properties (Comps)',
-            description: 'Properties sold in the past 6 months'
-          });
-        }
-      } catch (error) {
-        console.error('Failed to load comps data:', error);
-        setSearchInfo('Error loading data');
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Data is now loaded by the useComps hook
+  // No need for separate useEffect
 
-    loadData();
-  }, [mode]);
-
-  // Filter and sort data
-  const filteredAndSortedData = React.useMemo(() => {
-    let filtered = rows;
-
-    // Apply price filters
-    if (priceMin) {
-      filtered = filtered.filter(row => row.SALE_PRICE && row.SALE_PRICE >= parseInt(priceMin));
-    }
-    if (priceMax) {
-      filtered = filtered.filter(row => row.SALE_PRICE && row.SALE_PRICE <= parseInt(priceMax));
-    }
-
-    // Apply unit filters
-    if (unitsMin) {
-      filtered = filtered.filter(row => row.UNITS_FINAL && row.UNITS_FINAL >= parseInt(unitsMin));
-    }
-    if (unitsMax) {
-      filtered = filtered.filter(row => row.UNITS_FINAL && row.UNITS_FINAL <= parseInt(unitsMax));
-    }
-
-    // Apply search filters
-    if (searchFilters.mls) {
-      filtered = filtered.filter(row => 
-        row.LIST_NO.toLowerCase().includes(searchFilters.mls!.toLowerCase())
-      );
-    }
-    if (searchFilters.town) {
-      filtered = filtered.filter(row => 
-        row.TOWN.toLowerCase().includes(searchFilters.town!.toLowerCase())
-      );
-    }
-
-    // Sort data
-    filtered.sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
-
-      if (sortField === 'pricePerUnit') {
-        aValue = (a.SALE_PRICE && a.UNITS_FINAL && a.UNITS_FINAL > 0) ? a.SALE_PRICE / a.UNITS_FINAL : 0;
-        bValue = (b.SALE_PRICE && b.UNITS_FINAL && b.UNITS_FINAL > 0) ? b.SALE_PRICE / b.UNITS_FINAL : 0;
-      } else if (sortField === 'pricePerBedroom') {
-        const aBedrooms = a.UNIT_MIX?.reduce((sum, unit) => sum + (unit.bedrooms * unit.count), 0) || 0;
-        const bBedrooms = b.UNIT_MIX?.reduce((sum, unit) => sum + (unit.bedrooms * unit.count), 0) || 0;
-        aValue = (aBedrooms > 0 && a.SALE_PRICE) ? a.SALE_PRICE / aBedrooms : 0;
-        bValue = (bBedrooms > 0 && b.SALE_PRICE) ? b.SALE_PRICE / bBedrooms : 0;
-      } else if (sortField === 'monthlyGross') {
-        aValue = a.analysis?.monthlyGross || 0;
-        bValue = b.analysis?.monthlyGross || 0;
-      } else if (sortField === 'noi') {
-        aValue = a.analysis?.noi || 0;
-        bValue = b.analysis?.noi || 0;
-      } else if (sortField === 'capAtAsk') {
-        aValue = a.analysis?.capAtAsk || 0;
-        bValue = b.analysis?.capAtAsk || 0;
-      } else if (sortField === 'dscr') {
-        aValue = a.analysis?.dscr || 0;
-        bValue = b.analysis?.dscr || 0;
-      } else if (sortField.startsWith('analysis.')) {
-        const field = sortField.replace('analysis.', '') as keyof typeof a.analysis;
-        aValue = a.analysis?.[field] || 0;
-        bValue = b.analysis?.[field] || 0;
-      } else {
-        // Safe indexing for direct Row properties
-        aValue = (a as any)[sortField];
-        bValue = (b as any)[sortField];
-      }
-
-      if (typeof aValue === 'string') {
-        aValue = aValue.toLowerCase();
-        bValue = bValue.toLowerCase();
-      }
-
-      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-    return filtered;
-  }, [rows, priceMin, priceMax, unitsMin, unitsMax, searchFilters, sortField, sortDirection]);
+  // Data is now filtered and sorted by the useComps hook
+  // No need for separate filtering logic
 
   const handleSort = (field: string) => {
     const sortFieldTyped = field as SortField;
-    if (sortField === sortFieldTyped) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    if (sort.field === sortFieldTyped) {
+      updateSort({ direction: sort.direction === 'asc' ? 'desc' : 'asc' });
     } else {
-      setSortField(sortFieldTyped);
-      setSortDirection('asc');
+      updateSort({ field: sortFieldTyped, direction: 'asc' });
     }
   };
 
@@ -203,10 +147,10 @@ export default function CompsPage() {
   };
 
   const handleSelectAll = () => {
-    if (selectedRows.length === filteredAndSortedData.length) {
+    if (selectedRows.length === rows.length) {
       setSelectedRows([]);
     } else {
-      setSelectedRows(filteredAndSortedData.map((_, index) => index));
+      setSelectedRows(rows.map((_, index) => index));
     }
   };
 
@@ -323,8 +267,11 @@ export default function CompsPage() {
                 <Input
                   type="number"
                   placeholder="Min sale price"
-                  value={priceMin}
-                  onChange={(e) => setPriceMin(e.target.value)}
+                  value={filters.priceMin?.toString() || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    updateFilters({ priceMin: value ? parseInt(value) : undefined });
+                  }}
                 />
               </div>
               <div>
@@ -334,8 +281,11 @@ export default function CompsPage() {
                 <Input
                   type="number"
                   placeholder="Max sale price"
-                  value={priceMax}
-                  onChange={(e) => setPriceMax(e.target.value)}
+                  value={filters.priceMax?.toString() || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    updateFilters({ priceMax: value ? parseInt(value) : undefined });
+                  }}
                 />
               </div>
               <div>
@@ -345,8 +295,11 @@ export default function CompsPage() {
                 <Input
                   type="number"
                   placeholder="Min units"
-                  value={unitsMin}
-                  onChange={(e) => setUnitsMin(e.target.value)}
+                  value={filters.unitsMin?.toString() || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    updateFilters({ unitsMin: value ? parseInt(value) : undefined });
+                  }}
                 />
               </div>
               <div>
@@ -356,8 +309,11 @@ export default function CompsPage() {
                 <Input
                   type="number"
                   placeholder="Max units"
-                  value={unitsMax}
-                  onChange={(e) => setUnitsMax(e.target.value)}
+                  value={filters.unitsMax?.toString() || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    updateFilters({ unitsMax: value ? parseInt(value) : undefined });
+                  }}
                 />
               </div>
             </div>
@@ -368,7 +324,7 @@ export default function CompsPage() {
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Badge variant="secondary">
-              {filteredAndSortedData.length} properties
+              {rows.length} properties
             </Badge>
             {meta && (
               <span className="text-sm text-gray-500">
@@ -379,7 +335,7 @@ export default function CompsPage() {
           
           <div className="flex items-center space-x-2">
             <span className="text-sm text-gray-600">Rent Mode:</span>
-            <Select value={mode} onValueChange={(value: 'below' | 'avg' | 'agg') => setMode(value)}>
+            <Select value={mode} onValueChange={(value: 'below' | 'avg' | 'agg') => updateMode(value)}>
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -402,10 +358,10 @@ export default function CompsPage() {
               </div>
             ) : (
               <ExcelStyleTable
-                data={filteredAndSortedData}
+                data={rows}
                 columns={columns}
-                sortField={sortField}
-                sortDirection={sortDirection}
+                                  sortField={sort.field}
+                  sortDirection={sort.direction}
                 onSort={handleSort}
                 onRowSelect={handleRowSelect}
                 filters={tableFilters}

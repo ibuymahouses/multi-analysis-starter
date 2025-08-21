@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { API_ENDPOINTS } from '@/lib/config';
+import { useRentalRates } from '@/hooks';
 
 interface RentalData {
   zip: string;
@@ -13,32 +13,17 @@ interface RentalData {
 }
 
 export default function RentalRatesPage() {
-  const [rentalData, setRentalData] = useState<RentalData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedCounty, setSelectedCounty] = useState<string>('all');
-
-  useEffect(() => {
-    const loadRentalData = async () => {
-      try {
-        const response = await fetch(API_ENDPOINTS.rents);
-        const data = await response.json();
-        setRentalData(data.rents || []);
-      } catch (error) {
-        console.error('Failed to load rental data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadRentalData();
-  }, []);
-
-  // Get unique counties
-  const counties = Array.from(new Set(rentalData.map(item => item.county))).sort();
-
-  // Filter data
-  const filteredData = rentalData.filter(item => {
-    if (selectedCounty !== 'all' && item.county !== selectedCounty) return false;
-    return true;
+  // Use the new useRentalRates hook for data management
+  const {
+    rentalData,
+    loading,
+    error,
+    selectedCounty,
+    counties,
+    filteredData,
+    updateSelectedCounty
+  } = useRentalRates({
+    autoLoad: true
   });
 
 
@@ -78,7 +63,7 @@ export default function RentalRatesPage() {
           <label className="block text-sm font-medium mb-1">County:</label>
           <select 
             value={selectedCounty} 
-            onChange={(e) => setSelectedCounty(e.target.value)}
+            onChange={(e) => updateSelectedCounty(e.target.value)}
             className="border rounded px-3 py-1"
           >
             <option value="all">All Counties</option>

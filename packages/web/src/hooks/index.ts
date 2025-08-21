@@ -6,6 +6,8 @@
 // Business logic hooks
 export { usePropertyAnalysis } from './usePropertyAnalysis';
 export { useListings } from './useListings';
+export { useComps } from './useComps';
+export { useRentalRates } from './useRentalRates';
 
 // Form handling hooks
 export { 
@@ -26,5 +28,7 @@ export {
 // Re-export commonly used hooks for convenience
 export type { UsePropertyAnalysisOptions } from './usePropertyAnalysis';
 export type { UseListingsOptions } from './useListings';
+export type { UseCompsOptions } from './useComps';
+export type { UseRentalRatesOptions } from './useRentalRates';
 export type { UseFormInputOptions } from './useFormInput';
 export type { UseUndoRedoOptions } from './useUndoRedo';

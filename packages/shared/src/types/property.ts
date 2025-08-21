@@ -105,3 +105,8 @@ export interface PropertySort {
   field: keyof Property | 'pricePerUnit' | 'pricePerBedroom' | 'monthlyGross' | 'noi' | 'capAtAsk' | 'dscr';
   direction: 'asc' | 'desc';
 }
+
+export interface CompPropertySort {
+  field: keyof CompProperty | 'pricePerUnit' | 'pricePerBedroom' | 'monthlyGross' | 'noi' | 'capAtAsk' | 'dscr';
+  direction: 'asc' | 'desc';
+}
