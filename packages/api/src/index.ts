@@ -1,9 +1,10 @@
 import express from 'express';
 import cors from 'cors';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { DataService } from './services/data-service.js';
+import { DatabaseService, getDatabaseConfig } from './services/database.js';
+import { DataMigrationService } from './services/data-migration.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -16,113 +17,39 @@ app.use(express.json());
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    dataFiles: {
-      listings: loadListings().listings.length,
-      rents: loadRentsComprehensive().rents.length,
-      overrides: Object.keys(loadOverrides()).length
-    }
+  dataService.getDataStats().then(stats => {
+    res.json({ 
+      status: 'healthy', 
+      timestamp: new Date().toISOString(),
+      dataSource: dataService.getDataSourceStatus(),
+      dataStats: stats
+    });
+  }).catch(error => {
+    res.status(500).json({ 
+      status: 'error', 
+      timestamp: new Date().toISOString(),
+      error: error.message 
+    });
   });
 });
 
-// Data loading functions
-function loadListings() {
-  const dataPaths = [
-    join(__dirname, '../../../data/listings.json'),
-    join(__dirname, '../../data/listings.json'),
-    join(process.cwd(), 'data/listings.json')
-  ];
+// Initialize data service
+const dataService = new DataService();
 
-  for (const path of dataPaths) {
-    try {
-      const data = readFileSync(path, 'utf8');
-      return JSON.parse(data);
-    } catch (e) {
-      // Continue to next path
-    }
+// Initialize database service if configured
+let dbService: DatabaseService | null = null;
+let migrationService: DataMigrationService | null = null;
+
+try {
+  if (process.env.DB_HOST && process.env.DB_PASSWORD) {
+    dbService = DatabaseService.getInstance(getDatabaseConfig());
+    migrationService = new DataMigrationService(dbService);
+    console.log('✅ Database service initialized');
+  } else {
+    console.log('ℹ️ Database not configured, using file-based data');
   }
-  
-  console.error('Could not find listings.json in any expected location');
-  return { listings: [] };
-}
-
-function loadRentsComprehensive() {
-  const dataPaths = [
-    join(__dirname, '../../../data/bha-rents-comprehensive.json'),
-    join(__dirname, '../../data/bha-rents-comprehensive.json'),
-    join(process.cwd(), 'data/bha-rents-comprehensive.json')
-  ];
-
-  for (const path of dataPaths) {
-    try {
-      const data = readFileSync(path, 'utf8');
-      const json = JSON.parse(data);
-      
-      // Process the data into a Map for efficient lookup
-      const map = new Map(); // zip -> { rents:{'0'..'5'}, marketTier, county, town }
-      for (const row of json.rents || []) {
-        map.set(String(row.zip).trim(), {
-          rents: row.rents || {},
-          marketTier: row.marketTier || 'unknown',
-          county: row.county || '',
-          town: row.town || ''
-        });
-      }
-      
-      return { 
-        rents: json.rents || [], 
-        map: map,
-        metadata: json.metadata || null
-      };
-    } catch (e) {
-      // Continue to next path
-    }
-  }
-  
-  console.error('Could not find bha-rents-comprehensive.json in any expected location');
-  return { rents: [], map: new Map(), metadata: null };
-}
-
-function loadOverrides() {
-  const dataPaths = [
-    join(__dirname, '../../../data/overrides.json'),
-    join(__dirname, '../../data/overrides.json'),
-    join(process.cwd(), 'data/overrides.json')
-  ];
-
-  for (const path of dataPaths) {
-    try {
-      const data = readFileSync(path, 'utf8');
-      return JSON.parse(data);
-    } catch (e) {
-      // Continue to next path
-    }
-  }
-  
-  console.error('Could not find overrides.json in any expected location');
-  return {};
-}
-
-function loadComps() {
-  const dataPaths = [
-    join(__dirname, '../../../data/comps.json'),
-    join(__dirname, '../../data/comps.json'),
-    join(process.cwd(), 'data/comps.json')
-  ];
-
-  for (const path of dataPaths) {
-    try {
-      const data = readFileSync(path, 'utf8');
-      return JSON.parse(data);
-    } catch (e) {
-      // Continue to next path
-    }
-  }
-  
-  console.error('Could not find comps.json in any expected location');
-  return { listings: [] };
+} catch (error) {
+  console.warn('⚠️ Database initialization failed, falling back to file-based data:', error.message);
 }
 
 // Analysis computation function
@@ -242,10 +169,47 @@ function computeAnalysis(listing: any, rentLookupByZip: Map<string, any>, rentMo
   };
 }
 
-// Routes
-app.get('/listings', (req, res) => {
+// Data migration endpoint
+app.post('/admin/migrate-data', async (req, res) => {
+  if (!migrationService) {
+    return res.status(503).json({ error: 'Database not configured for data migration' });
+  }
+
   try {
-    const { listings } = loadListings();
+    const results = await migrationService.migrateAllData();
+    const validation = await migrationService.validateMigration();
+    
+    res.json({ 
+      success: true, 
+      results, 
+      validation,
+      message: 'Data migration completed successfully'
+    });
+  } catch (error) {
+    console.error('Data migration failed:', error);
+    res.status(500).json({ error: 'Data migration failed', details: error.message });
+  }
+});
+
+// Data validation endpoint
+app.get('/admin/validate-data', async (req, res) => {
+  if (!migrationService) {
+    return res.status(503).json({ error: 'Database not configured for data validation' });
+  }
+
+  try {
+    const validation = await migrationService.validateMigration();
+    res.json(validation);
+  } catch (error) {
+    console.error('Data validation failed:', error);
+    res.status(500).json({ error: 'Data validation failed', details: error.message });
+  }
+});
+
+// Routes
+app.get('/listings', async (req, res) => {
+  try {
+    const { listings } = await dataService.getListings();
     res.json({ listings });
   } catch (e) {
     console.error(e);
@@ -253,20 +217,20 @@ app.get('/listings', (req, res) => {
   }
 });
 
-app.get('/property/:listNo', (req, res) => {
+app.get('/property/:listNo', async (req, res) => {
   try {
     const { listNo } = req.params;
-    const { listings } = loadListings();
+    const { listings } = await dataService.getListings();
     const listing = listings.find((l: any) => l.LIST_NO === listNo);
     
     if (!listing) {
       return res.status(404).json({ error: 'Property not found' });
     }
     
-    const overrides = loadOverrides();
+    const overrides = await dataService.getOverrides();
     const listingOverrides = overrides[listNo] || {};
     
-    const { map: rentMap } = loadRentsComprehensive();
+    const { map: rentMap } = await dataService.getRents();
     const analysis = computeAnalysis(listing, rentMap, 'avg', listingOverrides);
     
     res.json({
@@ -280,10 +244,10 @@ app.get('/property/:listNo', (req, res) => {
   }
 });
 
-app.get('/property/:listNo/overrides', (req, res) => {
+app.get('/property/:listNo/overrides', async (req, res) => {
   try {
     const { listNo } = req.params;
-    const overrides = loadOverrides();
+    const overrides = await dataService.getOverrides();
     const propertyOverrides = overrides[listNo] || {};
     res.json(propertyOverrides);
   } catch (e) {
@@ -307,22 +271,22 @@ app.post('/property/:listNo/overrides', (req, res) => {
   }
 });
 
-app.get('/analyze/:listNo', (req, res) => {
+app.get('/analyze/:listNo', async (req, res) => {
   try {
     const { listNo } = req.params;
     const { mode = 'avg' } = req.query;
     
-    const { listings } = loadListings();
+    const { listings } = await dataService.getListings();
     const listing = listings.find((l: any) => l.LIST_NO === listNo);
     
     if (!listing) {
       return res.status(404).json({ error: 'Property not found' });
     }
     
-    const overrides = loadOverrides();
+    const overrides = await dataService.getOverrides();
     const listingOverrides = overrides[listNo] || {};
     
-    const { map: rentMap } = loadRentsComprehensive();
+    const { map: rentMap } = await dataService.getRents();
     const analysis = computeAnalysis(listing, rentMap, mode as string, listingOverrides);
     
     res.json({ listing, analysis });
@@ -332,19 +296,19 @@ app.get('/analyze/:listNo', (req, res) => {
   }
 });
 
-app.get('/rents', (req, res) => {
+app.get('/rents', async (req, res) => {
   try {
-    const { rents } = loadRentsComprehensive();
+    const { rents } = await dataService.getRents();
     res.json({ rents });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Failed to load rents' });
   }
-});
+ });
 
-app.get('/rents/metadata', (req, res) => {
+app.get('/rents/metadata', async (req, res) => {
   try {
-    const { rents } = loadRentsComprehensive();
+    const { rents } = await dataService.getRents();
     const metadata = {
       totalZips: rents.length,
       lastUpdated: new Date().toISOString(),
@@ -358,9 +322,9 @@ app.get('/rents/metadata', (req, res) => {
 });
 
 // Comps endpoint
-app.get('/comps', (req, res) => {
+app.get('/comps', async (req, res) => {
   try {
-    const { listings } = loadComps();
+    const { listings } = await dataService.getComps();
     res.json({ listings });
   } catch (e) {
     console.error(e);
@@ -369,12 +333,12 @@ app.get('/comps', (req, res) => {
 });
 
 // Analyze all comps endpoint
-app.get('/analyze-comps', (req, res) => {
+app.get('/analyze-comps', async (req, res) => {
   try {
     const { mode = 'avg' } = req.query;
-    const { listings } = loadComps();
-    const { map: rentMap } = loadRentsComprehensive();
-    const overrides = loadOverrides();
+    const { listings } = await dataService.getComps();
+    const { map: rentMap } = await dataService.getRents();
+    const overrides = await dataService.getOverrides();
     
     const rows = listings.map((listing: any) => {
       const listingOverrides = overrides[listing.LIST_NO] || {};
@@ -393,12 +357,12 @@ app.get('/analyze-comps', (req, res) => {
 });
 
 // Analyze all listings endpoint
-app.get('/analyze-all', (req, res) => {
+app.get('/analyze-all', async (req, res) => {
   try {
     const { mode = 'avg' } = req.query;
-    const { listings } = loadListings();
-    const { map: rentMap } = loadRentsComprehensive();
-    const overrides = loadOverrides();
+    const { listings } = await dataService.getListings();
+    const { map: rentMap } = await dataService.getRents();
+    const overrides = await dataService.getOverrides();
     
     const rows = listings.map((listing: any) => {
       const listingOverrides = overrides[listing.LIST_NO] || {};
@@ -417,12 +381,12 @@ app.get('/analyze-all', (req, res) => {
 });
 
 // Export endpoint
-app.get('/export/analyzed.csv', (req, res) => {
+app.get('/export/analyzed.csv', async (req, res) => {
   try {
     const { mode = 'avg' } = req.query;
-    const { listings } = loadListings();
-    const { map: rentMap } = loadRentsComprehensive();
-    const overrides = loadOverrides();
+    const { listings } = await dataService.getListings();
+    const { map: rentMap } = await dataService.getRents();
+    const overrides = await dataService.getOverrides();
     
     const rows = listings.map((listing: any) => {
       const listingOverrides = overrides[listing.LIST_NO] || {};
@@ -487,7 +451,7 @@ app.post('/analyze/unlisted', (req, res) => {
     };
 
     const mode = 'avg'; // Default to average rent mode
-    const { map: rentMap } = loadRentsComprehensive();
+    const { map: rentMap } = await dataService.getRents();
     
     // Apply overrides if provided
     let analysisOverrides = null;
@@ -509,8 +473,27 @@ app.post('/analyze/unlisted', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 API server running on port ${PORT}`);
-  console.log(`📊 Data loaded: ${loadListings().listings.length} listings, ${loadRentsComprehensive().rents.length} rent records`);
+  
+  // Log data source status
+  const dataSourceStatus = dataService.getDataSourceStatus();
+  console.log(`📊 Data source: ${dataSourceStatus.useDatabase ? 'Database' : 'Local files'}`);
+  
+  if (dataSourceStatus.useDatabase) {
+    console.log(`🔗 Database: ${dataSourceStatus.databaseConnected ? 'Connected' : 'Failed to connect'}`);
+  }
+  
+  // Log initial data stats
+  try {
+    const stats = await dataService.getDataStats();
+    console.log(`📊 Data loaded: ${stats.listings} listings, ${stats.rents} rent records, ${stats.comps} comps, ${stats.overrides} overrides`);
+  } catch (error) {
+    console.warn('⚠️ Could not load initial data stats:', error.message);
+  }
+  
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  if (migrationService) {
+    console.log(`🔄 Data migration: POST http://localhost:${PORT}/admin/migrate-data`);
+  }
 });
