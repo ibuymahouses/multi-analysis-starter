@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { DatabaseService } from './database';
+import { DatabaseService, getDatabaseConfig } from './database';
 
 export interface RentData {
   zip: string;
@@ -63,19 +63,65 @@ export interface PropertyOverride {
 export class DataService {
   private dbService: DatabaseService | null = null;
   private useDatabase: boolean = false;
+  private initialized: boolean = false;
 
   constructor() {
     // Check if we should use database
     this.useDatabase = !!(process.env.DB_HOST && process.env.DB_PASSWORD);
+    console.log(`DataService: Database mode ${this.useDatabase ? 'enabled' : 'disabled'}`);
+  }
+
+  /**
+   * Initialize the data service with database connection
+   * This method should be called after construction to ensure proper initialization
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) {
+      return; // Already initialized
+    }
+
     if (this.useDatabase) {
       try {
-        const { getDatabaseConfig, DatabaseService } = require('./database');
+        console.log('DataService: Initializing database connection...');
         this.dbService = DatabaseService.getInstance(getDatabaseConfig());
+        
+        // Test the connection
+        const isHealthy = await this.dbService.healthCheck();
+        if (!isHealthy) {
+          throw new Error('Database health check failed');
+        }
+        
+        console.log('DataService: Database connection established successfully');
+        this.initialized = true;
       } catch (error) {
-        console.warn('Database connection failed, falling back to file-based data:', error.message);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.warn(`DataService: Database initialization failed, falling back to file-based data: ${errorMessage}`);
         this.useDatabase = false;
+        this.dbService = null;
+        this.initialized = true; // Mark as initialized even with fallback
       }
+    } else {
+      console.log('DataService: Using file-based data (no database configuration)');
+      this.initialized = true;
     }
+  }
+
+  /**
+   * Check if the service is properly initialized
+   */
+  isInitialized(): boolean {
+    return this.initialized;
+  }
+
+  /**
+   * Get the current data source status
+   */
+  getDataSourceStatus(): { useDatabase: boolean; databaseConnected: boolean; initialized: boolean } {
+    return {
+      useDatabase: this.useDatabase,
+      databaseConnected: this.dbService ? true : false,
+      initialized: this.initialized
+    };
   }
 
   // ============================================================================
@@ -363,16 +409,7 @@ export class DataService {
     return {};
   }
 
-  // ============================================================================
-  // DATA SOURCE STATUS
-  // ============================================================================
 
-  getDataSourceStatus(): { useDatabase: boolean; databaseConnected: boolean } {
-    return {
-      useDatabase: this.useDatabase,
-      databaseConnected: this.dbService ? true : false
-    };
-  }
 
   async getDataStats(): Promise<{
     rents: number;

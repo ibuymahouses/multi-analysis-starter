@@ -45,10 +45,11 @@ export class DatabaseService {
     return await this.pool.connect();
   }
 
-  public async query<T = any>(text: string, params?: any[]): Promise<QueryResult<T>> {
+  public async query<T extends Record<string, any> = any>(text: string, params?: any[]): Promise<QueryResult<T>> {
     const client = await this.getClient();
     try {
-      return await client.query(text, params);
+      const result = await client.query(text, params);
+      return result as QueryResult<T>;
     } finally {
       client.release();
     }

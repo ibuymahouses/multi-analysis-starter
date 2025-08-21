@@ -22,6 +22,16 @@ export class DataMigrationService {
     this.dataService = new DataService();
   }
 
+  /**
+   * Safely extract error message from any error type
+   */
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return String(error);
+  }
+
   // ============================================================================
   // MIGRATE ALL DATA FROM FILES TO DATABASE
   // ============================================================================
@@ -128,7 +138,7 @@ export class DataMigrationService {
               result.recordsAdded++;
             }
           } catch (error) {
-            result.errors.push(`Failed to migrate rent for zip ${rent.zip}: ${error.message}`);
+            result.errors.push(`Failed to migrate rent for zip ${rent.zip}: ${this.getErrorMessage(error)}`);
           }
         }
       });
@@ -138,7 +148,7 @@ export class DataMigrationService {
       console.log(`✅ Rent migration completed: ${result.recordsAdded} added, ${result.recordsUpdated} updated`);
       
     } catch (error) {
-      result.errors.push(`Rent migration failed: ${error.message}`);
+      result.errors.push(`Rent migration failed: ${this.getErrorMessage(error)}`);
       console.error('❌ Rent migration failed:', error);
     }
 
@@ -211,7 +221,7 @@ export class DataMigrationService {
               result.recordsAdded++;
             }
           } catch (error) {
-            result.errors.push(`Failed to migrate listing ${listing.LIST_NO}: ${error.message}`);
+            result.errors.push(`Failed to migrate listing ${listing.LIST_NO}: ${this.getErrorMessage(error)}`);
           }
         }
       });
@@ -221,7 +231,7 @@ export class DataMigrationService {
       console.log(`✅ Listing migration completed: ${result.recordsAdded} added, ${result.recordsUpdated} updated`);
       
     } catch (error) {
-      result.errors.push(`Listing migration failed: ${error.message}`);
+      result.errors.push(`Listing migration failed: ${this.getErrorMessage(error)}`);
       console.error('❌ Listing migration failed:', error);
     }
 
@@ -294,7 +304,7 @@ export class DataMigrationService {
               result.recordsAdded++;
             }
           } catch (error) {
-            result.errors.push(`Failed to migrate comp ${comp.LIST_NO}: ${error.message}`);
+            result.errors.push(`Failed to migrate comp ${comp.LIST_NO}: ${this.getErrorMessage(error)}`);
           }
         }
       });
@@ -304,7 +314,7 @@ export class DataMigrationService {
       console.log(`✅ Comps migration completed: ${result.recordsAdded} added, ${result.recordsUpdated} updated`);
       
     } catch (error) {
-      result.errors.push(`Comps migration failed: ${error.message}`);
+      result.errors.push(`Comps migration failed: ${this.getErrorMessage(error)}`);
       console.error('❌ Comps migration failed:', error);
     }
 
@@ -375,7 +385,7 @@ export class DataMigrationService {
               result.recordsAdded++;
             }
           } catch (error) {
-            result.errors.push(`Failed to migrate override for ${listNo}: ${error.message}`);
+            result.errors.push(`Failed to migrate override for ${listNo}: ${this.getErrorMessage(error)}`);
           }
         }
       });
@@ -385,7 +395,7 @@ export class DataMigrationService {
       console.log(`✅ Overrides migration completed: ${result.recordsAdded} added, ${result.recordsUpdated} updated`);
       
     } catch (error) {
-      result.errors.push(`Overrides migration failed: ${error.message}`);
+      result.errors.push(`Overrides migration failed: ${this.getErrorMessage(error)}`);
       console.error('❌ Overrides migration failed:', error);
     }
 
@@ -417,8 +427,9 @@ export class DataMigrationService {
               await client.query(statement);
             } catch (error) {
               // Ignore errors for statements that might already exist
-              if (!error.message.includes('already exists') && !error.message.includes('duplicate key')) {
-                console.warn(`Schema statement warning: ${error.message}`);
+              const errorMessage = this.getErrorMessage(error);
+              if (!errorMessage.includes('already exists') && !errorMessage.includes('duplicate key')) {
+                console.warn(`Schema statement warning: ${errorMessage}`);
               }
             }
           }

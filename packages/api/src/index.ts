@@ -17,6 +17,14 @@ app.use(express.json());
 
 // Health check endpoint
 app.get('/health', (req, res) => {
+  if (!dataService || !dataService.isInitialized()) {
+    return res.status(503).json({ 
+      status: 'initializing', 
+      timestamp: new Date().toISOString(),
+      message: 'Data service is still initializing'
+    });
+  }
+  
   dataService.getDataStats().then(stats => {
     res.json({ 
       status: 'healthy', 
@@ -33,24 +41,43 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Initialize data service
-const dataService = new DataService();
-
-// Initialize database service if configured
+// Initialize services
+let dataService: DataService;
 let dbService: DatabaseService | null = null;
 let migrationService: DataMigrationService | null = null;
 
-try {
-  if (process.env.DB_HOST && process.env.DB_PASSWORD) {
-    dbService = DatabaseService.getInstance(getDatabaseConfig());
-    migrationService = new DataMigrationService(dbService);
-    console.log('✅ Database service initialized');
-  } else {
-    console.log('ℹ️ Database not configured, using file-based data');
+// Initialize services asynchronously
+async function initializeServices() {
+  try {
+    console.log('🚀 Initializing application services...');
+    
+    // Initialize data service
+    dataService = new DataService();
+    await dataService.initialize();
+    
+    // Initialize database service if configured
+    if (process.env.DB_HOST && process.env.DB_PASSWORD) {
+      try {
+        dbService = DatabaseService.getInstance(getDatabaseConfig());
+        migrationService = new DataMigrationService(dbService);
+        console.log('✅ Database service initialized');
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.warn('⚠️ Database service initialization failed:', errorMessage);
+      }
+    } else {
+      console.log('ℹ️ Database not configured, using file-based data');
+    }
+    
+    console.log('✅ All services initialized successfully');
+  } catch (error) {
+    console.error('❌ Service initialization failed:', error);
+    // Continue with file-based fallback
   }
-} catch (error) {
-  console.warn('⚠️ Database initialization failed, falling back to file-based data:', error.message);
 }
+
+// Start initialization
+initializeServices();
 
 // Analysis computation function
 function computeAnalysis(listing: any, rentLookupByZip: Map<string, any>, rentMode: string = 'avg', overrides: any = null) {
@@ -187,7 +214,8 @@ app.post('/admin/migrate-data', async (req, res) => {
     });
   } catch (error) {
     console.error('Data migration failed:', error);
-    res.status(500).json({ error: 'Data migration failed', details: error.message });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: 'Data migration failed', details: errorMessage });
   }
 });
 
@@ -202,7 +230,8 @@ app.get('/admin/validate-data', async (req, res) => {
     res.json(validation);
   } catch (error) {
     console.error('Data validation failed:', error);
-    res.status(500).json({ error: 'Data validation failed', details: error.message });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: 'Data validation failed', details: errorMessage });
   }
 });
 
@@ -421,7 +450,7 @@ app.get('/export/analyzed.csv', async (req, res) => {
 });
 
 // NEW: Analyze unlisted property (no MLS number)
-app.post('/analyze/unlisted', (req, res) => {
+app.post('/analyze/unlisted', async (req, res) => {
   try {
     const {
       ADDRESS,
@@ -489,7 +518,8 @@ app.listen(PORT, async () => {
     const stats = await dataService.getDataStats();
     console.log(`📊 Data loaded: ${stats.listings} listings, ${stats.rents} rent records, ${stats.comps} comps, ${stats.overrides} overrides`);
   } catch (error) {
-    console.warn('⚠️ Could not load initial data stats:', error.message);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.warn('⚠️ Could not load initial data stats:', errorMessage);
   }
   
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
