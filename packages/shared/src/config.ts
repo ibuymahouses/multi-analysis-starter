@@ -86,10 +86,16 @@ export function getConfig(): AppConfig {
     
     if (typeof window !== 'undefined') {
       const origin = window.location.origin;
+      // Handle local development
       if (origin.includes('localhost:3000')) {
         return origin.replace(':3000', ':3001');
       }
-      return origin;
+      // Handle EC2 deployment - API is on port 3001
+      if (origin.includes('52.44.168.76:3000')) {
+        return origin.replace(':3000', ':3001');
+      }
+      // For other production deployments, assume API is on same host but port 3001
+      return origin.replace(':3000', ':3001');
     }
     
     return 'http://localhost:3001';
