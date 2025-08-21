@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { existsSync, readdirSync } from 'fs';
 import { DataService } from './services/data-service.js';
 // TEMPORARILY DISABLE DATABASE IMPORTS - TESTING ONLY
 // import { DatabaseService, getDatabaseConfig } from './services/database.js';
@@ -510,8 +511,15 @@ const PORT = process.env.PORT || 3001;
 // Start the server after services are initialized
 async function startServer() {
   try {
+    console.log('🚀 Starting server initialization...');
+    console.log('📁 Current working directory:', process.cwd());
+    console.log('📁 Data directory check:', existsSync('./data') ? 'EXISTS' : 'NOT FOUND');
+    console.log('📁 Data directory contents:', readdirSync('./data').join(', '));
+    
     // Wait for services to initialize
+    console.log('🔧 Initializing services...');
     await initializeServices();
+    console.log('✅ Services initialized, starting HTTP server...');
     
     // Start the server
     app.listen(PORT, async () => {
@@ -527,6 +535,7 @@ async function startServer() {
       
       // Log initial data stats
       try {
+        console.log('📊 Loading initial data stats...');
         const stats = await dataService.getDataStats();
         console.log(`📊 Data loaded: ${stats.listings} listings, ${stats.rents} rent records, ${stats.comps} comps, ${stats.overrides} overrides`);
       } catch (error) {
