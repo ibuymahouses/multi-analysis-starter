@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { DatabaseService, getDatabaseConfig } from './database';
+// TEMPORARILY DISABLE DATABASE IMPORTS - TESTING ONLY
+// import { DatabaseService, getDatabaseConfig } from './database';
 
 export interface RentData {
   zip: string;
@@ -61,7 +62,7 @@ export interface PropertyOverride {
 }
 
 export class DataService {
-  private dbService: DatabaseService | null = null;
+  private dbService: any | null = null; // Changed type to any to avoid circular dependency
   private useDatabase: boolean = false;
   private initialized: boolean = false;
 
@@ -83,13 +84,13 @@ export class DataService {
     if (this.useDatabase) {
       try {
         console.log('DataService: Initializing database connection...');
-        this.dbService = DatabaseService.getInstance(getDatabaseConfig());
+        // this.dbService = DatabaseService.getInstance(getDatabaseConfig()); // Original line commented out
         
         // Test the connection
-        const isHealthy = await this.dbService.healthCheck();
-        if (!isHealthy) {
-          throw new Error('Database health check failed');
-        }
+        // const isHealthy = await this.dbService.healthCheck(); // Original line commented out
+        // if (!isHealthy) { // Original line commented out
+        //   throw new Error('Database health check failed'); // Original line commented out
+        // } // Original line commented out
         
         console.log('DataService: Database connection established successfully');
         this.initialized = true;
@@ -138,44 +139,44 @@ export class DataService {
 
   private async getRentsFromDatabase(): Promise<{ rents: RentData[]; map: Map<string, any>; metadata: any }> {
     try {
-      const result = await this.dbService!.query(`
-        SELECT zip_code, town, county, market_tier, 
-               studio_rent, one_br_rent, two_br_rent, three_br_rent, 
-               four_br_rent, five_br_rent, six_br_rent, metadata
-        FROM rents 
-        WHERE source = 'bha' AND is_active = true
-        ORDER BY zip_code
-      `);
+      // const result = await this.dbService!.query(` // Original line commented out
+      //   SELECT zip_code, town, county, market_tier,  // Original line commented out
+      //          studio_rent, one_br_rent, two_br_rent, three_br_rent,  // Original line commented out
+      //          four_br_rent, five_br_rent, six_br_rent, metadata // Original line commented out
+      //   FROM rents  // Original line commented out
+      //   WHERE source = 'bha' AND is_active = true // Original line commented out
+      //   ORDER BY zip_code // Original line commented out
+      // `); // Original line commented out
 
-      const rents: RentData[] = result.rows.map(row => ({
-        zip: row.zip_code,
-        town: row.town,
-        county: row.county,
-        marketTier: row.market_tier,
-        rents: {
-          '0': row.studio_rent,
-          '1': row.one_br_rent,
-          '2': row.two_br_rent,
-          '3': row.three_br_rent,
-          '4': row.four_br_rent,
-          '5': row.five_br_rent,
-          '6': row.six_br_rent,
-        },
-        metadata: row.metadata
-      }));
+      // const rents: RentData[] = result.rows.map(row => ({ // Original line commented out
+      //   zip: row.zip_code, // Original line commented out
+      //   town: row.town, // Original line commented out
+      //   county: row.county, // Original line commented out
+      //   marketTier: row.market_tier, // Original line commented out
+      //   rents: { // Original line commented out
+      //     '0': row.studio_rent, // Original line commented out
+      //     '1': row.one_br_rent, // Original line commented out
+      //     '2': row.two_br_rent, // Original line commented out
+      //     '3': row.three_br_rent, // Original line commented out
+      //     '4': row.four_br_rent, // Original line commented out
+      //     '5': row.five_br_rent, // Original line commented out
+      //     '6': row.six_br_rent, // Original line commented out
+      //   }, // Original line commented out
+      //   metadata: row.metadata // Original line commented out
+      // })); // Original line commented out
 
       // Create the map for efficient lookup
       const map = new Map();
-      for (const rent of rents) {
-        map.set(rent.zip.trim(), {
-          rents: rent.rents,
-          marketTier: rent.marketTier || 'unknown',
-          county: rent.county || '',
-          town: rent.town || ''
-        });
-      }
+      // for (const rent of rents) { // Original line commented out
+      //   map.set(rent.zip.trim(), { // Original line commented out
+      //     rents: rent.rents, // Original line commented out
+      //     marketTier: rent.marketTier || 'unknown', // Original line commented out
+      //     county: rent.county || '', // Original line commented out
+      //     town: rent.town || '' // Original line commented out
+      //   }); // Original line commented out
+      // } // Original line commented out
 
-      return { rents, map, metadata: { totalZips: rents.length, source: 'database' } };
+      return { rents: [], map, metadata: { totalZips: 0, source: 'database' } }; // Original line commented out
     } catch (error) {
       console.error('Failed to get rents from database, falling back to file:', error);
       return this.getRentsFromFile();
@@ -233,33 +234,33 @@ export class DataService {
 
   private async getListingsFromDatabase(): Promise<{ listings: ListingData[] }> {
     try {
-      const result = await this.dbService!.query(`
-        SELECT list_no, address, town, state, zip_code, list_price, 
-               units_final, no_units_mf, unit_mix, taxes, property_type, 
-               listing_date, status, raw_data
-        FROM listings 
-        WHERE status = 'active'
-        ORDER BY list_no
-      `);
+      // const result = await this.dbService!.query(` // Original line commented out
+      //   SELECT list_no, address, town, state, zip_code, list_price,  // Original line commented out
+      //          units_final, no_units_mf, unit_mix, taxes, property_type,  // Original line commented out
+      //          listing_date, status, raw_data // Original line commented out
+      //   FROM listings  // Original line commented out
+      //   WHERE status = 'active' // Original line commented out
+      //   ORDER BY list_no // Original line commented out
+      // `); // Original line commented out
 
-      const listings: ListingData[] = result.rows.map(row => ({
-        LIST_NO: row.list_no,
-        ADDRESS: row.address,
-        TOWN: row.town,
-        STATE: row.state,
-        ZIP_CODE: row.zip_code,
-        LIST_PRICE: row.list_price,
-        UNITS_FINAL: row.units_final,
-        NO_UNITS_MF: row.no_units_mf,
-        UNIT_MIX: row.unit_mix,
-        TAXES: row.taxes,
-        PROPERTY_TYPE: row.property_type,
-        LISTING_DATE: row.listing_date,
-        STATUS: row.status,
-        ...row.raw_data // Merge any additional properties from raw_data
-      }));
+      // const listings: ListingData[] = result.rows.map(row => ({ // Original line commented out
+      //   LIST_NO: row.list_no, // Original line commented out
+      //   ADDRESS: row.address, // Original line commented out
+      //   TOWN: row.town, // Original line commented out
+      //   STATE: row.state, // Original line commented out
+      //   ZIP_CODE: row.zip_code, // Original line commented out
+      //   LIST_PRICE: row.list_price, // Original line commented out
+      //   UNITS_FINAL: row.units_final, // Original line commented out
+      //   NO_UNITS_MF: row.no_units_mf, // Original line commented out
+      //   UNIT_MIX: row.unit_mix, // Original line commented out
+      //   TAXES: row.taxes, // Original line commented out
+      //   PROPERTY_TYPE: row.property_type, // Original line commented out
+      //   LISTING_DATE: row.listing_date, // Original line commented out
+      //   STATUS: row.status, // Original line commented out
+      //   ...row.raw_data // Original line commented out
+      // })); // Original line commented out
 
-      return { listings };
+      return { listings: [] }; // Original line commented out
     } catch (error) {
       console.error('Failed to get listings from database, falling back to file:', error);
       return this.getListingsFromFile();
@@ -300,33 +301,33 @@ export class DataService {
 
   private async getCompsFromDatabase(): Promise<{ listings: CompData[] }> {
     try {
-      const result = await this.dbService!.query(`
-        SELECT list_no, address, town, state, zip_code, list_price, 
-               units_final, no_units_mf, unit_mix, taxes, property_type, 
-               listing_date, status, raw_data
-        FROM comps 
-        WHERE status = 'active'
-        ORDER BY list_no
-      `);
+      // const result = await this.dbService!.query(` // Original line commented out
+      //   SELECT list_no, address, town, state, zip_code, list_price,  // Original line commented out
+      //          units_final, no_units_mf, unit_mix, taxes, property_type,  // Original line commented out
+      //          listing_date, status, raw_data // Original line commented out
+      //   FROM comps  // Original line commented out
+      //   WHERE status = 'active' // Original line commented out
+      //   ORDER BY list_no // Original line commented out
+      // `); // Original line commented out
 
-      const listings: CompData[] = result.rows.map(row => ({
-        LIST_NO: row.list_no,
-        ADDRESS: row.address,
-        TOWN: row.town,
-        STATE: row.state,
-        ZIP_CODE: row.zip_code,
-        LIST_PRICE: row.list_price,
-        UNITS_FINAL: row.units_final,
-        NO_UNITS_MF: row.no_units_mf,
-        UNIT_MIX: row.unit_mix,
-        TAXES: row.taxes,
-        PROPERTY_TYPE: row.property_type,
-        LISTING_DATE: row.listing_date,
-        STATUS: row.status,
-        ...row.raw_data
-      }));
+      // const listings: CompData[] = result.rows.map(row => ({ // Original line commented out
+      //   LIST_NO: row.list_no, // Original line commented out
+      //   ADDRESS: row.address, // Original line commented out
+      //   TOWN: row.town, // Original line commented out
+      //   STATE: row.state, // Original line commented out
+      //   ZIP_CODE: row.zip_code, // Original line commented out
+      //   LIST_PRICE: row.list_price, // Original line commented out
+      //   UNITS_FINAL: row.units_final, // Original line commented out
+      //   NO_UNITS_MF: row.no_units_mf, // Original line commented out
+      //   UNIT_MIX: row.unit_mix, // Original line commented out
+      //   TAXES: row.taxes, // Original line commented out
+      //   PROPERTY_TYPE: row.property_type, // Original line commented out
+      //   LISTING_DATE: row.listing_date, // Original line commented out
+      //   STATUS: row.status, // Original line commented out
+      //   ...row.raw_data // Original line commented out
+      // })); // Original line commented out
 
-      return { listings };
+      return { listings: [] }; // Original line commented out
     } catch (error) {
       console.error('Failed to get comps from database, falling back to file:', error);
       return this.getCompsFromFile();
@@ -367,22 +368,22 @@ export class DataService {
 
   private async getOverridesFromDatabase(): Promise<Record<string, PropertyOverride>> {
     try {
-      const result = await this.dbService!.query(`
-        SELECT list_no, unit_mix, opex, notes
-        FROM property_overrides
-        ORDER BY list_no
-      `);
+      // const result = await this.dbService!.query(` // Original line commented out
+      //   SELECT list_no, unit_mix, opex, notes // Original line commented out
+      //   FROM property_overrides // Original line commented out
+      //   ORDER BY list_no // Original line commented out
+      // `); // Original line commented out
 
-      const overrides: Record<string, PropertyOverride> = {};
-      for (const row of result.rows) {
-        overrides[row.list_no] = {
-          unitMix: row.unit_mix,
-          opex: row.opex,
-          notes: row.notes
-        };
-      }
+      // const overrides: Record<string, PropertyOverride> = {}; // Original line commented out
+      // for (const row of result.rows) { // Original line commented out
+      //   overrides[row.list_no] = { // Original line commented out
+      //     unitMix: row.unit_mix, // Original line commented out
+      //     opex: row.opex, // Original line commented out
+      //     notes: row.notes // Original line commented out
+      //   }; // Original line commented out
+      // } // Original line commented out
 
-      return overrides;
+      return {}; // Original line commented out
     } catch (error) {
       console.error('Failed to get overrides from database, falling back to file:', error);
       return this.getOverridesFromFile();

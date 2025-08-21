@@ -3,11 +3,12 @@ import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { DataService } from './services/data-service.js';
-import { DatabaseService, getDatabaseConfig } from './services/database.js';
-import { DataMigrationService } from './services/data-migration.js';
+// TEMPORARILY DISABLE DATABASE IMPORTS - TESTING ONLY
+// import { DatabaseService, getDatabaseConfig } from './services/database.js';
+// import { DataMigrationService } from './services/data-migration.js';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = dirname(import.meta.url);
 
 const app = express();
 
@@ -43,8 +44,8 @@ app.get('/health', (req, res) => {
 
 // Initialize services
 let dataService: DataService;
-let dbService: DatabaseService | null = null;
-let migrationService: DataMigrationService | null = null;
+let dbService: any | null = null; // Changed type to any as DatabaseService and DataMigrationService are commented out
+let migrationService: any | null = null; // Changed type to any as DataMigrationService is commented out
 
 // Initialize services asynchronously
 async function initializeServices() {
@@ -55,6 +56,9 @@ async function initializeServices() {
     dataService = new DataService();
     await dataService.initialize();
     
+    // TEMPORARILY DISABLE DATABASE - TESTING ONLY
+    console.log('ℹ️ Database temporarily disabled for testing');
+    /*
     // Initialize database service if configured
     if (process.env.DB_HOST && process.env.DB_PASSWORD) {
       try {
@@ -68,6 +72,7 @@ async function initializeServices() {
     } else {
       console.log('ℹ️ Database not configured, using file-based data');
     }
+    */
     
     console.log('✅ All services initialized successfully');
   } catch (error) {
