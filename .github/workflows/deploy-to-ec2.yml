@@ -308,8 +308,8 @@ jobs:
           fi
           echo "✅ Web .next directory found"
           
-          # Set environment variable
-          export NEXT_PUBLIC_API_URL=http://localhost:3001
+          # Set environment variable - use EC2 public IP for external access
+          export NEXT_PUBLIC_API_URL=http://${{ secrets.EC2_HOST }}:3001
           echo "Set NEXT_PUBLIC_API_URL: $NEXT_PUBLIC_API_URL"
           
           # Start web
