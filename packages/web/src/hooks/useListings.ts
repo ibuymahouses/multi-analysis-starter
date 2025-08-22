@@ -11,6 +11,7 @@ export interface UseListingsOptions {
   initialFilters?: PropertyFilters;
   initialSort?: PropertySort;
   autoLoad?: boolean;
+  rentMode?: 'below' | 'avg' | 'agg';
 }
 
 export function useListings(options: UseListingsOptions = {}) {
@@ -27,6 +28,7 @@ export function useListings(options: UseListingsOptions = {}) {
     town?: string;
     radius?: string;
   }>({});
+  const [rentMode, setRentMode] = useState<'below' | 'avg' | 'agg'>(options.rentMode || 'avg');
 
   // Fetch listings data
   const fetchListings = useCallback(async () => {
@@ -34,13 +36,14 @@ export function useListings(options: UseListingsOptions = {}) {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(API_ENDPOINTS.listings);
+      // Use the analyze-all endpoint to get listings with analysis data
+      const response = await fetch(API_ENDPOINTS.analyzeAll(rentMode));
       if (!response.ok) {
         throw new Error(`Failed to fetch listings: ${response.statusText}`);
       }
       
       const data = await response.json();
-      setListings(data.listings || []);
+      setListings(data.rows || []);
       setMeta(data.meta || null);
     } catch (err) {
       console.error('Failed to load listings:', err);
@@ -48,7 +51,7 @@ export function useListings(options: UseListingsOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [rentMode]);
 
   // Load data on mount if autoLoad is enabled
   useEffect(() => {
@@ -72,6 +75,7 @@ export function useListings(options: UseListingsOptions = {}) {
       if (filters.town && !listing.TOWN.toLowerCase().includes(filters.town.toLowerCase())) return false;
       if (filters.state && listing.STATE !== filters.state) return false;
       if (filters.zipCode && listing.ZIP_CODE !== filters.zipCode) return false;
+      if (filters.county && listing.analysis?.county !== filters.county) return false;
       
       // One percent rule filter
       if (filters.onePercentRule) {
@@ -185,6 +189,11 @@ export function useListings(options: UseListingsOptions = {}) {
     setSearchFilters(prev => ({ ...prev, ...newSearchFilters }));
   }, []);
 
+  // Update rent mode and refetch data
+  const updateRentMode = useCallback((newRentMode: 'below' | 'avg' | 'agg') => {
+    setRentMode(newRentMode);
+  }, []);
+
   // Clear all filters
   const clearFilters = useCallback(() => {
     setFilters({});
@@ -203,6 +212,7 @@ export function useListings(options: UseListingsOptions = {}) {
     if (filters.town) activeFilters.push(`Town: ${filters.town}`);
     if (filters.state) activeFilters.push(`State: ${filters.state}`);
     if (filters.zipCode) activeFilters.push(`ZIP: ${filters.zipCode}`);
+    if (filters.county) activeFilters.push(`County: ${filters.county}`);
     if (filters.onePercentRule) activeFilters.push('1% Rule');
     
     return activeFilters;
@@ -218,12 +228,14 @@ export function useListings(options: UseListingsOptions = {}) {
     sort,
     searchInfo,
     searchFilters,
+    rentMode,
     
     // Actions
     fetchListings,
     updateFilters,
     updateSort,
     updateSearchFilters,
+    updateRentMode,
     setSearchInfo,
     clearFilters,
     

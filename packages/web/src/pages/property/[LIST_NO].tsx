@@ -978,8 +978,9 @@ export default function PropertyDetails() {
                           value={unit.bedrooms}
                           onChange={(e) => {
                             const newBedrooms = parseInt(e.target.value);
+                            const newRent = getRentForBedrooms(newBedrooms, property.ZIP_CODE);
                             const updatedUnitMix = currentUnitMix.map((u, i) => 
-                              i === index ? { ...u, bedrooms: newBedrooms } : u
+                              i === index ? { ...u, bedrooms: newBedrooms, rent: newRent } : u
                             );
                             updateOverrides({ unitMix: updatedUnitMix });
                           }}
@@ -1099,8 +1100,9 @@ export default function PropertyDetails() {
                               value={unit.bedrooms}
                               onChange={(e) => {
                                 const newBedrooms = parseInt(e.target.value);
+                                const newRent = getRentForBedrooms(newBedrooms, property.ZIP_CODE);
                                 const updatedUnitMix = currentUnitMix.map((u, i) => 
-                                  i === index ? { ...u, bedrooms: newBedrooms } : u
+                                  i === index ? { ...u, bedrooms: newBedrooms, rent: newRent } : u
                                 );
                                 updateOverrides({ unitMix: updatedUnitMix });
                               }}
@@ -1679,20 +1681,7 @@ export default function PropertyDetails() {
         }}>
           Key Metrics
         </div>
-        {/* Comp Range Info */}
-        {unitRangeLabel && (
-          <div style={{ 
-            background: '#e3f2fd', 
-            border: '1px solid #2196f3', 
-            borderTop: 'none',
-            padding: '8px 12px',
-            fontSize: '12px',
-            color: '#1976d2',
-            textAlign: 'center'
-          }}>
-            📊 Comp comparisons based on {unitRangeLabel} in {property.ZIP_CODE}
-          </div>
-        )}
+
         <div style={{ 
           border: '1px solid #ddd', 
           borderTop: 'none',
@@ -1931,12 +1920,20 @@ export default function PropertyDetails() {
                     maxWidth: '60%',
                     lineHeight: '1.2'
                   }}>
-                    <div>{formatCompComparison(
-                      compComparisons.pricePerBed.difference,
-                      compComparisons.pricePerBed.percentage,
-                      compComparisons.pricePerBed.compCount
-                    ).replace(' over comps', '').replace(' under comps', '')}</div>
-                    <div style={{ fontSize: '11px', marginTop: '2px' }}>
+                    <div 
+                      style={{ cursor: 'help' }}
+                      title={getCompTooltipText(compComparisons.pricePerBed.compCount, unitRangeLabel)}
+                    >
+                      {formatCompComparison(
+                        compComparisons.pricePerBed.difference,
+                        compComparisons.pricePerBed.percentage,
+                        compComparisons.pricePerBed.compCount
+                      ).replace(' over comps', '').replace(' under comps', '')}
+                    </div>
+                    <div 
+                      style={{ fontSize: '11px', marginTop: '2px', cursor: 'help' }}
+                      title={getCompTooltipText(compComparisons.pricePerBed.compCount, unitRangeLabel)}
+                    >
                       {compComparisons.pricePerBed.difference >= 0 ? 'over comps' : 'under comps'}
                     </div>
                   </div>
@@ -1990,12 +1987,20 @@ export default function PropertyDetails() {
                     maxWidth: '60%',
                     lineHeight: '1.2'
                   }}>
-                    <div>{formatCompComparison(
-                      compComparisons.pricePerUnit.difference,
-                      compComparisons.pricePerUnit.percentage,
-                      compComparisons.pricePerUnit.compCount
-                    ).replace(' over comps', '').replace(' under comps', '')}</div>
-                    <div style={{ fontSize: '11px', marginTop: '2px' }}>
+                    <div 
+                      style={{ cursor: 'help' }}
+                      title={getCompTooltipText(compComparisons.pricePerUnit.compCount, unitRangeLabel)}
+                    >
+                      {formatCompComparison(
+                        compComparisons.pricePerUnit.difference,
+                        compComparisons.pricePerUnit.percentage,
+                        compComparisons.pricePerUnit.compCount
+                      ).replace(' over comps', '').replace(' under comps', '')}
+                    </div>
+                    <div 
+                      style={{ fontSize: '11px', marginTop: '2px', cursor: 'help' }}
+                      title={getCompTooltipText(compComparisons.pricePerUnit.compCount, unitRangeLabel)}
+                    >
                       {compComparisons.pricePerUnit.difference >= 0 ? 'over comps' : 'under comps'}
                     </div>
                   </div>

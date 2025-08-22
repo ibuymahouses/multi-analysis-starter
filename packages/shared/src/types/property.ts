@@ -98,6 +98,7 @@ export interface PropertyFilters {
   town?: string;
   state?: string;
   zipCode?: string;
+  county?: string;
   onePercentRule?: boolean;
 }
 

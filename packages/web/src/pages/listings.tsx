@@ -58,7 +58,6 @@ type SortDirection = 'asc' | 'desc';
 
 export default function ListingsPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<'below' | 'avg' | 'agg'>('avg');
   // Use the new useListings hook for data management
   const {
     listings,
@@ -84,7 +83,8 @@ export default function ListingsPage() {
       unitsMax: undefined,
       onePercentRule: false
     },
-    initialSort: { field: 'LIST_NO', direction: 'asc' }
+    initialSort: { field: 'LIST_NO', direction: 'desc' },
+    rentMode: 'avg'
   });
   
   // Convert listings to the expected Row format
@@ -183,13 +183,6 @@ export default function ListingsPage() {
      const currentQuery = { ...router.query };
      
      // Update or remove filter parameters
-     if (newFilters.mode !== undefined) {
-       if (newFilters.mode === 'avg') {
-         delete currentQuery.mode;
-       } else {
-         currentQuery.mode = newFilters.mode;
-       }
-     }
      
      if (newFilters.priceMin !== undefined) {
        if (newFilters.priceMin === '') {
@@ -258,12 +251,8 @@ export default function ListingsPage() {
      }, undefined, { shallow: true });
    };
 
-  // Use the new hook-based data loading
-  const load = async (m: 'below' | 'avg' | 'agg') => {
-    // Update mode and trigger data refresh
-    setMode(m);
-    
-    // Run data completeness check in background
+  // Run data completeness check in background
+  const runDataCheck = () => {
     setTimeout(() => {
       const result = checkDataCompleteness(rows);
       setValidationResult(result);
@@ -367,21 +356,15 @@ export default function ListingsPage() {
   };
 
      useEffect(() => { 
-     load(mode); 
-     updateURL({ mode });
-   }, [mode]);
+     runDataCheck();
+   }, []);
 
   // Metadata is now loaded by the useListings hook
   // No need for separate fetch call
 
      // Parse search parameters from URL and apply them
    useEffect(() => {
-     const { mls, town, radius, mode: urlMode, priceMin: urlPriceMin, priceMax: urlPriceMax, unitsMin: urlUnitsMin, unitsMax: urlUnitsMax, onePercentRule: urlOnePercentRule, tableFilters: urlTableFilters } = router.query;
-     
-     // Set mode from URL if present
-     if (urlMode && ['below', 'avg', 'agg'].includes(urlMode as string)) {
-       setMode(urlMode as 'below' | 'avg' | 'agg');
-     }
+     const { mls, town, radius, priceMin: urlPriceMin, priceMax: urlPriceMax, unitsMin: urlUnitsMin, unitsMax: urlUnitsMax, onePercentRule: urlOnePercentRule, tableFilters: urlTableFilters } = router.query;
      
      // Set price filters from URL if present
      if (urlPriceMin) updateFilters({ priceMin: parseInt(urlPriceMin as string) });
@@ -393,6 +376,10 @@ export default function ListingsPage() {
      
      // Set one percent rule from URL if present
      if (urlOnePercentRule) updateFilters({ onePercentRule: urlOnePercentRule === 'true' });
+     
+     // Set county from URL if present
+     const { county: urlCounty } = router.query;
+     if (urlCounty) updateFilters({ county: urlCounty as string });
      
      // Set table filters from URL if present
      if (urlTableFilters) {
@@ -903,7 +890,7 @@ export default function ListingsPage() {
               onAssumptionsChange={setAssumptions}
             />
             <a 
-                              href={API_ENDPOINTS.export(mode)} 
+                              href={API_ENDPOINTS.export('avg')} 
               target="_blank" 
               rel="noreferrer"
             >
@@ -916,21 +903,30 @@ export default function ListingsPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Rent Mode</label>
-                             <Select value={mode} onValueChange={(value: any) => {
-                 setMode(value);
-                 updateURL({ mode: value });
-               }}>
+              <label className="text-sm font-medium">County</label>
+              <Select value={filters.county || 'all'} onValueChange={(value: any) => {
+                const county = value === 'all' ? undefined : value;
+                updateFilters({ county });
+                updateURL({ county: value === 'all' ? '' : value });
+              }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="below">Below Average (0.90×)</SelectItem>
-                  <SelectItem value="avg">Average (1.00×)</SelectItem>
-                  <SelectItem value="agg">Aggressive (1.10×)</SelectItem>
+                  <SelectItem value="all">All Counties</SelectItem>
+                  <SelectItem value="Barnstable">Barnstable</SelectItem>
+                  <SelectItem value="Bristol">Bristol</SelectItem>
+                  <SelectItem value="Dukes">Dukes</SelectItem>
+                  <SelectItem value="Essex">Essex</SelectItem>
+                  <SelectItem value="Hampshire">Hampshire</SelectItem>
+                  <SelectItem value="Middlesex">Middlesex</SelectItem>
+                  <SelectItem value="Nantucket">Nantucket</SelectItem>
+                  <SelectItem value="Norfolk">Norfolk</SelectItem>
+                  <SelectItem value="Plymouth">Plymouth</SelectItem>
+                  <SelectItem value="Unknown">Unknown</SelectItem>
                 </SelectContent>
               </Select>
-          </div>
+            </div>
           
             <div className="space-y-2">
               <label className="text-sm font-medium">Price Range</label>
