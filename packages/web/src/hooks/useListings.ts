@@ -73,10 +73,10 @@ export function useListings(options: UseListingsOptions = {}) {
       
       // Location filters
       if (filters.town && !listing.TOWN.toLowerCase().includes(filters.town.toLowerCase())) return false;
-      if (filters.state && listing.STATE !== filters.state) return false;
+            if (filters.state && listing.STATE !== filters.state) return false;
       if (filters.zipCode && listing.ZIP_CODE !== filters.zipCode) return false;
       if (filters.county && listing.analysis?.county !== filters.county) return false;
-      
+            
       // One percent rule filter
       if (filters.onePercentRule) {
         const monthlyGross = listing.analysis?.monthlyGross || 0;

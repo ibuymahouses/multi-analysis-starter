@@ -30,6 +30,9 @@ export interface PropertyAnalysis {
   annualDebtService: number;
   dscr: number;
   capAtAsk: number;
+  marketTier?: string;
+  county?: string;
+  town?: string;
 }
 
 export interface PropertyOverrides {
