@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useUndoRedo } from '../../lib/undo-redo-context';
 import { useKeyboardShortcuts } from '../../lib/use-keyboard-shortcuts';
 import { API_ENDPOINTS } from '../../lib/config';
+
 import { calculateCompComparisons, formatCompComparison, getCompTooltipText, getUnitRange } from '../../lib/comp-analysis';
 import { PercentageInput } from '../../components/ui/percentage-input';
 
@@ -339,7 +340,7 @@ export default function PropertyDetails() {
   const downPayment = property.overrides?.downPayment ?? 0.20;
   const interestRate = property.overrides?.interestRate ?? 0.07;
   const loanTerm = property.overrides?.loanTerm || 30;
-  const vacancy = property.overrides?.vacancy ?? 0.08; // Default to 8%
+  const vacancy = property.overrides?.vacancy ?? 0.02; // Default to 2%
   
   // Offer price - use override or default to list price
   const offerPrice = property.overrides?.offerPrice ?? property.LIST_PRICE;
@@ -347,8 +348,8 @@ export default function PropertyDetails() {
 
      // Dynamic OPEX defaults calculation function
      const calculateOpexDefaults = () => {
-       // 1. Vacancy defaults to 8%
-       const defaultVacancy = 0.08;
+       // 1. Vacancy defaults to 2%
+       const defaultVacancy = 0.02;
        
        // 2. Taxes: use TAXES value unless it's exactly $9,999, then use Purchase Price * 0.0015
        let defaultTaxes;

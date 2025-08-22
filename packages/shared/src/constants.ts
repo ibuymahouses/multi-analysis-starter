@@ -65,6 +65,7 @@ export const ANALYSIS_CONFIG = {
   CAP_RATE_THRESHOLD: 0.08, // 8%
   MIN_RENT_TO_PRICE_RATIO: 0.005, // 0.5%
   MAX_RENT_TO_PRICE_RATIO: 0.02, // 2%
+  DEFAULT_VACANCY_RATE: 0.02, // 2% default vacancy rate
 } as const;
 
 // Security Constants

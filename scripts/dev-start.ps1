@@ -8,9 +8,12 @@ function Test-Port {
     param([int]$Port)
     try {
         $connection = Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue
-        return $connection -ne $null
+        $result = $connection -ne $null
+        Write-Host "Port $Port check: $result" -ForegroundColor DarkGray
+        return $result
     }
     catch {
+        Write-Host "Port $Port check error: $($_.Exception.Message)" -ForegroundColor DarkGray
         return $false
     }
 }
@@ -33,12 +36,12 @@ function Stop-ProcessOnPort {
     }
 }
 
-# Function to wait for a port to be available
+# Function to wait for a port to be in use (server started)
 function Wait-ForPort {
     param([int]$Port, [int]$TimeoutSeconds = 30)
     $startTime = Get-Date
     while ((Get-Date) -lt $startTime.AddSeconds($TimeoutSeconds)) {
-        if (-not (Test-Port -Port $Port)) {
+        if (Test-Port -Port $Port) {
             return $true
         }
         Start-Sleep -Seconds 1
@@ -64,11 +67,12 @@ Write-Host ""
 
 # Start API server first
 Write-Host "Starting API server on port 3001..." -ForegroundColor Blue
-Start-Process -FilePath "npm" -ArgumentList "run", "dev" -WorkingDirectory "packages/api" -WindowStyle Minimized
+Start-Process -FilePath "npm" -ArgumentList "run", "dev" -WorkingDirectory "packages/api" -WindowStyle Hidden -PassThru
 $apiPid = $null
 
 # Wait for API to start
 Write-Host "Waiting for API server to start..." -ForegroundColor Yellow
+Start-Sleep -Seconds 3  # Give npm a moment to start
 if (Wait-ForPort -Port 3001 -TimeoutSeconds 30) {
     Write-Host "API server started successfully on port 3001" -ForegroundColor Green
 } else {
@@ -79,7 +83,7 @@ if (Wait-ForPort -Port 3001 -TimeoutSeconds 30) {
 
 # Start Web server
 Write-Host "Starting Web server on port 3000..." -ForegroundColor Blue
-Start-Process -FilePath "npm" -ArgumentList "run", "dev" -WorkingDirectory "packages/web" -WindowStyle Minimized
+Start-Process -FilePath "npm" -ArgumentList "run", "dev" -WorkingDirectory "packages/web" -WindowStyle Hidden -PassThru
 
 # Wait for Web to start
 Write-Host "Waiting for Web server to start..." -ForegroundColor Yellow

@@ -6,10 +6,11 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "powershell -ExecutionPolicy Bypass -File scripts/dev-start.ps1",
+    "dev": "cmd /c .\\scripts\\dev-start-simple.bat",
+    "dev:batch": "cmd /c .\\scripts\\dev-start.bat",
     "dev:api": "npm run dev --prefix packages/api",
     "dev:web": "npm run dev --prefix packages/web",
-    "dev:clean": "powershell -ExecutionPolicy Bypass -File scripts/dev-clean.ps1",
+    "dev:clean": "powershell -ExecutionPolicy Bypass -Command \"& 'scripts/dev-clean.ps1'\"",
     "build": "npm run build --prefix packages/shared && npm run build --prefix packages/api && npm run build --prefix packages/web",
     "start": "npm run start --prefix packages/api",
     "test": "npm run test --prefix packages/api && npm run test --prefix packages/web",
